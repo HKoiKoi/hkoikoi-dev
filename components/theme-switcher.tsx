@@ -29,8 +29,7 @@ const ThemeSwitcher = () => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size={"sm"}>
+      <DropdownMenuTrigger render={<Button variant="ghost" size={"sm"} />}>
           {theme === "light" ? (
             <Sun
               key="light"
@@ -50,7 +49,6 @@ const ThemeSwitcher = () => {
               className={"text-muted-foreground"}
             />
           )}
-        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-content" align="start">
         <DropdownMenuRadioGroup
