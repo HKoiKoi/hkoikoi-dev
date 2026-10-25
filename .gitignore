@@ -46,3 +46,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# shrimp task manager
+/shrimp_data
