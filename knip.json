@@ -5,7 +5,6 @@
     ".agents/**",
     "components/auth-button.tsx",
     "components/logout-button.tsx",
-    "components/theme-switcher.tsx",
     "lib/supabase/server.ts"
   ],
   "ignoreDependencies": ["@testing-library/user-event", "lucide-react"]
