@@ -186,23 +186,23 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: `data/` 배열 하나를 빈 배열로 바꿔도 타입 통과(빈 상태 UI는 Task 007에서 검증)
   - 테스트 결과: `npm run check` 통과. `data/education.ts`에서 `title` 제거 시 TS2741로 실패 후 원복 확인, `languages`를 빈 배열로 바꿔도 통과 후 원복. posts·스토리지 설계 표는 변경 없이 확정. `npm run knip`은 data·types 파일을 `knip.json` `ignore`에 임시 추가해 통과(Task 007에서 제거)
 
-### Phase 2: UI/UX 완성 (더미 데이터 활용)
+### Phase 2: UI/UX 완성 (더미 데이터 활용) ✅
 
 - **Task 006: 공통 UI 컴포넌트 및 디자인 기반 구축**
   - 관련 기능: F002, F003, F004, F005, F013
   - 관련 파일: `components/ui/{textarea,tabs,dialog,separator}.tsx`(CLI), `components/content/{page-header,empty-state,resume-entry-item,project-card,publication-item}.tsx`, `components/blog/{post-card,tag-badge,category-badge}.tsx`, `app/globals.css`
   - 수락 기준: PRD 지정 shadcn 컴포넌트(textarea, tabs, dialog, separator)가 CLI로 추가되고, 도메인 표시 컴포넌트가 라이트/다크·모바일 폭에서 깨지지 않음. `components/ui`는 수정하지 않고 래핑만 함
-  - [ ] `npx shadcn@latest add textarea tabs dialog separator` (폼 필드 구성용 `field`는 `forms-react-hook-form.md` 기준 필요 시 함께 추가)
-  - [ ] `PageHeader`(제목·설명), `EmptyState`(데이터 없음 안내) 공통 컴포넌트
-  - [ ] `ResumeEntryItem`(제목·부제·기간·설명·태그 배지·외부 링크 `target="_blank" rel="noreferrer"`), `ProjectCard`(기술 스택 배지·GitHub/데모 링크), `PublicationItem`
-  - [ ] `PostCard`(썸네일·제목·소개글·카테고리·태그·날짜, 썸네일 없을 때 대체 영역), `TagBadge`/`CategoryBadge`(블로그 목록 필터 링크)
-  - [ ] 날짜 표시 유틸 `lib/format-date.ts`(`ko-KR`, 고정 타임존 `Asia/Seoul`)와 단위 테스트
+  - [x] `npx shadcn@latest add textarea tabs dialog separator` (폼 필드 구성용 `field`는 `forms-react-hook-form.md` 기준 필요 시 함께 추가)
+  - [x] `PageHeader`(제목·설명), `EmptyState`(데이터 없음 안내) 공통 컴포넌트
+  - [x] `ResumeEntryItem`(제목·부제·기간·설명·태그 배지·외부 링크 `target="_blank" rel="noreferrer"`), `ProjectCard`(기술 스택 배지·GitHub/데모 링크), `PublicationItem`
+  - [x] `PostCard`(썸네일·제목·소개글·카테고리·태그·날짜, 썸네일 없을 때 대체 영역), `TagBadge`/`CategoryBadge`(블로그 목록 필터 링크)
+  - [x] 날짜 표시 유틸 `lib/format-date.ts`(`ko-KR`, 고정 타임존 `Asia/Seoul`)와 단위 테스트
   - 테스트 체크리스트:
     - 정상: `lib/format-date.test.ts` → ISO 문자열 입력 → `2026. 10. 25.` 형식 출력
     - 엣지: `lib/format-date.test.ts` → UTC 자정 직전 시각 입력 → 서울 기준 다음 날짜로 표시
     - 엣지: Playwright MCP → Task 007/008 페이지에서 다크 모드·375px로 카드 확인 → 텍스트 넘침·대비 문제 없음
     - 오류: (해당 없음, 표시 컴포넌트)
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-26 `npm run check` 통과(`lib/format-date.test.ts`의 정상·UTC 자정 직전 케이스 포함). shadcn 4종은 CLI로 추가했고 CLI가 잘못 생성한 `cn` import는 `@/lib/utils`로 수정. Playwright MCP 수동 확인(다크·375px)은 미수행
 
 - **Task 007: 메인·이력·프로젝트·논문 페이지 UI 완성**
   - 관련 기능: F001, F002, F003, F004, F005(메인 최신 글 영역), F013
@@ -222,7 +222,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: `lib/dummy/posts.ts`를 빈 배열로 바꾼 뒤 Playwright MCP → `/` → "아직 작성된 글이 없습니다" 안내
     - 엣지: Playwright MCP → `/languages` → 언어(제목)·시험·점수(부제)·취득일(기간) 형식 표시
     - 오류: 터미널 → `npm run build` → 정적 페이지가 동적 렌더링으로 분류되지 않음(빌드 로그의 라우트 표시 확인)
-  - 테스트 결과: 2026-10-26 `npm run check`(Vitest 21개)·`npm run knip`·`npm run build` 통과, 빌드 로그에서 `/`와 이력·프로젝트·논문 페이지가 정적(○)으로 표시. `npm run test:e2e` 24개 통과(메인 mailto·GitHub 링크, 바로가기 카드 9개와 `/education` 이동, 논문 연도 내림차순, 프로젝트 링크 `target=_blank`, 어학 형식). Playwright MCP 수동 확인(다크·375px, 더미 글 빈 배열 안내)은 미수행
+  - 테스트 결과: 2026-10-26 `npm run check`(Vitest 21개)·`npm run knip`·`npm run build` 통과, 빌드 로그에서 `/`와 이력·프로젝트·논문 페이지가 정적(○)으로 표시. `npm run test:e2e` 24개 통과(메인 mailto·GitHub 링크, 바로가기 카드 9개와 `/education` 이동, 논문 연도 내림차순, 프로젝트 링크 `target=_blank`, 어학 형식). Playwright MCP 수동 확인(2026-10-26): 다크·375px에서 `/`, 이력 6종, `/projects`, `/publications`, `/blog` 계열, not-found 등 14개 페이지 가로 넘침 없음(scrollWidth 375), `/` 스크린샷 육안 확인. `/`는 mailto·GitHub 링크, 바로가기 9개, `/education` 링크, 대표 프로젝트 카드 표시 확인, `/education`·`/languages` 항목·형식 표시 확인. `lib/dummy/posts.ts`를 임시로 빈 배열로 바꿔(원복·미커밋) `/`와 `/blog`에 "아직 작성된 글이 없습니다" 안내가 표시됨을 확인. `data/publications.ts`에 더미 논문 4건(2025 2건·2024·2023)을 추가해 `/publications`가 2025·2025·2024·2023·2022 내림차순이고 같은 해는 입력 순서 유지됨을 확인
 
 - **Task 008: 블로그 목록·상세 UI 완성**
   - 관련 기능: F005, F006, F013
@@ -241,18 +241,18 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → 초안 더미 글 슬러그로 직접 접속 → not-found 화면
     - 엣지: Playwright MCP → `/blog?tag=존재하지않는태그` → 빈 목록 안내와 필터 해제 링크
     - 엣지: Playwright MCP → `/blog?category=a&tag=b`(동시 지정) → 두 조건 AND로 적용
-  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build` 통과. 프로덕션 서버 curl 확인: `/blog` 발행 글 5건(초안 미노출), `?tag=nextjs` 3건, 카테고리+태그 AND, 없는 태그는 빈 목록 안내와 "필터 해제", 초안·없는 슬러그는 not-found 화면(Suspense 스트리밍이라 HTTP 상태는 200, `noindex`). `e2e/routes.spec.ts`에 한글 슬러그 상세와 초안·없는 슬러그 not-found 추가. Playwright MCP 수동 확인(다크·375px)은 미수행
+  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build` 통과. 프로덕션 서버 curl 확인: `/blog` 발행 글 5건(초안 미노출), `?tag=nextjs` 3건, 카테고리+태그 AND, 없는 태그는 빈 목록 안내와 "필터 해제", 초안·없는 슬러그는 not-found 화면(Suspense 스트리밍이라 HTTP 상태는 200, `noindex`). `e2e/routes.spec.ts`에 한글 슬러그 상세와 초안·없는 슬러그 not-found 추가. Playwright MCP 수동 확인(2026-10-26): `/blog` 발행 글 5건(초안 제목 미노출), 태그 클릭 → `/blog?tag=nextjs` 3건과 필터 배지, "필터 해제" 클릭 → `/blog` 복귀, 카드 클릭 → 한글 슬러그 상세(카테고리·태그 링크 확인), 카테고리 클릭 → `/blog?category=개발`, `?category=개발&tag=nextjs` AND 2건, `?tag=존재하지않는태그`와 `?category=a&tag=b`는 0건 안내와 "필터 해제"(`/blog`), `/blog/없는-글`·초안 슬러그 2종은 not-found(HTTP 200, noindex, 초안 제목 미노출). 다크·375px에서 `/blog` 계열 가로 넘침 없음, 스크린샷 육안 확인
 
 - **Task 009: 로그인·관리자 글 목록·글 편집기 UI 완성**
   - 관련 기능: F007(미리보기 자리), F008, F009(업로드 UI 자리), F010, F011, F012
   - 관련 파일: `app/auth/login/page.tsx`, `components/login-form.tsx`, `app/admin/layout.tsx`, `app/admin/posts/page.tsx`, `app/admin/posts/_components/{post-table,delete-post-dialog}.tsx`, `app/admin/posts/edit/page.tsx`, `app/admin/posts/edit/_components/post-editor.tsx`, `lib/posts/slugify.ts`
   - 수락 기준: 더미 데이터로 관리자 글 목록(제목·상태 배지·카테고리·수정일·새 글/수정/삭제/로그아웃 버튼)과 편집기(모든 입력 필드·150자 카운터·슬러그 자동 제안·데스크톱 좌우 분할/모바일 탭)가 표시됨. 저장·삭제는 아직 동작하지 않음(버튼 비활성 또는 콘솔 없는 no-op)
-  - [ ] 로그인 페이지 한국어화(가입·재설정 링크 없음), 오류 메시지 영역
-  - [ ] 관리자 레이아웃: 사이트 로고, "글 관리"/"새 글" 링크, 로그아웃 버튼 자리
-  - [ ] 글 목록 표(초안/발행 배지 구분), 삭제 확인 `Dialog`
-  - [ ] 편집기 필드: 제목, 슬러그(제목 입력 시 자동 제안, 사용자가 직접 수정하면 자동 제안 중단), 카테고리(기본 "일반"), 태그(쉼표 입력·칩 표시·최대 10개), 소개글(150자 카운터), 썸네일 자리, 발행 여부 체크박스, 본문 textarea, 미리보기 영역
-  - [ ] `lib/posts/slugify.ts`: 공백→하이픈, 영문 소문자화, 한글·숫자·하이픈만 유지, 연속 하이픈 축약, NFC 정규화 + 단위 테스트
-  - [ ] 데스크톱(≥1024px) 좌우 분할, 모바일 `Tabs`(작성/미리보기) 전환
+  - [x] 로그인 페이지 한국어화(가입·재설정 링크 없음), 오류 메시지 영역
+  - [x] 관리자 레이아웃: 사이트 로고, "글 관리"/"새 글" 링크, 로그아웃 버튼 자리
+  - [x] 글 목록 표(초안/발행 배지 구분), 삭제 확인 `Dialog`
+  - [x] (009-b) 편집기 필드: 제목, 슬러그(제목 입력 시 자동 제안, 사용자가 직접 수정하면 자동 제안 중단), 카테고리(기본 "일반"), 태그(쉼표 입력·칩 표시·최대 10개), 소개글(150자 카운터), 썸네일 자리, 발행 여부 체크박스, 본문 textarea, 미리보기 영역(009-c에서 본문 입력 옆에 배치). 슬러그 입력은 고정 `/blog/` 접두어 뒤의 값만 수정 가능한 URL 입력으로 구현
+  - [x] `lib/posts/slugify.ts`: 공백→하이픈, 영문 소문자화, 한글·숫자·하이픈만 유지, 연속 하이픈 축약, NFC 정규화 + 단위 테스트
+  - [x] (009-c) 데스크톱(≥1024px) 좌우 분할, 모바일 `Tabs`(작성/미리보기) 전환
   - 테스트 체크리스트:
     - 정상: `lib/posts/slugify.test.ts` → `"Next.js 16 시작하기!"` → `"nextjs-16-시작하기"`
     - 정상: Playwright MCP → `/admin/posts/edit`(Task 011 이전에는 proxy 보호를 일시 우회한 로컬 환경 또는 수동 확인) → 제목 입력 → 슬러그 자동 제안, 소개글 입력 시 카운터 `n/150` 갱신
@@ -260,7 +260,9 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → 태그 11개 쉼표 입력 → 10개까지만 칩 생성 또는 초과 경고 표시
     - 엣지: Playwright MCP → 375px 폭 → 작성/미리보기 탭 전환, 1280px → 좌우 분할
     - 오류: Playwright MCP → 소개글 151자 입력 → 카운터가 오류 색으로 표시(제출 차단은 Task 013)
-  - 테스트 결과: (미수행)
+  - 테스트 결과(009-c 범위: 분할/탭): 2026-10-26 `npm run check` 통과. proxy 보호를 로컬에서만 임시 우회(원복·미커밋)하고 Playwright로 `/admin/posts/edit` 확인: 라이트·다크 1280px에서 폼(x=144)과 미리보기(x=656) 좌우 분할·탭 숨김, 본문 입력이 미리보기에 즉시 반영. 375px에서 작성 탭만 표시, 미리보기 탭 전환 시 폼 숨김·미리보기 표시, 작성 탭 복귀 후 제목·본문 입력값 유지, 가로 스크롤 없음(scrollWidth 375). 미리보기는 임시 whitespace-pre-wrap이며 Task 015·016에서 MarkdownContent로 교체
+  - 테스트 결과(009-b 범위: 편집기 필드·slugify, 분할/탭·미리보기는 009-c 미수행): 2026-10-26 `npm run check` 통과(Vitest 25개, slugify 4개). proxy 보호를 로컬에서만 임시 우회(원복·미커밋)하고 Playwright로 `/admin/posts/edit` 확인: 제목 입력 시 슬러그 `nextjs-16-시작하기` 제안, 슬러그 직접 수정 후 제목 변경해도 유지, 카테고리 기본 `일반`, 소개글 카운터 `n/150` 갱신(150자까지 일반 색, 151자 text-destructive), 태그 11개+중복 입력 시 칩 10개와 초과 경고, 저장 버튼 비활성. 라이트·다크 1280px, 375px(가로 스크롤 없음) 확인
+  - 테스트 결과(009-a 범위: 로그인·관리자 레이아웃·글 목록, 편집기·slugify는 미수행): 2026-10-26 `npm run check` 통과. proxy 보호를 로컬에서만 임시 우회(원복·미커밋)하고 Playwright로 `/admin/posts` 확인: 라이트·다크 1280px에서 7행, 초안 2건/발행 5건 배지 구분, 삭제 클릭 시 Dialog 열림, Dialog 내 삭제 확정 시 닫힘, 375px에서 표 컨테이너만 가로 스크롤(scrollWidth 603 > clientWidth 341, 문서 폭 375 유지). `/auth/login`은 한국어 문구, 링크(가입·재설정) 0개. 로그인 오류 영역은 `role="alert"`로 유지(실제 오류 발생은 Supabase 연동 범위라 미확인)
 
 ### Phase 3: 핵심 기능 구현 (DB·인증·블로그)
 
