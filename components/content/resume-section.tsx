@@ -1,9 +1,6 @@
-import { Fragment } from "react";
-
 import { EmptyState } from "@/components/content/empty-state";
 import { PageHeader } from "@/components/content/page-header";
 import { ResumeEntryItem } from "@/components/content/resume-entry-item";
-import { Separator } from "@/components/ui/separator";
 import type { ResumeEntry } from "@/lib/types/resume";
 import { cn } from "@/lib/utils";
 
@@ -27,17 +24,12 @@ export function ResumeSection({
       {entries.length === 0 ? (
         <EmptyState title="아직 등록된 항목이 없습니다" />
       ) : (
-        <ul>
-          {entries.map((entry, index) => (
-            <Fragment key={`${entry.title}-${entry.period ?? ""}`}>
-              {/* ul의 직계 자식은 li여야 하므로 구분선을 presentation li로 감쌈 */}
-              {index > 0 && (
-                <li role="presentation" aria-hidden="true">
-                  <Separator />
-                </li>
-              )}
-              <ResumeEntryItem {...entry} />
-            </Fragment>
+        <ul className="grid gap-4">
+          {entries.map((entry) => (
+            <ResumeEntryItem
+              key={`${entry.title}-${entry.period ?? ""}`}
+              {...entry}
+            />
           ))}
         </ul>
       )}
