@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { MenuIcon } from "lucide-react";
+import { ChevronDownIcon, MenuIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { NavGroupDropdown } from "@/components/layout/nav-group-dropdown";
 import { NavLink } from "@/components/layout/nav-link";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { navItems, siteConfig } from "@/lib/site-config";
+import { isNavGroup, navItems, siteConfig } from "@/lib/site-config";
 
 export function SiteHeader() {
   return (
@@ -51,15 +52,28 @@ export function SiteHeader() {
 // active=false면 경로 강조 없이 정적 링크만 렌더링하는 fallback
 function NavList({ active }: { active: boolean }) {
   return (
-    <ul className="flex items-center gap-0 lg:gap-1">
+    <ul className="flex items-center gap-1">
       {navItems.map((item) => (
-        <li key={item.href}>
-          {active ? (
+        <li key={isNavGroup(item) ? item.label : item.href}>
+          {isNavGroup(item) ? (
+            active ? (
+              <NavGroupDropdown group={item} />
+            ) : (
+              // fallback: 링크가 아닌 정적 비활성 트리거 모양
+              <span className="inline-flex h-9 items-center gap-1 rounded-md px-2.5 text-sm whitespace-nowrap text-muted-foreground">
+                {item.label}
+                <ChevronDownIcon
+                  className="size-3.5 shrink-0"
+                  aria-hidden="true"
+                />
+              </span>
+            )
+          ) : active ? (
             <NavLink href={item.href}>{item.label}</NavLink>
           ) : (
             <Link
               href={item.href}
-              className="inline-flex h-9 items-center rounded-md px-1.5 text-[13px] whitespace-nowrap text-muted-foreground lg:px-2.5 lg:text-sm"
+              className="inline-flex h-9 items-center rounded-md px-2.5 text-sm whitespace-nowrap text-muted-foreground"
             >
               {item.label}
             </Link>
