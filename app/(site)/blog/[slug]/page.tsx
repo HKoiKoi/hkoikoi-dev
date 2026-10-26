@@ -22,7 +22,7 @@ async function BlogPostTitle({
 
 export default function BlogPostPage(props: PageProps<"/blog/[slug]">) {
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-12">
+    <div className="mx-auto w-full max-w-5xl px-4 py-12">
       <Suspense fallback={<h1 className="text-2xl font-semibold">블로그</h1>}>
         <BlogPostTitle params={props.params} />
       </Suspense>
