@@ -1,33 +1,17 @@
-// TODO: Task 010 이후 lib/supabase/database.types.ts의 posts Row 타입에서 파생하도록 교체한다.
+import type { Tables, TablesInsert } from "@/lib/supabase/database.types";
 
-/** 블로그 목록 카드용 */
-export type PostSummary = {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string;
-  thumbnail_url: string | null;
-  category: string;
-  tags: string[];
-  published: boolean;
-  published_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
+type PostRow = Tables<"posts">;
+
+/** 블로그 목록 카드용 (본문 제외) */
+export type PostSummary = Omit<PostRow, "content">;
 
 /** 블로그 상세용 */
-export type Post = PostSummary & {
-  content: string;
-};
+export type Post = PostRow;
 
-/** 관리자 편집기 입력값 */
-export type PostInput = {
-  title: string;
-  slug: string;
-  content: string;
-  excerpt: string;
-  thumbnail_url: string | null;
-  category: string;
-  tags: string[];
-  published: boolean;
-};
+/** 관리자 편집기 입력값 (DB가 채우는 컬럼 제외) */
+export type PostInput = Required<
+  Omit<
+    TablesInsert<"posts">,
+    "id" | "published_at" | "created_at" | "updated_at"
+  >
+>;
