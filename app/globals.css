@@ -5,6 +5,16 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --animate-shimmer: shimmer 2.8s ease-in-out infinite;
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    60%,
+    100% {
+      transform: translateX(300%);
+    }
+  }
   --font-heading: var(--font-sans);
   --font-sans: var(--font-noto-sans-kr), sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);

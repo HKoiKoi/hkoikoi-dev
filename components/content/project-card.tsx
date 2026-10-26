@@ -1,6 +1,6 @@
 import { ExternalLink } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { TechBadge } from "@/components/content/tech-badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,7 +37,7 @@ export function ProjectCard({ project, className }: ProjectCardProps) {
           <ul className="flex flex-wrap gap-1.5" aria-label="기술 스택">
             {stack.map((item) => (
               <li key={item}>
-                <Badge variant="secondary">{item}</Badge>
+                <TechBadge>{item}</TechBadge>
               </li>
             ))}
           </ul>
