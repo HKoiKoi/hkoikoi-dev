@@ -103,36 +103,36 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 기능: F012(회원가입 제거), F013(사이트 공통 설정)
   - 관련 파일: `components/tutorial/**`, `components/{deploy-button,hero,next-logo,supabase-logo,env-var-warning,sign-up-form,forgot-password-form,update-password-form}.tsx`, `app/auth/{sign-up,sign-up-success,forgot-password,update-password}/**`, `app/auth/confirm/route.ts`, `components/login-form.tsx`, `app/layout.tsx`, `app/page.tsx`, `lib/utils.ts`, `e2e/home.spec.ts`
   - 수락 기준: 스타터 안내용 코드와 가입 관련 페이지가 제거되어 `/auth/sign-up` 접근 시 없는 페이지가 표시되고, 로그인 폼에 가입·비밀번호 찾기 링크가 없으며, `<html lang="ko">`·사이트 제목 "hkoikoi.dev"·Noto Sans KR 폰트가 적용됨. `npm run check`·`npm run build`·`npm run knip` 통과
-  - [ ] `components/tutorial/`, `deploy-button`, `hero`, `next-logo`, `supabase-logo`, `env-var-warning` 삭제 및 참조 제거
-  - [ ] 회원가입 제거: `app/auth/sign-up/`, `app/auth/sign-up-success/`, `components/sign-up-form.tsx` 삭제, `login-form.tsx`의 가입 링크 제거
-  - [ ] 비밀번호 재설정 흐름(`forgot-password`, `update-password`, 관련 폼)과 이메일 확인용 `app/auth/confirm/route.ts`는 PRD 범위 밖이므로 삭제한다(관리자 비밀번호 재설정은 Supabase 대시보드에서 수행). 유지하기로 결정하면 이 항목에 사유를 적는다
-  - [ ] `app/layout.tsx`: `lang="ko"`, Geist → `next/font/google`의 Noto Sans KR, 메타데이터(title 템플릿 `%s | hkoikoi.dev`, description) 교체. `metadataBase`는 Task 018에서 `NEXT_PUBLIC_SITE_URL` 기준으로 교체
-  - [ ] `hasEnvVars` 검사 제거 여부 결정: 홈·`app/protected/layout.tsx` 참조는 제거하고, `lib/supabase/proxy.ts`의 검사는 로컬 환경 변수 미설정 시 개발 편의를 위해 유지(Task 011에서 재검토)
-  - [ ] `e2e/home.spec.ts`를 스타터 문구 의존 없이 새 홈 기준으로 갱신(임시: 페이지 로드·`lang="ko"` 확인)
+  - [x] `components/tutorial/`, `deploy-button`, `hero`, `next-logo`, `supabase-logo`, `env-var-warning` 삭제 및 참조 제거
+  - [x] 회원가입 제거: `app/auth/sign-up/`, `app/auth/sign-up-success/`, `components/sign-up-form.tsx` 삭제, `login-form.tsx`의 가입 링크 제거
+  - [x] 비밀번호 재설정 흐름(`forgot-password`, `update-password`, 관련 폼)과 이메일 확인용 `app/auth/confirm/route.ts`는 PRD 범위 밖이므로 삭제한다(관리자 비밀번호 재설정은 Supabase 대시보드에서 수행). 유지하기로 결정하면 이 항목에 사유를 적는다
+  - [x] `app/layout.tsx`: `lang="ko"`, Geist → `next/font/google`의 Noto Sans KR, 메타데이터(title 템플릿 `%s | hkoikoi.dev`, description) 교체. `metadataBase`는 Task 018에서 `NEXT_PUBLIC_SITE_URL` 기준으로 교체
+  - [x] `hasEnvVars` 검사 제거 여부 결정: 홈·`app/protected/layout.tsx` 참조는 제거하고, `lib/supabase/proxy.ts`의 검사는 로컬 환경 변수 미설정 시 개발 편의를 위해 유지(Task 011에서 재검토)
+  - [x] `e2e/home.spec.ts`를 스타터 문구 의존 없이 새 홈 기준으로 갱신(임시: 페이지 로드·`lang="ko"` 확인)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/` 접속 → 스타터 안내 문구("Next steps", "Deploy") 없음, `html[lang=ko]`
     - 정상: Playwright MCP → `/auth/login` 접속 → 이메일·비밀번호 입력란 표시, "Sign up"/"Forgot password" 링크 없음
     - 오류: Playwright MCP → `/auth/sign-up` 접속 → 없는 페이지(not-found) 화면
     - 엣지: 터미널 → `npm run knip` → 삭제한 파일을 가리키는 미사용 export·의존성 경고 없음
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build` 통과, `e2e/home.spec.ts`로 `html[lang=ko]`·제목·스타터 문구 없음 확인(Playwright MCP 수동 시나리오는 미수행). `npm run knip`은 data·types 10개 파일 미사용으로 실패(Task 007 이후 사용 예정)
 
 - **Task 003: 라우트 구조 및 공개 경로 정책 구축** - 우선순위
   - 관련 기능: F002, F003, F004, F005, F006, F012, F013
   - 관련 파일: `app/(site)/**`, `app/admin/**`, `app/not-found.tsx`, `app/protected/**`(삭제), `lib/supabase/proxy.ts`, `proxy.ts`
   - 수락 기준: 라우트 맵의 모든 공개 경로가 비로그인 상태에서 빈 껍데기 페이지(제목만)로 열리고, `/admin/**`은 비로그인 시 `/auth/login`으로 리다이렉트되며, 없는 경로는 공통 not-found 화면을 표시. `npx next typegen` 후 `npm run typecheck`·`npm run build` 통과
   - [ ] `app/page.tsx`를 `app/(site)/page.tsx`로 이동하고 `app/(site)/layout.tsx` 골격 생성(헤더·푸터 자리)
-  - [ ] 이력 6종·프로젝트·논문·블로그 목록·블로그 상세(`[slug]`) 빈 페이지 생성. 동적 라우트는 `PageProps<'/blog/[slug]'>` 헬퍼 사용
-  - [ ] `app/admin/layout.tsx`, `app/admin/posts/page.tsx`, `app/admin/posts/edit/page.tsx` 빈 페이지 생성 후 `app/protected/` 삭제(로그인 후 리다이렉트 대상도 `/admin/posts`로 변경)
-  - [ ] `lib/supabase/proxy.ts`의 리다이렉트 조건을 "공개 경로 화이트리스트"에서 "`/admin` 접두만 보호"로 전환(`createServerClient`와 `getClaims()` 사이에 코드 추가 금지, `supabaseResponse` 쿠키 유지)
-  - [ ] `app/not-found.tsx` 작성(한국어 안내 + 메인으로 이동 링크)
-  - [ ] `e2e/routes.spec.ts`: 공개 경로 순회·`/admin` 리다이렉트·not-found 시나리오 고정
+  - [x] 이력 6종·프로젝트·논문·블로그 목록·블로그 상세(`[slug]`) 빈 페이지 생성. 동적 라우트는 `PageProps<'/blog/[slug]'>` 헬퍼 사용
+  - [x] `app/admin/layout.tsx`, `app/admin/posts/page.tsx`, `app/admin/posts/edit/page.tsx` 빈 페이지 생성 후 `app/protected/` 삭제(로그인 후 리다이렉트 대상도 `/admin/posts`로 변경)
+  - [x] `lib/supabase/proxy.ts`의 리다이렉트 조건을 "공개 경로 화이트리스트"에서 "`/admin` 접두만 보호"로 전환(`createServerClient`와 `getClaims()` 사이에 코드 추가 금지, `supabaseResponse` 쿠키 유지)
+  - [x] `app/not-found.tsx` 작성(한국어 안내 + 메인으로 이동 링크)
+  - [x] `e2e/routes.spec.ts`: 공개 경로 순회·`/admin` 리다이렉트·not-found 시나리오 고정
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 비로그인으로 `/education`, `/career`, `/certifications`, `/volunteer`, `/languages`, `/activities`, `/projects`, `/publications`, `/blog` 순회 → 각 페이지 제목 표시, 로그인 화면으로 튕기지 않음
     - 정상: Playwright MCP → `/blog/테스트-글` 접속 → 상세 껍데기 렌더링(한글 슬러그 디코딩 확인)
     - 오류: Playwright MCP → 비로그인으로 `/admin/posts` 접속 → URL이 `/auth/login`으로 변경
     - 오류: Playwright MCP → `/does-not-exist` 접속 → not-found 화면과 메인 링크
     - 엣지: Playwright MCP → `/administrator`(접두 유사 경로) 접속 → 리다이렉트 없이 not-found (보호 조건이 `/admin` 세그먼트 단위로만 동작)
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-26 `npm run test:e2e` 통과(공개 경로 순회, 한글 슬러그, `/admin`·`/admin/posts`·`/admin/posts/edit` 리다이렉트, `/administrator`·없는 경로 not-found). `npm run build` 통과
 
 - **Task 004: 공통 헤더·푸터·테마 레이아웃 구축**
   - 관련 기능: F013, F001(푸터 연락처)
@@ -140,17 +140,17 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 수락 기준: 모든 공개 페이지에 동일한 헤더(로고, 10개 메뉴, 테마 전환)·푸터(이메일·GitHub)가 표시되고, 768px 미만에서는 드롭다운 메뉴로 전환되며 현재 페이지 메뉴가 강조됨. 로그인 페이지에는 헤더 메뉴가 없음
   - [ ] `lib/site-config.ts`: 사이트명, 메뉴 10개(메인·학력·경력·자격증·사회봉사·어학·사회활동·프로젝트·논문·블로그)의 `label`/`href`를 단일 배열로 정의
   - [ ] `SiteHeader`(Server) + 현재 경로 강조용 작은 Client 컴포넌트(`usePathname`), 데스크톱 가로 메뉴
-  - [ ] `MobileNav`: 기존 `components/ui/dropdown-menu`(Base UI) 기반 모바일 드롭다운
-  - [ ] `ThemeSwitcher` 한국어화 및 헤더 배치, 라이트/다크/시스템 전환
-  - [ ] `SiteFooter`: Profile 데이터의 이메일(mailto)·GitHub 링크
-  - [ ] "관리" 링크 슬롯(`AdminLink`)을 `<Suspense>`로 감싸 자리만 마련(실제 역할 판별은 Task 011). 스타터 `auth-button.tsx`는 Task 011에서 대체·삭제
+  - [x] `MobileNav`: 기존 `components/ui/dropdown-menu`(Base UI) 기반 모바일 드롭다운
+  - [x] `ThemeSwitcher` 한국어화 및 헤더 배치, 라이트/다크/시스템 전환
+  - [x] `SiteFooter`: Profile 데이터의 이메일(mailto)·GitHub 링크
+  - [x] "관리" 링크 슬롯(`AdminLink`)을 `<Suspense>`로 감싸 자리만 마련(실제 역할 판별은 Task 011). 스타터 `auth-button.tsx`는 Task 011에서 대체·삭제
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/` 접속 후 헤더 "프로젝트" 클릭 → `/projects` 이동, 해당 메뉴 `aria-current="page"`
     - 정상: Playwright MCP → 테마 전환 버튼으로 다크 선택 → `html`에 `dark` 클래스, 새로고침 후 유지
     - 엣지: Playwright MCP → 뷰포트 375px에서 메뉴 버튼 클릭 → 드롭다운에 10개 메뉴 표시, 항목 클릭 시 이동 후 닫힘
     - 엣지: Playwright MCP → 로고 클릭(임의 페이지) → `/` 이동
     - 오류: (해당 없음, 정적 UI)
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build`·`npm run test:e2e`(17개) 통과. e2e로 공개 10개 경로의 헤더 로고·푸터·`<main>` 1개와 로그인 페이지의 헤더 메뉴·푸터 부재 확인. `npm run knip`은 data·types 10개 파일을 `knip.json` `ignore`에 임시 추가해 통과(Task 007에서 제거). 메뉴 클릭 `aria-current`, 테마 전환, 375px 드롭다운은 Playwright MCP 수동 검증 미수행
 
 - **Task 005: 도메인 타입 및 데이터 모델 설계**
   - 관련 기능: F001, F002, F003, F004, F005, F006, F008, F009, F010
@@ -214,6 +214,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [ ] 프로젝트 페이지 카드 그리드, 논문 페이지는 연도 내림차순 정렬(정렬 함수 단위 테스트)
   - [ ] 페이지별 `metadata`(title·description) 지정
   - [ ] `e2e/static-pages.spec.ts` 작성
+  - [ ] `knip.json`의 `ignore`에서 Task 004-b 때 임시로 추가한 `data/*.ts` 8개와 `lib/types/{post,resume}.ts` 항목을 제거하고 `npm run knip` 통과 확인(`lib/types/post.ts`가 아직 쓰이지 않으면 사용하는 Task 008·010 완료 시점에 제거)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/` 접속 → 이름, `mailto:koikoilove99@gmail.com` 링크, `https://github.com/hkoikoi` 링크, 프로젝트 카드 3개, 글 카드 최대 3개
     - 정상: Playwright MCP → 메인 "학력" 섹션 카드 클릭 → `/education` 이동, 항목 제목·기간 표시
