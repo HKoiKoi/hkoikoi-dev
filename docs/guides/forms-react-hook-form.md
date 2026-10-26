@@ -5,13 +5,16 @@
 
 ## 현재 상태
 
-- 설치된 폼 관련 UI: `input`, `label`, `checkbox`, `button`, `card`. **`field`, `textarea`는 아직 없습니다.**
-- `zod`, `react-hook-form`, `@hookform/resolvers`는 **미설치**입니다. 아래 Zod 예시를 쓰려면 먼저 설치합니다.
-- 기존 인증 폼(`login-form`, `sign-up-form`, `forgot-password-form`, `update-password-form`)은 Supabase starter 코드입니다. `useState`로 입력을 제어하고 **브라우저 클라이언트**(`@/lib/supabase/client`)로 `supabase.auth.*`를 직접 호출한 뒤 `router.push()`로 이동합니다. `Label` + `div.grid`로 배치하고 오류는 `text-red-500`으로 표시합니다. 동작은 하지만 **새 폼의 기준으로 삼지 않습니다.**
+- 설치된 폼 관련 UI: `input`, `label`, `checkbox`, `textarea`, `button`, `card`, `dialog`, `tabs`. **`field`는 아직 없습니다.**
+- `zod`, `react-hook-form`, `@hookform/resolvers`는 **미설치**입니다. 아래 Zod 예시를 쓰려면 먼저 설치합니다(Task 013에서 `zod` 설치 예정).
+- 현재 폼은 두 개입니다. 둘 다 아직 새 폼의 기준이 아닙니다.
+  - `components/login-form.tsx`: Supabase starter 코드입니다. `useState`로 입력을 제어하고 **브라우저 클라이언트**(`@/lib/supabase/client`)로 `signInWithPassword`를 직접 호출한 뒤 `router.push("/admin/posts")`로 이동합니다. `Label` + `div.grid`로 배치하고 오류는 `text-destructive`로 표시하지만, `error.message`를 그대로 보여 줍니다. Task 011에서 Server Action + `useActionState`로 전환합니다.
+  - `app/admin/posts/edit/_components/post-editor.tsx`: 관리자 편집기 UI입니다. 입력은 `useState`로 관리하고 저장·삭제는 아직 동작하지 않습니다(Task 013에서 Server Action 연결). 슬러그 자동 제안은 `lib/posts/slugify.ts`, 소개글 150자·태그 10개 제한은 화면 표시만 합니다.
+- 가입·비밀번호 재설정 폼과 이메일 확인 Route Handler(`app/auth/confirm/route.ts`)는 삭제되었습니다.
 
 ```bash
-# 기본 폼에 필요한 shadcn 컴포넌트
-npx shadcn@latest add field textarea
+# 기본 폼에 필요한 shadcn 컴포넌트 (textarea는 이미 설치됨)
+npx shadcn@latest add field
 
 # 서버 검증 스키마가 필요할 때
 npm install zod
@@ -77,7 +80,7 @@ Zod 4 변경점:
 ## Server Action
 
 ```ts
-// app/protected/notes/actions.ts
+// app/admin/notes/actions.ts (예시. 실제 글 저장은 app/admin/posts/actions.ts, Task 013)
 "use server";
 
 import { updateTag } from "next/cache";
@@ -135,7 +138,7 @@ export async function createNoteAction(
 - 응답 후 처리(로그, 알림)는 `after()`(`next/server`)로 넘깁니다.
 - Server Action은 POST로만 호출되고 Next.js가 `Origin`/`Host` 헤더를 검증하므로, 별도의 자체 CSRF 토큰을 만들지 않습니다. 프록시 뒤에서 호스트가 달라지면 `serverActions.allowedOrigins`를 설정합니다.
 - 접근 제어는 Action 한 곳만 믿지 않고 데이터 계층(RLS)에서도 확인합니다 (`node_modules/next/dist/docs/01-app/02-guides/data-security.md`).
-- `proxy.ts`는 로그인하지 않은 요청을 `/auth/login`으로 보내지만 이는 낙관적 검사일 뿐입니다. Action 안의 `getClaims()` 확인을 생략하지 않습니다.
+- `proxy.ts`는 로그인하지 않은 `/admin` 요청을 `/auth/login`으로 보내지만 이는 낙관적 검사일 뿐이고 관리자 역할도 보지 않습니다. 관리자 Action은 시작부에서 `requireAdmin()`(Task 011 예정: `getClaims()` → 비로그인 `redirect`, 비관리자 `notFound()`)을 호출하고, 페이지 레이아웃 검사에만 의존하지 않습니다.
 
 ### 인증 Action 예시 (로그인)
 
@@ -163,19 +166,29 @@ export async function loginAction(
     return { message: "이메일 또는 비밀번호를 확인해주세요" };
   }
 
-  redirect("/protected"); // try/catch 밖
+  redirect("/admin/posts"); // try/catch 밖
 }
 ```
 
-- 가입 확인 메일의 링크는 `app/auth/confirm/route.ts`가 처리합니다. 이메일 템플릿의 링크 형식을 바꾸면 이 Route Handler와 함께 맞춥니다.
-- 기존 starter 폼을 바꿀 때는 한 번에 하나씩 옮기고, 각 폼의 E2E 흐름(`e2e/`)을 함께 추가합니다.
+- 이 프로젝트에는 회원가입과 이메일 확인 흐름이 없습니다(가입은 Supabase 설정에서 차단). 관리자 계정은 대시보드에서 만들고 `app_metadata.role = 'admin'`을 부여합니다.
+- 로그인 폼을 바꿀 때는 `e2e/`에 로그인 흐름 시나리오를 함께 추가합니다(Task 011의 `e2e/admin-auth.spec.ts`).
+
+### 글 저장 Action 설계 (Task 013 기준)
+
+아직 구현 전이며 ROADMAP의 설계를 요약한 것입니다. 구현 시 ROADMAP Task 013과 함께 확인합니다.
+
+- 스키마는 `lib/schemas/post.ts`에서 서버와 편집기가 공유합니다. 제약은 DB check와 같은 값을 씁니다: title 1~200자, excerpt 150자 이하, tags 최대 10개(trim·중복 제거), content 최대 100,000자, slug는 NFC 정규화 후 `slugify` 규칙과 일치.
+- `thumbnail_url`은 `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/blog-images/` 접두의 주소만 허용합니다. 외부 도메인과 `javascript:` URL은 거부합니다.
+- `savePost`(생성·수정 공용)는 `requireAdmin()` → `safeParse` → upsert 순서로 처리하고, unique 위반(코드 `23505`)은 slug 필드 오류로 바꿔 돌려줍니다.
+- `published_at`은 처음 발행할 때만 `now()`로 채우고, 이미 발행된 글을 수정해도 유지합니다(DB check: 발행된 글은 `published_at`이 반드시 있어야 함).
+- 이미지는 Server Action이 아니라 브라우저 Supabase 클라이언트로 `blog-images` 버킷에 직접 올립니다(Task 017). 버킷이 5MB·jpeg/png/webp/gif만 허용하고, 쓰기는 RLS 정책으로 관리자에게만 열려 있습니다.
 
 ## 기본 패턴: `<form action>` + `useActionState`
 
 클라이언트 검증이 필요 없다면 RHF 없이 이 패턴으로 충분합니다. JS 없이도 제출되고, 서버 검증 오류를 필드별로 보여줄 수 있습니다.
 
 ```tsx
-// app/protected/notes/_components/note-form.tsx
+// app/admin/notes/_components/note-form.tsx (예시)
 "use client";
 
 import { useActionState } from "react";
@@ -237,7 +250,7 @@ export function NoteForm() {
 - React 19의 `<form action>`은 제출 후 비제어 입력을 초기화합니다. 오류 후에도 입력을 유지하려면 Action이 입력값을 `state`로 되돌려주어 `defaultValue`에 사용하거나, 아래처럼 RHF로 값을 직접 관리합니다.
 - 성공 시 이동이 필요하면 Action에서 `redirect()` 합니다 (`try/catch` 밖).
 - 아이콘이 버튼 안에 있을 때는 `data-icon="inline-start"` 같은 `Button` 규칙을 따릅니다 (`.agents/skills/shadcn/rules/icons.md`).
-- 이 컴포넌트는 `app/protected/` 아래에 있으므로 `Suspense` 없이도 되지만, 초기값을 서버에서 읽어 `defaultValue`로 넘기는 부모 컴포넌트는 `Suspense` 안에서 렌더링합니다.
+- 이 컴포넌트 자체는 `Suspense`가 필요 없지만, 수정 모드처럼 초기값을 서버에서 읽어 `defaultValue`로 넘기는 부모 컴포넌트(예: `/admin/posts/edit?id=`의 `page.tsx`)는 `Suspense` 안에서 렌더링합니다.
 
 ## RHF를 얹는 경우 (선택)
 
@@ -384,7 +397,7 @@ useEffect(() => {
 - **Rate limiting**: 모듈 전역 `Map` 기반 구현은 서버리스/다중 인스턴스에서 공유되지 않아 효과가 없습니다. 로그인·가입 남용 방지는 Supabase Auth의 rate limit 설정을 먼저 확인하고, 추가가 필요하면 Redis 등 외부 저장소 기반 제한을 씁니다. IP는 `x-forwarded-for` 첫 번째 값을 신뢰할 수 있는 프록시 환경에서만 사용합니다.
 - **민감 정보 반환 금지**: 오류 메시지에 계정 존재 여부, SQL 오류 등을 노출하지 않습니다. `/auth/error?error=...`처럼 메시지를 쿼리 스트링으로 넘기는 starter 방식은 화면에 그대로 출력되므로, 새 흐름에서는 사용자용 문구로 바꿔서 전달합니다.
 - **`NEXT_PUBLIC_` 변수**는 브라우저에 노출됩니다. 비밀 키는 서버 전용 환경 변수에 둡니다 (`.env`는 커밋하지 않고 `.env.example`에 키 이름만 기록).
-- **리다이렉트 대상**: `next` 같은 쿼리 파라미터로 받은 이동 경로는 `/`로 시작하는 내부 경로인지 확인합니다 (`app/auth/confirm/route.ts`는 `next`를 그대로 `redirect()`에 넘깁니다).
+- **리다이렉트 대상**: `next` 같은 쿼리 파라미터로 받은 이동 경로는 `/`로 시작하는 내부 경로인지 확인합니다. 현재는 그런 파라미터를 받는 라우트가 없습니다(`app/auth/confirm/route.ts`는 삭제됨).
 
 ## 안티패턴
 

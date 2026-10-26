@@ -84,7 +84,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 
 - **Task 001: 개발 도구 및 품질 게이트 구축** ✅ - 완료
   - 관련 기능: (기반 작업, 기능 ID 없음)
-  - 관련 파일: `package.json`, `eslint.config.mjs`, `.prettierrc.json`, `.husky/**`, `commitlint.config.mjs`, `knip.json`, `vitest.config.mts`, `playwright.config.ts`, `.github/workflows/ci.yml`, `components/ui/**`, `app/globals.css`
+  - 관련 파일: `package.json`, `eslint.config.mjs`, `.prettierrc.json`, `.husky/**`, `commitlint.config.mjs`, `knip.jsonc`, `vitest.config.mts`, `playwright.config.ts`, `.github/workflows/ci.yml`, `components/ui/**`, `app/globals.css`
   - 수락 기준: `npm run check` 통과, CI 워크플로 존재, shadcn `base-nova`(Base UI)·Tailwind v4 적용
   - [x] Next.js + Supabase 인증 스타터 초기 세팅 (`666e087`, `243f628`)
   - [x] Tailwind v4 업그레이드 및 shadcn `base-nova`(Base UI) 전환, 미사용 Radix 제거 (`badeb92`, `bded365`)
@@ -114,7 +114,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 정상: Playwright MCP → `/auth/login` 접속 → 이메일·비밀번호 입력란 표시, "Sign up"/"Forgot password" 링크 없음
     - 오류: Playwright MCP → `/auth/sign-up` 접속 → 없는 페이지(not-found) 화면
     - 엣지: 터미널 → `npm run knip` → 삭제한 파일을 가리키는 미사용 export·의존성 경고 없음
-  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build` 통과, `e2e/home.spec.ts`로 `html[lang=ko]`·제목·스타터 문구 없음 확인. 2026-10-26 수동 확인: `/auth/sign-up`·`/auth/forgot-password`·`/protected` 404, 로그인 폼에 가입·찾기 링크 없음, 홈에 스타터 문구 없음. `npm run knip`은 data·types 파일을 `knip.json` `ignore`에 임시 추가해 통과(Task 007에서 제거)
+  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build` 통과, `e2e/home.spec.ts`로 `html[lang=ko]`·제목·스타터 문구 없음 확인. 2026-10-26 수동 확인: `/auth/sign-up`·`/auth/forgot-password`·`/protected` 404, 로그인 폼에 가입·찾기 링크 없음, 홈에 스타터 문구 없음. `npm run knip`은 data·types 파일을 `knip.jsonc` `ignore`에 임시 추가해 통과(Task 007에서 제거)
 
 - **Task 003: 라우트 구조 및 공개 경로 정책 구축** ✅ - 우선순위
   - 관련 기능: F002, F003, F004, F005, F006, F012, F013
@@ -150,7 +150,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → 뷰포트 375px에서 메뉴 버튼 클릭 → 드롭다운에 그룹 라벨(이력·활동)과 하위 항목, 프로젝트·논문·블로그 표시, 항목 클릭 시 이동 후 닫힘
     - 엣지: Playwright MCP → 로고 클릭(임의 페이지) → `/` 이동
     - 오류: (해당 없음, 정적 UI)
-  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build`·`npm run test:e2e`(17개) 통과. e2e로 공개 10개 경로의 헤더 로고·푸터·`<main>` 1개와 로그인 페이지의 헤더 메뉴·푸터 부재 확인. `npm run knip`은 data·types 10개 파일을 `knip.json` `ignore`에 임시 추가해 통과(Task 007에서 제거). 이후 내비를 그룹 드롭다운으로 개편했으며 2026-10-26 `npm run test:e2e` 18개 통과. 2026-10-26 Playwright MCP 수동 확인: 메뉴 클릭 시 `aria-current="page"`, 라이트·다크 전환과 새로고침 후 유지, 로고 클릭 시 `/` 이동, 375px 드롭다운 항목 클릭 시 이동 후 닫힘
+  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build`·`npm run test:e2e`(17개) 통과. e2e로 공개 10개 경로의 헤더 로고·푸터·`<main>` 1개와 로그인 페이지의 헤더 메뉴·푸터 부재 확인. `npm run knip`은 data·types 10개 파일을 `knip.jsonc` `ignore`에 임시 추가해 통과(Task 007에서 제거). 이후 내비를 그룹 드롭다운으로 개편했으며 2026-10-26 `npm run test:e2e` 18개 통과. 2026-10-26 Playwright MCP 수동 확인: 메뉴 클릭 시 `aria-current="page"`, 라이트·다크 전환과 새로고침 후 유지, 로고 클릭 시 `/` 이동, 375px 드롭다운 항목 클릭 시 이동 후 닫힘
 
 - **Task 005: 도메인 타입 및 데이터 모델 설계** ✅
   - 관련 기능: F001, F002, F003, F004, F005, F006, F008, F009, F010
@@ -159,7 +159,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] `Profile`(name, tagline, bio, email, github), `ResumeEntry`(title, subtitle?, period?, description?, tags?, link?), `Project`(name, summary, period, role, stack[], links, featured?), `Publication`(title, authors, venue, year, link) 정의
   - [x] `data/` 폴더 생성(루트, `@/data/*` 별칭으로 import) 및 섹션별 샘플 데이터 작성. 어학은 title=언어, subtitle=시험·점수, period=취득일
   - [x] 열린 질문 "대표 프로젝트 선정 기준"은 `Project.featured?: boolean`으로 표시하고 featured가 3개 미만이면 앞에서부터 채우는 규칙으로 기본 결정(변경 시 이 항목 갱신)
-  - [x] `lib/types/post.ts`: `PostSummary`(목록 카드용), `Post`(상세), `PostInput`(편집기 입력) 타입. Task 010 이후 `lib/supabase/database.types.ts`의 Row 타입에서 파생하도록 교체 예정임을 주석으로 명시
+  - [x] `lib/types/post.ts`: `PostSummary`(목록 카드용), `Post`(상세), `PostInput`(편집기 입력) 타입. Task 010에서 `lib/supabase/database.types.ts`의 `Tables<'posts'>`에서 파생하도록 교체 완료
   - [x] posts·스토리지 설계 확정(아래 표)
   - posts 테이블 설계 (Task 010에서 구현):
 
@@ -184,7 +184,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 정상: 터미널 → `npm run typecheck` → `data/*.ts`가 타입 오류 없이 통과
     - 오류: 터미널 → 임시로 `ResumeEntry`에 필수 필드 누락 → typecheck 실패 확인 후 원복(타입 강제 확인)
     - 엣지: `data/` 배열 하나를 빈 배열로 바꿔도 타입 통과(빈 상태 UI는 Task 007에서 검증)
-  - 테스트 결과: `npm run check` 통과. `data/education.ts`에서 `title` 제거 시 TS2741로 실패 후 원복 확인, `languages`를 빈 배열로 바꿔도 통과 후 원복. posts·스토리지 설계 표는 변경 없이 확정. `npm run knip`은 data·types 파일을 `knip.json` `ignore`에 임시 추가해 통과(Task 007에서 제거)
+  - 테스트 결과: `npm run check` 통과. `data/education.ts`에서 `title` 제거 시 TS2741로 실패 후 원복 확인, `languages`를 빈 배열로 바꿔도 통과 후 원복. posts·스토리지 설계 표는 변경 없이 확정. `npm run knip`은 data·types 파일을 `knip.jsonc` `ignore`에 임시 추가해 통과(Task 007에서 제거)
 
 ### Phase 2: UI/UX 완성 (더미 데이터 활용) ✅
 
@@ -214,7 +214,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] 프로젝트 페이지 카드 그리드, 논문 페이지는 연도 내림차순 정렬(정렬 함수 단위 테스트)
   - [x] 페이지별 `metadata`(title·description) 지정
   - [x] `e2e/static-pages.spec.ts` 작성
-  - [x] `knip.json`의 `ignore`에서 Task 004-b 때 임시로 추가한 `data/*.ts` 8개와 `lib/types/{post,resume}.ts` 항목을 제거하고 `npm run knip` 통과 확인(`lib/types/post.ts`는 `PostInput`이 아직 미사용이라 Task 009·010 완료 시점에 제거)
+  - [x] `knip.jsonc`의 `ignore`에서 Task 004-b 때 임시로 추가한 `data/*.ts` 8개와 `lib/types/{post,resume}.ts` 항목을 제거하고 `npm run knip` 통과 확인(`lib/types/post.ts`는 `PostInput`이 아직 미사용이라 편집기가 쓰게 되는 Task 013 완료 시점에 제거. 같은 이유로 `components/logout-button.tsx`·`lib/supabase/server.ts`는 Task 011·012에서 사용처가 생기면 ignore에서 제거하고, `auth-button.tsx`는 Task 011에서 삭제한다. 제거 조건은 `knip.jsonc` 주석에 적혀 있다)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/` 접속 → 이름, `mailto:koikoilove99@gmail.com` 링크, `https://github.com/hkoikoi` 링크, 프로젝트 카드 3개, 글 카드 최대 3개
     - 정상: Playwright MCP → 메인 "학력" 섹션 카드 클릭 → `/education` 이동, 항목 제목·기간 표시
@@ -266,15 +266,15 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 
 ### Phase 3: 핵심 기능 구현 (DB·인증·블로그)
 
-- **Task 010: posts 테이블·RLS·스토리지 마이그레이션 구축** - 우선순위
+- **Task 010: posts 테이블·RLS·스토리지 마이그레이션 구축** ✅ - 우선순위 (스토리지 업로드·실제 관리자 JWT 확인은 관리자 UI 연동 후 수동 확인으로 이월)
   - 관련 기능: F005, F006, F008, F009, F010, F011, F012
   - 관련 파일: `supabase/migrations/<timestamp>_create_posts.sql`, `supabase/migrations/<timestamp>_create_blog_images_bucket.sql`, `lib/supabase/database.types.ts`
   - 수락 기준: Task 005 설계대로 테이블·제약·인덱스·`updated_at` 트리거·RLS·버킷·스토리지 정책이 마이그레이션 파일로 존재하고 원격(또는 로컬) 프로젝트에 적용됨. 생성된 DB 타입으로 `lib/types/post.ts`가 파생되고 typecheck 통과. Supabase advisor 보안 경고 0건
-  - [ ] `supabase/` 디렉터리와 마이그레이션 작성(`.agents/skills/supabase` 스킬·Supabase MCP 참고, 스키마 변경 전 기존 테이블 확인)
-  - [ ] RLS 활성화 및 정책: 익명/일반 사용자 `select`는 `published = true`만, 관리자(`app_metadata.role = 'admin'`)는 전체 CRUD
-  - [ ] `blog-images` 버킷(public, 5MB, MIME 제한)과 `storage.objects` 정책(관리자만 insert/update/delete)
-  - [ ] Supabase MCP `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, `createClient`에 `Database` 제네릭 적용
-  - [ ] Supabase MCP `get_advisors`(security) 실행 후 경고 해소
+  - [x] `supabase/` 디렉터리와 마이그레이션 작성(`.agents/skills/supabase` 스킬·Supabase MCP 참고, 스키마 변경 전 기존 테이블 확인)
+  - [x] RLS 활성화 및 정책: 익명/일반 사용자 `select`는 `published = true`만, 관리자(`app_metadata.role = 'admin'`)는 전체 CRUD
+  - [x] `blog-images` 버킷(public, 5MB, MIME 제한)과 `storage.objects` 정책(관리자만 insert/update/delete)
+  - [x] Supabase MCP `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, `createClient`에 `Database` 제네릭 적용
+  - [x] Supabase MCP `get_advisors`(security) 실행 후 경고 해소(`auth_leaked_password_protection` 1건은 Pro 플랜 미사용으로 예외 수용, 아래 테스트 결과 참조)
   - 테스트 체크리스트:
     - 정상: Supabase MCP `execute_sql` → 관리자 JWT 컨텍스트로 초안 insert → 성공
     - 오류: Supabase MCP `execute_sql` → `published = true, published_at = null` insert → check 제약 위반
@@ -282,7 +282,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Supabase MCP `execute_sql` → `anon` 역할로 초안 select → 0행, insert → RLS 거부
     - 엣지: Supabase MCP `execute_sql` → tags 11개 / excerpt 151자 / title 0자·201자 insert → 각 check 위반
     - 엣지: 브라우저 클라이언트(수동 확인) → 비관리자 세션으로 `blog-images`에 업로드 → 정책 거부, SVG 업로드 → MIME 거부
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-26 마이그레이션 2건 원격 적용(version `20261026105752` create_posts, `20261026105803` create_blog_images_bucket, 로컬 파일명과 일치). 롤백 트랜잭션으로 체크리스트의 정상·오류·엣지 SQL 케이스 11건을 실행해 모두 기대 결과를 확인했고 잔존 행 0. `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, 브라우저·서버·proxy 클라이언트에 `Database` 제네릭 적용, `lib/types/post.ts`를 `Tables<'posts'>`에서 파생(`PostSummary`/`Post`/`PostInput` 이름·필드 형태 유지, 더미 데이터 수정 없이 typecheck 통과). `npm run check` 통과(Vitest 25개), `npm run knip`은 `knip.jsonc` ignore에 `database.types.ts` 추가 후 통과. advisor 보안 경고 1건(`auth_leaked_password_protection`)은 Pro 플랜 미사용이라 예외 수용(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수 적용)이라 수락 기준 "경고 0건"은 이 1건을 예외로 둔 상태에서 충족(경고 자체는 남아 있음). 성능 advisor INFO `unused_index` 3건은 빈 테이블이라 정상. 관리자 계정은 `app_metadata.role = 'admin'` 부여 완료. 미확인(관리자 UI에 DB 연동 후 수동 확인으로 이월): 비관리자 세션의 `blog-images` 업로드 거부, SVG 업로드 MIME 거부, 5MB 제한, 실제 관리자 JWT 기반 posts CRUD
 
 - **Task 011: 관리자 인증·권한 시스템 구축**
   - 관련 기능: F012, F013("관리" 링크)
@@ -293,7 +293,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [ ] 로그인 폼을 Server Action + `useActionState` 패턴으로 전환(`forms-react-hook-form.md`), 실패 시 한국어 오류 유지, 성공 시 `/admin/posts`
   - [ ] 로그아웃 버튼을 관리자 레이아웃에 배치, 완료 후 `/`로 이동. 스타터 `auth-button.tsx` 삭제
   - [ ] 공개 헤더 `AdminLink`: `<Suspense>` 안에서 claims를 읽어 관리자일 때만 "관리" 링크 렌더링
-  - [ ] 수동 설정 안내(사용자 수행): Supabase 대시보드에서 관리자 계정 생성, `app_metadata.role = 'admin'` 설정 후 재로그인, Authentication → "Allow new users to sign up" 해제, 강한 비밀번호(가능하면 MFA)
+  - [x] 수동 설정(2026-10-26 완료): Supabase 대시보드에서 관리자 계정 생성, `app_metadata.role = 'admin'` 부여(SQL), "Allow new users to sign up" 해제, 최소 비밀번호 12자·대소문자·숫자·기호 필수 적용. 남은 항목: 부여 후 재로그인, MFA(선택)
   - [ ] `e2e/admin-auth.spec.ts`(`E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` 사용, 미설정 시 `test.skip`)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/auth/login`에서 관리자 이메일·비밀번호 입력 후 로그인 → `/admin/posts` 이동
@@ -463,7 +463,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 수락 기준: `npm run check`·`npm run build`·`npm run knip`·`npm run test:e2e` 전체 통과, 배포 환경(예: Vercel)에서 공개·관리자 흐름 확인, 문서가 실제 구조와 일치
   - [ ] 전체 E2E 회귀(방문자·관리자·마크다운·이미지·SEO) 실행 및 결함 수정
   - [ ] 배포 환경 변수(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL`) 설정, Supabase Auth의 Site URL·Redirect URL을 운영 도메인으로 설정
-  - [ ] README를 hkoikoi.dev 기준으로 교체(설치·환경 변수·관리자 계정 설정 절차·`<style>` 작성 규칙: `post-` class, `#user-content-{id}`)
+  - [ ] README 최종 점검: hkoikoi.dev 기준 기본판은 작성되어 있으므로(설치·환경 변수·관리자 계정 설정 절차), 배포 절차와 `<style>` 작성 규칙(`post-` class, `#user-content-{id}`)을 채우고 실제 구현 상태와 맞는지 확인
   - [ ] `docs/guides/project-structure.md`의 구조·정리 대상 목록을 실제 상태로 갱신
   - [ ] `data/*.ts`의 `// TODO` 샘플을 실제 이력으로 교체하도록 사용자에게 안내(실제 내용은 사용자 제공)
   - 테스트 체크리스트:
@@ -518,6 +518,7 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
 - 없는 글은 soft 404(HTTP 200 + noindex)로 응답(Task 018).
 - 관리자 role 회수 후에도 기존 JWT는 만료 전까지 유효(RLS 동일). 역할 변경 후 재로그인 필요(Task 011).
 - 스토리지 고아 파일은 정리하지 않음(Task 017).
+- Supabase advisor 보안 경고 `auth_leaked_password_protection`(유출 비밀번호 보호)은 Pro 플랜 전용이라 예외로 수용. 완화책: 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수(Task 010, 011).
 
 ## MVP 이후 (범위 밖)
 

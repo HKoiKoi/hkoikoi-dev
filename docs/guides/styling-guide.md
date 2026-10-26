@@ -110,11 +110,20 @@
 - 레이아웃 간격은 `space-x-*`/`space-y-*` 대신 `flex`/`grid` + `gap-*`, 정사각형은 `w-* h-*` 대신 `size-*`를 씁니다.
 - 커스텀 CSS 클래스와 CSS Modules는 만들지 않습니다. 반복되면 컴포넌트로 추출합니다.
 - `!important`(`p-4!`)는 서드파티 스타일을 덮어쓸 때만 씁니다.
-- 현재 starter 인증 폼 4개(`login-form`, `sign-up-form`, `forgot-password-form`, `update-password-form`)는 오류 문구에 `text-red-500`을 하드코딩합니다. 새 코드의 기준으로 삼지 말고 `text-destructive`를 씁니다.
+- 오류 문구는 `text-destructive`를 씁니다 (`components/login-form.tsx`, 편집기의 글자 수 초과 표시). `text-red-500` 같은 하드코딩 색은 쓰지 않습니다.
 
 ### 반응형
 
-모바일 우선으로 작성하고 `sm:`, `md:`, `lg:`, `xl:`로 확장합니다. 인증 화면은 `flex min-h-svh w-full items-center justify-center p-6 md:p-10` + `max-w-sm` 패턴을 씁니다 (`app/auth/error/page.tsx`).
+모바일 우선으로 작성하고 `sm:`, `md:`, `lg:`, `xl:`로 확장합니다. 이 프로젝트의 페이지 컨테이너 패턴은 다음과 같습니다.
+
+| 영역                    | 패턴                                                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| 공개·관리자 페이지 본문 | `mx-auto w-full max-w-5xl px-4 py-12` (`app/(site)/blog/page.tsx` 등)                                    |
+| 블로그 상세(읽기 폭)    | `mx-auto w-full max-w-3xl px-4 py-12`                                                                    |
+| 헤더·관리자 헤더 안쪽   | `mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4`                                   |
+| 인증 화면               | `flex min-h-svh w-full items-center justify-center p-6 md:p-10` + `max-w-sm` (`app/auth/login/page.tsx`) |
+
+데스크톱 메뉴와 모바일 메뉴는 `hidden md:block` / `md:hidden`으로 나눕니다 (`site-header.tsx`, 768px 기준). 편집기의 좌우 분할은 `lg`(1024px) 이상입니다.
 
 ```tsx
 <div className="flex flex-col gap-4 p-4 md:flex-row md:gap-6 md:p-6 lg:mx-auto lg:max-w-6xl lg:p-8">
@@ -155,7 +164,7 @@ const badgeVariants = cva(
 
 ## shadcn/ui (base-nova)
 
-현재 `components/ui/`에는 `badge`, `button`, `card`, `checkbox`, `dropdown-menu`, `input`, `label`이 있습니다. 스타일은 `base-nova`이며 프리미티브는 `@base-ui/react`입니다 (Radix가 아님).
+현재 `components/ui/`에는 `avatar`, `badge`, `button`, `card`, `checkbox`, `dialog`, `dropdown-menu`, `input`, `label`, `separator`, `tabs`, `textarea`가 있습니다. 스타일은 `base-nova`이며 프리미티브는 `@base-ui/react`입니다 (Radix가 아님).
 
 ```bash
 npx shadcn@latest add dialog
@@ -193,7 +202,7 @@ export function LiftButton({
 `@custom-variant dark (&:is(.dark *))`로 `.dark` 클래스 기준 다크모드가 정의되어 있고, `:root`/`.dark`에 두 테마의 토큰이 모두 있습니다. 전환 로직도 이미 구성되어 있습니다.
 
 - `app/layout.tsx`: `<html suppressHydrationWarning>` 안에서 `ThemeProvider`(`next-themes`, `attribute="class"`, `defaultTheme="system"`, `enableSystem`, `disableTransitionOnChange`)가 `.dark` 클래스를 토글합니다.
-- `components/theme-switcher.tsx`: `light` / `dark` / `system`을 고르는 드롭다운입니다. 홈과 `app/protected/layout.tsx`의 푸터에서 쓰고 있습니다.
+- `components/theme-switcher.tsx`: `light` / `dark` / `system`을 고르는 드롭다운입니다. 공개 헤더(`components/layout/site-header.tsx`)에서 쓰고 있습니다.
 
 테마 값(`useTheme`)은 서버에서 알 수 없으므로 마운트 후에만 UI에 반영합니다. `ThemeSwitcher`처럼 `useEffect` + `setState` 대신 `useSyncExternalStore`로 hydration 여부를 판별합니다 (React 19 lint 규칙 `react-hooks/set-state-in-effect` 회피).
 
@@ -211,9 +220,9 @@ const mounted = useSyncExternalStore(
 
 ## 폰트
 
-- `app/layout.tsx`는 `next/font/google`의 Geist를 로드하고 `<body className={geistSans.className}>`로 적용합니다. 변수(`--font-geist-sans`)도 정의되지만 어떤 토큰에도 연결되어 있지 않습니다.
-- `globals.css`의 `@theme inline`에는 `--font-sans: var(--font-sans)`처럼 자기 자신을 참조하는 항목이 있고(shadcn 초기화 결과), `html { @apply font-sans }`가 이를 사용합니다. 현재는 `body`의 `className`이 폰트를 결정하므로 `font-sans` 유틸리티가 Geist로 해석된다고 가정하지 않습니다.
-- 폰트를 정리하려면 `--font-sans: var(--font-geist-sans)`로 연결하는 방안을 검토하고, 변경 후 화면에서 실제 폰트를 확인합니다. 한글 UI로 바꿀 때는 한글을 지원하는 폰트(`next/font`의 `subsets`, fallback)도 함께 결정합니다.
+- `app/layout.tsx`는 `next/font/google`의 **Noto Sans KR**을 `variable: "--font-noto-sans-kr"`(가변 폰트라 `weight`는 지정하지 않음, `display: "swap"`)로 로드하고, `<body className={`${notoSansKr.variable} font-sans antialiased`}>`로 적용합니다.
+- `app/globals.css`의 `@theme inline`에서 `--font-sans: var(--font-noto-sans-kr), sans-serif;`로 연결하고 `--font-heading`도 `--font-sans`를 따릅니다. `html { @apply font-sans }`가 기본 폰트를 지정하므로 `font-sans` 유틸리티가 Noto Sans KR로 해석됩니다.
+- 타입 정의상 Noto Sans KR의 `subsets`에는 `korean`이 없어 `latin`만 preload하고, 한글 글리프는 Google Fonts의 unicode-range 조각으로 로드됩니다. 폰트를 바꿀 때는 한글 렌더링을 화면에서 확인합니다.
 
 ## 색상 시스템
 

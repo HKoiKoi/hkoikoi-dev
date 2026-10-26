@@ -7,7 +7,7 @@
 
 ### 단일 책임
 
-한 컴포넌트는 하나의 명확한 역할만 맡습니다. 세션 조회 + 로그아웃 처리 + 레이아웃이 한 곳에 섞이면 분리합니다. `AuthButton`(서버: 세션 조회) → `LogoutButton`(클라이언트: 클릭 처리)이 이 프로젝트의 기준 사례입니다.
+한 컴포넌트는 하나의 명확한 역할만 맡습니다. 세션 조회 + 로그아웃 처리 + 레이아웃이 한 곳에 섞이면 분리합니다. `SiteHeader`(서버: 메뉴 구성) → `NavLink`·`NavGroupDropdown`·`MobileNav`(클라이언트: 현재 경로 강조와 드롭다운)가 이 프로젝트의 기준 사례입니다 (`components/layout/`).
 
 ### 컴포지션 우선
 
@@ -25,7 +25,9 @@
 
 ### 현재 설치된 UI 컴포넌트
 
-`badge`, `button`, `card`, `checkbox`, `dropdown-menu`, `input`, `label`. 그 외(`dialog`, `select`, `field`, `textarea` 등)는 필요할 때 `npx shadcn@latest add <name>`으로 추가합니다. 접근성이 중요한 복합 위젯(Tabs, Dialog, Accordion, Select, Menu 등)은 직접 만들지 않습니다.
+`avatar`, `badge`, `button`, `card`, `checkbox`, `dialog`, `dropdown-menu`, `input`, `label`, `separator`, `tabs`, `textarea`. 그 외(`select`, `field` 등)는 필요할 때 `npx shadcn@latest add <name>`으로 추가합니다. 접근성이 중요한 복합 위젯(Tabs, Dialog, Accordion, Select, Menu 등)은 직접 만들지 않습니다.
+
+도메인 표시 컴포넌트는 `components/blog/`(`post-card`, `category-badge`, `tag-badge`), `components/content/`(`page-header`, `empty-state`, `resume-section`, `project-card` 등), `components/layout/`(헤더·푸터·내비게이션)에 있습니다. `components/ui`는 수정하지 않고 래핑해서 씁니다.
 
 ## Server vs Client Components
 
@@ -35,7 +37,7 @@
 `cacheComponents`가 켜져 있으므로 **요청 시점 데이터(Supabase 세션·쿼리)를 읽는 컴포넌트는 `<Suspense>`로 감싸고, 데이터를 읽는 쪽을 Suspense 안쪽 컴포넌트로 분리**합니다.
 
 ```tsx
-// app/protected/notes/page.tsx (예시 테이블 notes)
+// app/admin/notes/page.tsx (예시 테이블 notes. 실제 posts 조회는 Task 012·013)
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 
@@ -71,7 +73,7 @@ export default function Page() {
 상태, 이벤트 핸들러, 브라우저 API, Context 소비가 필요한 말단 컴포넌트에만 `'use client'`를 붙입니다. 파일 최상단에 선언하고, 서버에서 받은 데이터는 props로 전달합니다.
 
 ```tsx
-// components/logout-button.tsx (현재 코드)
+// components/logout-button.tsx (현재 코드. starter 원본이며 Task 011에서 관리자 레이아웃용으로 교체)
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -97,14 +99,15 @@ export function LogoutButton() {
 
 ### 동적 라우트 컴포넌트의 params
 
-`params`와 `searchParams`는 Promise입니다. `PageProps` 헬퍼를 사용합니다 (`npx next typegen`). `app/auth/error/page.tsx`는 `searchParams: Promise<...>`를 직접 타이핑하는 방식인데, 새 코드는 헬퍼를 씁니다.
+`params`와 `searchParams`는 Promise입니다. `PageProps` 헬퍼를 사용합니다 (`npx next typegen`). `app/auth/error/page.tsx`는 `searchParams: Promise<...>`를 직접 타이핑하는 starter 방식이고, 블로그 페이지처럼 새 코드는 헬퍼를 씁니다.
 
 ```tsx
-export default async function Page(props: PageProps<"/protected/notes/[id]">) {
-  const { id } = await props.params;
+// app/(site)/blog/page.tsx 와 같은 방식: page는 Promise를 넘기기만 하고,
+// await은 Suspense 안쪽 컴포넌트에서 한다.
+export default function BlogPage(props: PageProps<"/blog">) {
   return (
-    <Suspense fallback={<NoteSkeleton />}>
-      <NoteDetail id={id} />
+    <Suspense fallback={<p>불러오는 중…</p>}>
+      <FilteredPosts searchParams={props.searchParams} />
     </Suspense>
   );
 }
@@ -114,7 +117,7 @@ export default async function Page(props: PageProps<"/protected/notes/[id]">) {
 
 ### 폼 상태: `useActionState`
 
-폼은 Server Action + `useActionState`가 기본입니다. 전체 패턴은 `forms-react-hook-form.md`를 참고하세요. 현재 인증 폼(`login-form.tsx` 등)은 `useState` + 브라우저 Supabase 클라이언트 방식의 starter 코드입니다.
+폼은 Server Action + `useActionState`가 기본입니다. 전체 패턴은 `forms-react-hook-form.md`를 참고하세요. 현재 `components/login-form.tsx`는 `useState` + 브라우저 Supabase 클라이언트 방식의 starter 코드이고(Task 011에서 Server Action으로 전환 예정), 관리자 편집기(`post-editor.tsx`)도 아직 저장 동작 없이 `useState`로 입력만 관리합니다(Task 013에서 연결).
 
 ### 마운트 여부: `useSyncExternalStore`
 
@@ -229,14 +232,14 @@ export function Alert({ tone = "info", className, ...props }: AlertProps) {
 이 프로젝트의 shadcn은 Radix가 아니라 **Base UI**입니다. `asChild`는 없고, 다른 요소(예: `Link`)에 스타일/동작을 입히려면 `render` prop을 사용합니다.
 
 ```tsx
-// components/auth-button.tsx (현재 코드)
-<Button nativeButton={false} render={<Link href="/auth/login" />} size="sm">
-  Sign in
+// app/not-found.tsx (현재 코드)
+<Button render={<Link href="/" />} nativeButton={false}>
+  메인으로 돌아가기
 </Button>
 ```
 
-- `render`로 `<button>`이 아닌 요소(`<a>`, `Link`, `<span>`)를 렌더링하면 **`nativeButton={false}`** 를 함께 지정합니다.
-- 트리거 컴포넌트도 같은 방식입니다: `components/theme-switcher.tsx`의 `<DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>`. 트리거를 별도의 `<div>`나 `<Button>`으로 감싸지 않습니다.
+- `render`로 `<button>`이 아닌 요소(`<a>`, `Link`, `<span>`)를 렌더링하면 **`nativeButton={false}`** 를 함께 지정합니다 (`project-card.tsx`의 외부 링크 버튼, 메인의 `mailto:` 버튼도 같은 방식).
+- 트리거 컴포넌트도 같은 방식입니다: `components/theme-switcher.tsx`의 `<DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>`, `app/admin/posts/_components/delete-post-dialog.tsx`의 `<DialogTrigger render={<Button variant="destructive" size="sm" />}>`. 트리거를 별도의 `<div>`나 `<Button>`으로 감싸지 않습니다.
 - `render`에는 요소 또는 `(props, state) => ReactElement` 함수를 줄 수 있습니다.
 - Radix 코드(`asChild`, `data-[state=open]`)를 가져올 때는 `.agents/skills/shadcn/rules/base-vs-radix.md`와 `migrate-radix-to-base` 스킬을 따릅니다.
 
@@ -419,7 +422,7 @@ export function List<T>({ items, getKey, render }: ListProps<T>) {
 
 ### Supabase 타입
 
-DB 타입을 생성해 두면 `.from("notes").select()` 결과가 타입 안전해집니다 (`project-structure.md`의 `database.types.ts` 권장). 생성 전에는 쿼리 결과를 `as`로 단언하지 말고, 필요한 필드만 `select`한 뒤 컴포넌트 props 타입을 명시합니다.
+DB 타입은 `lib/supabase/database.types.ts`(생성 파일)에 있고 세 Supabase 클라이언트에 `Database` 제네릭이 적용되어 있어, `.from("posts").select()` 결과가 타입 안전합니다. 도메인 타입은 직접 쓰지 않고 `lib/types/post.ts`처럼 `Tables<"posts">`에서 파생합니다(`PostSummary`, `Post`, `PostInput`). 쿼리 결과를 `as`로 단언하지 말고, 필요한 필드만 `select`한 뒤 컴포넌트 props 타입을 명시합니다. 스키마를 바꾸면 마이그레이션 적용 후 타입을 다시 생성합니다.
 
 ## 테스트
 
