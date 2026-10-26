@@ -23,6 +23,11 @@ test.describe("공개 경로", () => {
       expect(response?.status()).toBe(200);
       expect(new URL(page.url()).pathname).toBe(path);
       await expect(page.locator("h1").first()).toBeVisible();
+      await expect(page.locator("main")).toHaveCount(1);
+      await expect(
+        page.getByRole("banner").getByRole("link", { name: "hkoikoi.dev" }),
+      ).toBeVisible();
+      await expect(page.getByRole("contentinfo")).toBeVisible();
     });
   }
 
@@ -36,6 +41,15 @@ test.describe("공개 경로", () => {
       "첫-번째-글",
     );
   });
+});
+
+test("로그인 페이지에는 헤더 메뉴와 푸터가 없다", async ({ page }) => {
+  await page.goto("/auth/login");
+
+  await expect(page.getByRole("navigation", { name: "주요 메뉴" })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("contentinfo")).toHaveCount(0);
 });
 
 test.describe("관리자 경로 보호", () => {
