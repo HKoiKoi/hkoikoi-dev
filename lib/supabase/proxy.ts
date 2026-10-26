@@ -47,16 +47,21 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
-  if (
-    request.nextUrl.pathname !== "/" &&
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  // 보호 대상은 /admin 세그먼트뿐이다. /administrator 같은 경로는 보호하지 않는다.
+  const { pathname } = request.nextUrl;
+  const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin/");
+
+  if (!user && isAdminPath) {
+    // 비로그인 사용자는 로그인 페이지로 보낸다.
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
-    return NextResponse.redirect(url);
+    url.search = "";
+    const redirectResponse = NextResponse.redirect(url);
+    // getClaims()가 갱신한 토큰 쿠키가 유실되지 않도록 그대로 복사한다.
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+    return redirectResponse;
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
