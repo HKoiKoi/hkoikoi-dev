@@ -208,13 +208,13 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 기능: F001, F002, F003, F004, F005(메인 최신 글 영역), F013
   - 관련 파일: `app/(site)/page.tsx`, `app/(site)/{education,career,certifications,volunteer,languages,activities,projects,publications}/page.tsx`, `components/content/resume-section.tsx`, `lib/dummy/posts.ts`
   - 수락 기준: 정적 페이지 8종이 `data/*.ts` 기반으로 완성되고(이 단계에서 F001~F004 기능 완료), 메인은 히어로·연락처·섹션 바로가기 카드·대표 프로젝트 3개·최신 글 3개(더미)를 표시. 데이터가 비면 안내 문구 표시. 모든 정적 페이지가 빌드 시 정적 프리렌더됨
-  - [ ] 메인 히어로(이름·한 줄 소개·소개문)와 이메일(mailto)·GitHub 링크
-  - [ ] 섹션 바로가기 카드(`lib/site-config.ts` 메뉴 재사용), 대표 프로젝트 3개(`featured` 규칙), 최신 글 3개(`lib/dummy/posts.ts`, 0건이면 안내 문구)
-  - [ ] 이력 6종은 `ResumeSection` 하나로 렌더링하고 페이지별로 데이터·제목만 주입
-  - [ ] 프로젝트 페이지 카드 그리드, 논문 페이지는 연도 내림차순 정렬(정렬 함수 단위 테스트)
-  - [ ] 페이지별 `metadata`(title·description) 지정
-  - [ ] `e2e/static-pages.spec.ts` 작성
-  - [ ] `knip.json`의 `ignore`에서 Task 004-b 때 임시로 추가한 `data/*.ts` 8개와 `lib/types/{post,resume}.ts` 항목을 제거하고 `npm run knip` 통과 확인(`lib/types/post.ts`가 아직 쓰이지 않으면 사용하는 Task 008·010 완료 시점에 제거)
+  - [x] 메인 히어로(이름·한 줄 소개·소개문)와 이메일(mailto)·GitHub 링크
+  - [x] 섹션 바로가기 카드(`lib/site-config.ts` 메뉴 재사용), 대표 프로젝트 3개(`featured` 규칙), 최신 글 3개(`lib/dummy/posts.ts`, 0건이면 안내 문구)
+  - [x] 이력 6종은 `ResumeSection` 하나로 렌더링하고 페이지별로 데이터·제목만 주입
+  - [x] 프로젝트 페이지 카드 그리드, 논문 페이지는 연도 내림차순 정렬(정렬 함수 단위 테스트)
+  - [x] 페이지별 `metadata`(title·description) 지정
+  - [x] `e2e/static-pages.spec.ts` 작성
+  - [x] `knip.json`의 `ignore`에서 Task 004-b 때 임시로 추가한 `data/*.ts` 8개와 `lib/types/{post,resume}.ts` 항목을 제거하고 `npm run knip` 통과 확인(`lib/types/post.ts`는 `PostInput`이 아직 미사용이라 Task 009·010 완료 시점에 제거)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/` 접속 → 이름, `mailto:koikoilove99@gmail.com` 링크, `https://github.com/hkoikoi` 링크, 프로젝트 카드 3개, 글 카드 최대 3개
     - 정상: Playwright MCP → 메인 "학력" 섹션 카드 클릭 → `/education` 이동, 항목 제목·기간 표시
@@ -222,17 +222,17 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: `lib/dummy/posts.ts`를 빈 배열로 바꾼 뒤 Playwright MCP → `/` → "아직 작성된 글이 없습니다" 안내
     - 엣지: Playwright MCP → `/languages` → 언어(제목)·시험·점수(부제)·취득일(기간) 형식 표시
     - 오류: 터미널 → `npm run build` → 정적 페이지가 동적 렌더링으로 분류되지 않음(빌드 로그의 라우트 표시 확인)
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-26 `npm run check`(Vitest 21개)·`npm run knip`·`npm run build` 통과, 빌드 로그에서 `/`와 이력·프로젝트·논문 페이지가 정적(○)으로 표시. `npm run test:e2e` 24개 통과(메인 mailto·GitHub 링크, 바로가기 카드 9개와 `/education` 이동, 논문 연도 내림차순, 프로젝트 링크 `target=_blank`, 어학 형식). Playwright MCP 수동 확인(다크·375px, 더미 글 빈 배열 안내)은 미수행
 
 - **Task 008: 블로그 목록·상세 UI 완성**
   - 관련 기능: F005, F006, F013
   - 관련 파일: `app/(site)/blog/page.tsx`, `app/(site)/blog/[slug]/page.tsx`, `app/(site)/blog/_components/{post-filter-bar,post-list}.tsx`, `lib/posts/filter.ts`, `lib/dummy/posts.ts`
   - 수락 기준: 더미 글로 목록(최신순, 카테고리/태그 필터·현재 필터 표시·해제)과 상세(제목·날짜·카테고리·태그·본문 자리)가 동작하고, 없는 슬러그는 not-found. `searchParams`를 읽는 부분은 `<Suspense>`로 감쌈
-  - [ ] `lib/dummy/posts.ts`: 발행/초안이 섞인 더미 글 6건 이상(한글 슬러그·썸네일 없는 글·태그 10개 글 포함)
-  - [ ] `lib/posts/filter.ts`: 발행 글만·최신순·카테고리/태그 필터 순수 함수 + 단위 테스트(Task 012에서 DB 쿼리로 대체되면 삭제)
-  - [ ] 목록: `?category=`/`?tag=` 쿼리 기반 필터, 현재 필터 배지와 "필터 해제" 링크, 0건 안내
-  - [ ] 상세: 메타 영역, 태그/카테고리 클릭 시 `/blog?tag=`·`/blog?category=` 이동, 본문은 임시로 `whitespace-pre-wrap` 텍스트(Task 015에서 마크다운으로 교체)
-  - [ ] 초안·없는 슬러그는 `notFound()`
+  - [x] `lib/dummy/posts.ts`: 발행/초안이 섞인 더미 글 6건 이상(한글 슬러그·썸네일 없는 글·태그 10개 글 포함)
+  - [x] `lib/posts/filter.ts`: 발행 글만·최신순·카테고리/태그 필터 순수 함수 + 단위 테스트(Task 012에서 DB 쿼리로 대체되면 삭제)
+  - [x] 목록: `?category=`/`?tag=` 쿼리 기반 필터, 현재 필터 배지와 "필터 해제" 링크, 0건 안내
+  - [x] 상세: 메타 영역, 태그/카테고리 클릭 시 `/blog?tag=`·`/blog?category=` 이동, 본문은 임시로 `whitespace-pre-wrap` 텍스트(Task 015에서 마크다운으로 교체)
+  - [x] 초안·없는 슬러그는 `notFound()`
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/blog` → 발행 더미 글만 최신순 카드 표시(초안 제목 미노출)
     - 정상: Playwright MCP → 카드의 태그 클릭 → `/blog?tag=<태그>`, 해당 태그 글만 표시, 현재 필터 배지 표시 → "필터 해제" 클릭 → 전체 목록
@@ -241,7 +241,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → 초안 더미 글 슬러그로 직접 접속 → not-found 화면
     - 엣지: Playwright MCP → `/blog?tag=존재하지않는태그` → 빈 목록 안내와 필터 해제 링크
     - 엣지: Playwright MCP → `/blog?category=a&tag=b`(동시 지정) → 두 조건 AND로 적용
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build` 통과. 프로덕션 서버 curl 확인: `/blog` 발행 글 5건(초안 미노출), `?tag=nextjs` 3건, 카테고리+태그 AND, 없는 태그는 빈 목록 안내와 "필터 해제", 초안·없는 슬러그는 not-found 화면(Suspense 스트리밍이라 HTTP 상태는 200, `noindex`). `e2e/routes.spec.ts`에 한글 슬러그 상세와 초안·없는 슬러그 not-found 추가. Playwright MCP 수동 확인(다크·375px)은 미수행
 
 - **Task 009: 로그인·관리자 글 목록·글 편집기 UI 완성**
   - 관련 기능: F007(미리보기 자리), F008, F009(업로드 UI 자리), F010, F011, F012
