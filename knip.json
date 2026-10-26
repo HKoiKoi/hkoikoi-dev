@@ -1,5 +1,12 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignore": ["components/ui/**", ".agents/**"],
-  "ignoreDependencies": ["@testing-library/user-event"]
+  "ignore": [
+    "components/ui/**",
+    ".agents/**",
+    "components/auth-button.tsx",
+    "components/logout-button.tsx",
+    "components/theme-switcher.tsx",
+    "lib/supabase/server.ts"
+  ],
+  "ignoreDependencies": ["@testing-library/user-event", "lucide-react"]
 }
