@@ -26,7 +26,7 @@ export function PostCard({ post, className }: PostCardProps) {
   const href = `/blog/${encodeURIComponent(slug)}`;
 
   return (
-    <Card className={cn("h-full", className)}>
+    <Card className={cn("h-full pt-0", className)}>
       {thumbnail_url ? (
         // 외부 URL이 임의 도메인일 수 있어 next/image 대신 img 사용
         // eslint-disable-next-line @next/next/no-img-element
