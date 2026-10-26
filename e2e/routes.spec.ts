@@ -31,15 +31,26 @@ test.describe("공개 경로", () => {
     });
   }
 
-  test("한글 슬러그가 디코딩되어 h1에 표시된다", async ({ page }) => {
+  test("한글 슬러그 글이 디코딩되어 상세에 표시된다", async ({ page }) => {
     const response = await page.goto(
-      "/blog/" + encodeURIComponent("첫-번째-글"),
+      "/blog/" + encodeURIComponent("nextjs-16-시작하기"),
     );
 
     expect(response?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "첫-번째-글",
+      "Next.js 16 시작하기",
     );
+  });
+
+  test("초안과 없는 슬러그는 not-found가 표시된다", async ({ page }) => {
+    for (const slug of ["초안-글", "없는-글"]) {
+      await page.goto("/blog/" + encodeURIComponent(slug));
+
+      await expect(page.getByText("아직 발행하지 않은 초안")).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", { name: "페이지를 찾을 수 없습니다" }),
+      ).toBeVisible();
+    }
   });
 });
 
