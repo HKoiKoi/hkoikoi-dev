@@ -7,4 +7,6 @@ export const profile: Profile = {
   bio: "샘플 소개문입니다.",
   email: "koikoilove99@gmail.com",
   github: "https://github.com/hkoikoi",
+  // TODO: public/avatar.jpg 등을 추가한 뒤 경로를 지정한다.
+  avatar: undefined,
 };
