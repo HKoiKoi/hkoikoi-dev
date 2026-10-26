@@ -156,11 +156,11 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 기능: F001, F002, F003, F004, F005, F006, F008, F009, F010
   - 관련 파일: `lib/types/profile.ts`, `lib/types/resume.ts`, `lib/types/post.ts`, `data/profile.ts`, `data/education.ts`, `data/career.ts`, `data/certifications.ts`, `data/volunteer.ts`, `data/languages.ts`, `data/activities.ts`, `data/projects.ts`, `data/publications.ts`
   - 수락 기준: PRD 데이터 모델의 정적 모델 4종과 Post 타입이 정의되고, `data/*.ts`가 타입을 만족하는 샘플 데이터(각 `// TODO: 실제 내용으로 교체` 표기)를 export. posts 테이블·스토리지 설계가 이 Task 하단 표로 확정됨(마이그레이션 구현은 Task 010)
-  - [ ] `Profile`(name, tagline, bio, email, github), `ResumeEntry`(title, subtitle?, period?, description?, tags?, link?), `Project`(name, summary, period, role, stack[], links, featured?), `Publication`(title, authors, venue, year, link) 정의
-  - [ ] `data/` 폴더 생성(루트, `@/data/*` 별칭으로 import) 및 섹션별 샘플 데이터 작성. 어학은 title=언어, subtitle=시험·점수, period=취득일
-  - [ ] 열린 질문 "대표 프로젝트 선정 기준"은 `Project.featured?: boolean`으로 표시하고 featured가 3개 미만이면 앞에서부터 채우는 규칙으로 기본 결정(변경 시 이 항목 갱신)
-  - [ ] `lib/types/post.ts`: `PostSummary`(목록 카드용), `Post`(상세), `PostInput`(편집기 입력) 타입. Task 010 이후 `lib/supabase/database.types.ts`의 Row 타입에서 파생하도록 교체 예정임을 주석으로 명시
-  - [ ] posts·스토리지 설계 확정(아래 표)
+  - [x] `Profile`(name, tagline, bio, email, github), `ResumeEntry`(title, subtitle?, period?, description?, tags?, link?), `Project`(name, summary, period, role, stack[], links, featured?), `Publication`(title, authors, venue, year, link) 정의
+  - [x] `data/` 폴더 생성(루트, `@/data/*` 별칭으로 import) 및 섹션별 샘플 데이터 작성. 어학은 title=언어, subtitle=시험·점수, period=취득일
+  - [x] 열린 질문 "대표 프로젝트 선정 기준"은 `Project.featured?: boolean`으로 표시하고 featured가 3개 미만이면 앞에서부터 채우는 규칙으로 기본 결정(변경 시 이 항목 갱신)
+  - [x] `lib/types/post.ts`: `PostSummary`(목록 카드용), `Post`(상세), `PostInput`(편집기 입력) 타입. Task 010 이후 `lib/supabase/database.types.ts`의 Row 타입에서 파생하도록 교체 예정임을 주석으로 명시
+  - [x] posts·스토리지 설계 확정(아래 표)
   - posts 테이블 설계 (Task 010에서 구현):
 
     | 컬럼                    | 타입 / 제약                                                                     |
@@ -184,7 +184,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 정상: 터미널 → `npm run typecheck` → `data/*.ts`가 타입 오류 없이 통과
     - 오류: 터미널 → 임시로 `ResumeEntry`에 필수 필드 누락 → typecheck 실패 확인 후 원복(타입 강제 확인)
     - 엣지: `data/` 배열 하나를 빈 배열로 바꿔도 타입 통과(빈 상태 UI는 Task 007에서 검증)
-  - 테스트 결과: (미수행)
+  - 테스트 결과: `npm run check` 통과. `data/education.ts`에서 `title` 제거 시 TS2741로 실패 후 원복 확인, `languages`를 빈 배열로 바꿔도 통과 후 원복. posts·스토리지 설계 표는 변경 없이 확정. `npm run knip`은 data·types 12개 파일을 미사용으로 경고(Task 004·007에서 사용 예정, 설정 변경 없음)
 
 ### Phase 2: UI/UX 완성 (더미 데이터 활용)
 
