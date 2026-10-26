@@ -97,9 +97,9 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: (해당 없음)
   - 테스트 결과: 2026-10-25 `npm run check` 통과 (Vitest 1 파일 / 2 테스트 통과). E2E는 스타터 홈 기준 `e2e/home.spec.ts`만 존재하며 Task 002에서 교체 예정.
 
-### Phase 1: 애플리케이션 골격 구축
+### Phase 1: 애플리케이션 골격 구축 ✅
 
-- **Task 002: 스타터 잔재 정리 및 사이트 기본 설정** - 우선순위
+- **Task 002: 스타터 잔재 정리 및 사이트 기본 설정** ✅ - 우선순위
   - 관련 기능: F012(회원가입 제거), F013(사이트 공통 설정)
   - 관련 파일: `components/tutorial/**`, `components/{deploy-button,hero,next-logo,supabase-logo,env-var-warning,sign-up-form,forgot-password-form,update-password-form}.tsx`, `app/auth/{sign-up,sign-up-success,forgot-password,update-password}/**`, `app/auth/confirm/route.ts`, `components/login-form.tsx`, `app/layout.tsx`, `app/page.tsx`, `lib/utils.ts`, `e2e/home.spec.ts`
   - 수락 기준: 스타터 안내용 코드와 가입 관련 페이지가 제거되어 `/auth/sign-up` 접근 시 없는 페이지가 표시되고, 로그인 폼에 가입·비밀번호 찾기 링크가 없으며, `<html lang="ko">`·사이트 제목 "hkoikoi.dev"·Noto Sans KR 폰트가 적용됨. `npm run check`·`npm run build`·`npm run knip` 통과
@@ -114,13 +114,13 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 정상: Playwright MCP → `/auth/login` 접속 → 이메일·비밀번호 입력란 표시, "Sign up"/"Forgot password" 링크 없음
     - 오류: Playwright MCP → `/auth/sign-up` 접속 → 없는 페이지(not-found) 화면
     - 엣지: 터미널 → `npm run knip` → 삭제한 파일을 가리키는 미사용 export·의존성 경고 없음
-  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build` 통과, `e2e/home.spec.ts`로 `html[lang=ko]`·제목·스타터 문구 없음 확인(Playwright MCP 수동 시나리오는 미수행). `npm run knip`은 data·types 10개 파일 미사용으로 실패(Task 007 이후 사용 예정)
+  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build` 통과, `e2e/home.spec.ts`로 `html[lang=ko]`·제목·스타터 문구 없음 확인. 2026-10-26 수동 확인: `/auth/sign-up`·`/auth/forgot-password`·`/protected` 404, 로그인 폼에 가입·찾기 링크 없음, 홈에 스타터 문구 없음. `npm run knip`은 data·types 파일을 `knip.json` `ignore`에 임시 추가해 통과(Task 007에서 제거)
 
-- **Task 003: 라우트 구조 및 공개 경로 정책 구축** - 우선순위
+- **Task 003: 라우트 구조 및 공개 경로 정책 구축** ✅ - 우선순위
   - 관련 기능: F002, F003, F004, F005, F006, F012, F013
   - 관련 파일: `app/(site)/**`, `app/admin/**`, `app/not-found.tsx`, `app/protected/**`(삭제), `lib/supabase/proxy.ts`, `proxy.ts`
-  - 수락 기준: 라우트 맵의 모든 공개 경로가 비로그인 상태에서 빈 껍데기 페이지(제목만)로 열리고, `/admin/**`은 비로그인 시 `/auth/login`으로 리다이렉트되며, 없는 경로는 공통 not-found 화면을 표시. `npx next typegen` 후 `npm run typecheck`·`npm run build` 통과
-  - [ ] `app/page.tsx`를 `app/(site)/page.tsx`로 이동하고 `app/(site)/layout.tsx` 골격 생성(헤더·푸터 자리)
+  - 수락 기준: 라우트 맵의 모든 공개 경로가 비로그인 상태에서 빈 껍데기 페이지(제목만)로 열리고, `/admin/**`은 비로그인 시 `/auth/login`으로 리다이렉트되며, 없는 경로는 공통 not-found 화면을 표시. `npm run typecheck`(내부에서 `next typegen` 실행)·`npm run build` 통과
+  - [x] `app/page.tsx`를 `app/(site)/page.tsx`로 이동하고 `app/(site)/layout.tsx` 골격 생성(헤더·푸터 자리)
   - [x] 이력 6종·프로젝트·논문·블로그 목록·블로그 상세(`[slug]`) 빈 페이지 생성. 동적 라우트는 `PageProps<'/blog/[slug]'>` 헬퍼 사용
   - [x] `app/admin/layout.tsx`, `app/admin/posts/page.tsx`, `app/admin/posts/edit/page.tsx` 빈 페이지 생성 후 `app/protected/` 삭제(로그인 후 리다이렉트 대상도 `/admin/posts`로 변경)
   - [x] `lib/supabase/proxy.ts`의 리다이렉트 조건을 "공개 경로 화이트리스트"에서 "`/admin` 접두만 보호"로 전환(`createServerClient`와 `getClaims()` 사이에 코드 추가 금지, `supabaseResponse` 쿠키 유지)
@@ -134,12 +134,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → `/administrator`(접두 유사 경로) 접속 → 리다이렉트 없이 not-found (보호 조건이 `/admin` 세그먼트 단위로만 동작)
   - 테스트 결과: 2026-10-26 `npm run test:e2e` 통과(공개 경로 순회, 한글 슬러그, `/admin`·`/admin/posts`·`/admin/posts/edit` 리다이렉트, `/administrator`·없는 경로 not-found). `npm run build` 통과
 
-- **Task 004: 공통 헤더·푸터·테마 레이아웃 구축**
+- **Task 004: 공통 헤더·푸터·테마 레이아웃 구축** ✅
   - 관련 기능: F013, F001(푸터 연락처)
-  - 관련 파일: `components/layout/site-header.tsx`, `components/layout/site-footer.tsx`, `components/layout/mobile-nav.tsx`, `components/layout/admin-link.tsx`, `components/theme-switcher.tsx`, `lib/site-config.ts`, `app/(site)/layout.tsx`
-  - 수락 기준: 모든 공개 페이지에 동일한 헤더(로고, 10개 메뉴, 테마 전환)·푸터(이메일·GitHub)가 표시되고, 768px 미만에서는 드롭다운 메뉴로 전환되며 현재 페이지 메뉴가 강조됨. 로그인 페이지에는 헤더 메뉴가 없음
-  - [ ] `lib/site-config.ts`: 사이트명, 메뉴 10개(메인·학력·경력·자격증·사회봉사·어학·사회활동·프로젝트·논문·블로그)의 `label`/`href`를 단일 배열로 정의
-  - [ ] `SiteHeader`(Server) + 현재 경로 강조용 작은 Client 컴포넌트(`usePathname`), 데스크톱 가로 메뉴
+  - 관련 파일: `components/layout/site-header.tsx`, `components/layout/site-footer.tsx`, `components/layout/mobile-nav.tsx`, `components/layout/nav-group-dropdown.tsx`, `components/layout/admin-link.tsx`, `components/theme-switcher.tsx`, `lib/site-config.ts`, `app/(site)/layout.tsx`
+  - 수락 기준: 모든 공개 페이지에 동일한 헤더(로고, 이력▾·활동▾ 그룹 드롭다운과 프로젝트·논문·블로그 메뉴, 테마 전환)·푸터(이메일·GitHub)가 표시되고, 768px 미만에서는 드롭다운 메뉴로 전환되며 현재 페이지 메뉴가 강조됨. 로그인 페이지에는 헤더 메뉴가 없음
+  - [x] `lib/site-config.ts`: 사이트명, 메뉴(이력▾[학력·경력·자격증·어학]·활동▾[사회봉사·사회활동]·프로젝트·논문·블로그, 메인은 로고로 대체)를 그룹 구조(`NavGroup`) 단일 배열로 정의
+  - [x] `SiteHeader`(Server) + 현재 경로 강조용 작은 Client 컴포넌트(`usePathname`: `NavLink`, 그룹은 `NavGroupDropdown`), 데스크톱 가로 메뉴
   - [x] `MobileNav`: 기존 `components/ui/dropdown-menu`(Base UI) 기반 모바일 드롭다운
   - [x] `ThemeSwitcher` 한국어화 및 헤더 배치, 라이트/다크/시스템 전환
   - [x] `SiteFooter`: Profile 데이터의 이메일(mailto)·GitHub 링크
@@ -147,12 +147,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/` 접속 후 헤더 "프로젝트" 클릭 → `/projects` 이동, 해당 메뉴 `aria-current="page"`
     - 정상: Playwright MCP → 테마 전환 버튼으로 다크 선택 → `html`에 `dark` 클래스, 새로고침 후 유지
-    - 엣지: Playwright MCP → 뷰포트 375px에서 메뉴 버튼 클릭 → 드롭다운에 10개 메뉴 표시, 항목 클릭 시 이동 후 닫힘
+    - 엣지: Playwright MCP → 뷰포트 375px에서 메뉴 버튼 클릭 → 드롭다운에 그룹 라벨(이력·활동)과 하위 항목, 프로젝트·논문·블로그 표시, 항목 클릭 시 이동 후 닫힘
     - 엣지: Playwright MCP → 로고 클릭(임의 페이지) → `/` 이동
     - 오류: (해당 없음, 정적 UI)
-  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build`·`npm run test:e2e`(17개) 통과. e2e로 공개 10개 경로의 헤더 로고·푸터·`<main>` 1개와 로그인 페이지의 헤더 메뉴·푸터 부재 확인. `npm run knip`은 data·types 10개 파일을 `knip.json` `ignore`에 임시 추가해 통과(Task 007에서 제거). 메뉴 클릭 `aria-current`, 테마 전환, 375px 드롭다운은 Playwright MCP 수동 검증 미수행
+  - 테스트 결과: 2026-10-26 `npm run check`·`npm run build`·`npm run test:e2e`(17개) 통과. e2e로 공개 10개 경로의 헤더 로고·푸터·`<main>` 1개와 로그인 페이지의 헤더 메뉴·푸터 부재 확인. `npm run knip`은 data·types 10개 파일을 `knip.json` `ignore`에 임시 추가해 통과(Task 007에서 제거). 이후 내비를 그룹 드롭다운으로 개편했으며 2026-10-26 `npm run test:e2e` 18개 통과. 2026-10-26 Playwright MCP 수동 확인: 메뉴 클릭 시 `aria-current="page"`, 라이트·다크 전환과 새로고침 후 유지, 로고 클릭 시 `/` 이동, 375px 드롭다운 항목 클릭 시 이동 후 닫힘
 
-- **Task 005: 도메인 타입 및 데이터 모델 설계**
+- **Task 005: 도메인 타입 및 데이터 모델 설계** ✅
   - 관련 기능: F001, F002, F003, F004, F005, F006, F008, F009, F010
   - 관련 파일: `lib/types/profile.ts`, `lib/types/resume.ts`, `lib/types/post.ts`, `data/profile.ts`, `data/education.ts`, `data/career.ts`, `data/certifications.ts`, `data/volunteer.ts`, `data/languages.ts`, `data/activities.ts`, `data/projects.ts`, `data/publications.ts`
   - 수락 기준: PRD 데이터 모델의 정적 모델 4종과 Post 타입이 정의되고, `data/*.ts`가 타입을 만족하는 샘플 데이터(각 `// TODO: 실제 내용으로 교체` 표기)를 export. posts 테이블·스토리지 설계가 이 Task 하단 표로 확정됨(마이그레이션 구현은 Task 010)
@@ -184,7 +184,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 정상: 터미널 → `npm run typecheck` → `data/*.ts`가 타입 오류 없이 통과
     - 오류: 터미널 → 임시로 `ResumeEntry`에 필수 필드 누락 → typecheck 실패 확인 후 원복(타입 강제 확인)
     - 엣지: `data/` 배열 하나를 빈 배열로 바꿔도 타입 통과(빈 상태 UI는 Task 007에서 검증)
-  - 테스트 결과: `npm run check` 통과. `data/education.ts`에서 `title` 제거 시 TS2741로 실패 후 원복 확인, `languages`를 빈 배열로 바꿔도 통과 후 원복. posts·스토리지 설계 표는 변경 없이 확정. `npm run knip`은 data·types 12개 파일을 미사용으로 경고(Task 004·007에서 사용 예정, 설정 변경 없음)
+  - 테스트 결과: `npm run check` 통과. `data/education.ts`에서 `title` 제거 시 TS2741로 실패 후 원복 확인, `languages`를 빈 배열로 바꿔도 통과 후 원복. posts·스토리지 설계 표는 변경 없이 확정. `npm run knip`은 data·types 파일을 `knip.json` `ignore`에 임시 추가해 통과(Task 007에서 제거)
 
 ### Phase 2: UI/UX 완성 (더미 데이터 활용)
 
