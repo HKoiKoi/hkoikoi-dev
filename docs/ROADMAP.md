@@ -188,7 +188,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 
 ### Phase 2: UI/UX 완성 (더미 데이터 활용) ✅
 
-- **Task 006: 공통 UI 컴포넌트 및 디자인 기반 구축**
+- **Task 006: 공통 UI 컴포넌트 및 디자인 기반 구축** ✅
   - 관련 기능: F002, F003, F004, F005, F013
   - 관련 파일: `components/ui/{textarea,tabs,dialog,separator}.tsx`(CLI), `components/content/{page-header,empty-state,resume-entry-item,project-card,publication-item}.tsx`, `components/blog/{post-card,tag-badge,category-badge}.tsx`, `app/globals.css`
   - 수락 기준: PRD 지정 shadcn 컴포넌트(textarea, tabs, dialog, separator)가 CLI로 추가되고, 도메인 표시 컴포넌트가 라이트/다크·모바일 폭에서 깨지지 않음. `components/ui`는 수정하지 않고 래핑만 함
@@ -204,7 +204,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: (해당 없음, 표시 컴포넌트)
   - 테스트 결과: 2026-10-26 `npm run check` 통과(`lib/format-date.test.ts`의 정상·UTC 자정 직전 케이스 포함). shadcn 4종은 CLI로 추가했고 CLI가 잘못 생성한 `cn` import는 `@/lib/utils`로 수정. Playwright MCP 수동 확인(다크·375px)은 미수행
 
-- **Task 007: 메인·이력·프로젝트·논문 페이지 UI 완성**
+- **Task 007: 메인·이력·프로젝트·논문 페이지 UI 완성** ✅
   - 관련 기능: F001, F002, F003, F004, F005(메인 최신 글 영역), F013
   - 관련 파일: `app/(site)/page.tsx`, `app/(site)/{education,career,certifications,volunteer,languages,activities,projects,publications}/page.tsx`, `components/content/resume-section.tsx`, `lib/dummy/posts.ts`
   - 수락 기준: 정적 페이지 8종이 `data/*.ts` 기반으로 완성되고(이 단계에서 F001~F004 기능 완료), 메인은 히어로·연락처·섹션 바로가기 카드·대표 프로젝트 3개·최신 글 3개(더미)를 표시. 데이터가 비면 안내 문구 표시. 모든 정적 페이지가 빌드 시 정적 프리렌더됨
@@ -224,7 +224,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: 터미널 → `npm run build` → 정적 페이지가 동적 렌더링으로 분류되지 않음(빌드 로그의 라우트 표시 확인)
   - 테스트 결과: 2026-10-26 `npm run check`(Vitest 21개)·`npm run knip`·`npm run build` 통과, 빌드 로그에서 `/`와 이력·프로젝트·논문 페이지가 정적(○)으로 표시. `npm run test:e2e` 24개 통과(메인 mailto·GitHub 링크, 바로가기 카드 9개와 `/education` 이동, 논문 연도 내림차순, 프로젝트 링크 `target=_blank`, 어학 형식). Playwright MCP 수동 확인(2026-10-26): 다크·375px에서 `/`, 이력 6종, `/projects`, `/publications`, `/blog` 계열, not-found 등 14개 페이지 가로 넘침 없음(scrollWidth 375), `/` 스크린샷 육안 확인. `/`는 mailto·GitHub 링크, 바로가기 9개, `/education` 링크, 대표 프로젝트 카드 표시 확인, `/education`·`/languages` 항목·형식 표시 확인. `lib/dummy/posts.ts`를 임시로 빈 배열로 바꿔(원복·미커밋) `/`와 `/blog`에 "아직 작성된 글이 없습니다" 안내가 표시됨을 확인. `data/publications.ts`에 더미 논문 4건(2025 2건·2024·2023)을 추가해 `/publications`가 2025·2025·2024·2023·2022 내림차순이고 같은 해는 입력 순서 유지됨을 확인
 
-- **Task 008: 블로그 목록·상세 UI 완성**
+- **Task 008: 블로그 목록·상세 UI 완성** ✅
   - 관련 기능: F005, F006, F013
   - 관련 파일: `app/(site)/blog/page.tsx`, `app/(site)/blog/[slug]/page.tsx`, `app/(site)/blog/_components/{post-filter-bar,post-list}.tsx`, `lib/posts/filter.ts`, `lib/dummy/posts.ts`
   - 수락 기준: 더미 글로 목록(최신순, 카테고리/태그 필터·현재 필터 표시·해제)과 상세(제목·날짜·카테고리·태그·본문 자리)가 동작하고, 없는 슬러그는 not-found. `searchParams`를 읽는 부분은 `<Suspense>`로 감쌈
@@ -243,7 +243,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → `/blog?category=a&tag=b`(동시 지정) → 두 조건 AND로 적용
   - 테스트 결과: 2026-10-26 `npm run check`·`npm run build` 통과. 프로덕션 서버 curl 확인: `/blog` 발행 글 5건(초안 미노출), `?tag=nextjs` 3건, 카테고리+태그 AND, 없는 태그는 빈 목록 안내와 "필터 해제", 초안·없는 슬러그는 not-found 화면(Suspense 스트리밍이라 HTTP 상태는 200, `noindex`). `e2e/routes.spec.ts`에 한글 슬러그 상세와 초안·없는 슬러그 not-found 추가. Playwright MCP 수동 확인(2026-10-26): `/blog` 발행 글 5건(초안 제목 미노출), 태그 클릭 → `/blog?tag=nextjs` 3건과 필터 배지, "필터 해제" 클릭 → `/blog` 복귀, 카드 클릭 → 한글 슬러그 상세(카테고리·태그 링크 확인), 카테고리 클릭 → `/blog?category=개발`, `?category=개발&tag=nextjs` AND 2건, `?tag=존재하지않는태그`와 `?category=a&tag=b`는 0건 안내와 "필터 해제"(`/blog`), `/blog/없는-글`·초안 슬러그 2종은 not-found(HTTP 200, noindex, 초안 제목 미노출). 다크·375px에서 `/blog` 계열 가로 넘침 없음, 스크린샷 육안 확인
 
-- **Task 009: 로그인·관리자 글 목록·글 편집기 UI 완성**
+- **Task 009: 로그인·관리자 글 목록·글 편집기 UI 완성** ✅
   - 관련 기능: F007(미리보기 자리), F008, F009(업로드 UI 자리), F010, F011, F012
   - 관련 파일: `app/auth/login/page.tsx`, `components/login-form.tsx`, `app/admin/layout.tsx`, `app/admin/posts/page.tsx`, `app/admin/posts/_components/{post-table,delete-post-dialog}.tsx`, `app/admin/posts/edit/page.tsx`, `app/admin/posts/edit/_components/post-editor.tsx`, `lib/posts/slugify.ts`
   - 수락 기준: 더미 데이터로 관리자 글 목록(제목·상태 배지·카테고리·수정일·새 글/수정/삭제/로그아웃 버튼)과 편집기(모든 입력 필드·150자 카운터·슬러그 자동 제안·데스크톱 좌우 분할/모바일 탭)가 표시됨. 저장·삭제는 아직 동작하지 않음(버튼 비활성 또는 콘솔 없는 no-op)
