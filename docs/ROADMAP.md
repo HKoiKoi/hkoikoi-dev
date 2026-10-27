@@ -305,7 +305,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: `lib/auth/is-admin.test.ts` → `role` 없음 / `user_metadata.role = 'admin'`(사용자 수정 가능 영역) → false
   - 테스트 결과: 2026-10-27 `npm run check`(Vitest 30개)·`npm run build`·`npm run knip` 통과, 공개 페이지 PPR 분류 유지. 임시 E2E 관리자 계정을 만들어 `npm run test:e2e` 28개 모두 통과(skip 0)를 확인한 뒤, 관리자는 본인 1명만 두는 방침에 따라 그 계정을 삭제함(현재 `auth.users`는 관리자 1건). `playwright.config.ts`가 `.env`의 `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD`를 로드하며, 본인 관리자 계정으로 설정해 다시 돌린 `npm run test:e2e`도 28개 모두 통과(skip 0). 값이 없으면 관리자 시나리오는 skip. 통과한 시나리오: 로그인 → `/admin/posts`, 푸터 "관리" 링크 표시, 로그아웃 → `/` 후 링크 사라짐·`/admin/posts` 재접근 시 `/auth/login`, 잘못된 비밀번호 시 오류 메시지·이메일 유지, 비로그인 `/admin/**` 리다이렉트. `knip.jsonc`에서 `logout-button`·`server.ts` 예외를 제거했고 `lib/supabase/client.ts`는 Task 017 전까지 임시 예외로 추가. `hasEnvVars` 검사는 env 미설정 시 공개 페이지 500을 막는 안전장치라 유지(근거는 `lib/supabase/proxy.ts` 주석). advisor 보안 경고는 기존 예외 1건뿐. 2026-10-27 사용자가 Supabase 대시보드에서 "Allow new users to sign up" 해제 상태를 직접 확인함(MCP로는 확인 불가, `signUp` API 호출 테스트는 수행하지 않음). 수행 대상 제외: 로그인한 비관리자의 not-found 확인(관리자 1명만 두는 방침이라 비관리자 계정이 없음, `requireAdmin()`의 `notFound()` 코드로 보장), `signUp` API 호출 시 가입 비활성화 오류 확인(대시보드 해제 상태를 직접 확인). Playwright MCP 수동 시나리오는 e2e(`e2e/admin-auth.spec.ts`)로 대체
 
-- **Task 012: 블로그 공개 조회 데이터 연동**
+- **Task 012: 블로그 공개 조회 데이터 연동** ✅ (관리자 글 목록 실데이터 연결은 Task 013으로 이월)
   - 관련 기능: F005, F006, F010(초안 비노출)
   - 관련 파일: `lib/queries/posts.ts`, `app/(site)/page.tsx`, `app/(site)/blog/page.tsx`, `app/(site)/blog/[slug]/page.tsx`, `lib/dummy/posts.ts`(삭제), `lib/posts/filter.ts`(삭제)
   - 수락 기준: 메인 최신 글 3개·블로그 목록·상세가 Supabase `posts`의 발행 글을 표시하고 더미 데이터·필터 순수 함수가 제거됨. 조회 실패 시 목록은 빈 목록 안내, 상세는 not-found. 한글 슬러그 상세 정상 조회
