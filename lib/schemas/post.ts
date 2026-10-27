@@ -72,8 +72,6 @@ export const postSchema = z.object({
   published: z.boolean(),
 });
 
-export type PostFormValues = z.infer<typeof postSchema>;
-
 export type PostActionState = {
   ok: boolean;
   message?: string;
