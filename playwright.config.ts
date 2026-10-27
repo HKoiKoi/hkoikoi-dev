@@ -2,6 +2,11 @@ import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3000;
 
+// 로컬 E2E 관리자 자격 증명(E2E_ADMIN_*)을 .env에서 읽는다. 파일이 없으면 건너뛴다.
+try {
+  process.loadEnvFile(".env");
+} catch {}
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
