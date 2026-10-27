@@ -284,12 +284,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: 브라우저 클라이언트(수동 확인) → 비관리자 세션으로 `blog-images`에 업로드 → 정책 거부, SVG 업로드 → MIME 거부
   - 테스트 결과: 2026-10-26 마이그레이션 2건 원격 적용(version `20261026105752` create_posts, `20261026105803` create_blog_images_bucket, 로컬 파일명과 일치). 롤백 트랜잭션으로 체크리스트의 정상·오류·엣지 SQL 케이스 11건을 실행해 모두 기대 결과를 확인했고 잔존 행 0. `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, 브라우저·서버·proxy 클라이언트에 `Database` 제네릭 적용, `lib/types/post.ts`를 `Tables<'posts'>`에서 파생(`PostSummary`/`Post`/`PostInput` 이름·필드 형태 유지, 더미 데이터 수정 없이 typecheck 통과). `npm run check` 통과(Vitest 25개), `npm run knip`은 `knip.jsonc` ignore에 `database.types.ts` 추가 후 통과. advisor 보안 경고 1건(`auth_leaked_password_protection`)은 Pro 플랜 미사용이라 예외 수용(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수 적용)이라 수락 기준 "경고 0건"은 이 1건을 예외로 둔 상태에서 충족(경고 자체는 남아 있음). 성능 advisor INFO `unused_index` 3건은 빈 테이블이라 정상. 관리자 계정은 `app_metadata.role = 'admin'` 부여 완료. 미확인(관리자 UI에 DB 연동 후 수동 확인으로 이월): 비관리자 세션의 `blog-images` 업로드 거부, SVG 업로드 MIME 거부, 5MB 제한, 실제 관리자 JWT 기반 posts CRUD
 
-- **Task 011: 관리자 인증·권한 시스템 구축**
+- **Task 011: 관리자 인증·권한 시스템 구축** ✅ (Server Action 시작부의 `requireAdmin()` 적용은 Server Action이 생기는 Task 013으로 이월)
   - 관련 기능: F012, F013("관리" 링크)
   - 관련 파일: `lib/auth/require-admin.ts`, `lib/auth/is-admin.ts`, `app/auth/login/actions.ts`, `components/login-form.tsx`, `components/logout-button.tsx`, `components/auth-button.tsx`(삭제), `components/layout/admin-link.tsx`, `app/admin/**`, `lib/supabase/proxy.ts`
   - 수락 기준: 관리자 계정은 로그인 후 `/admin/posts`로 이동하고, 비로그인 사용자의 `/admin/**` 접근은 `/auth/login`으로, 로그인한 비관리자의 접근은 not-found로 처리됨. 로그아웃 시 `/`로 이동. 관리자 로그인 상태에서만 공개 헤더에 "관리" 링크 표시. 회원가입은 UI와 Supabase 설정 모두에서 차단됨
   - [x] `isAdmin(claims)` 순수 함수(`app_metadata.role === 'admin'`) + 단위 테스트, `requireAdmin()`(서버 전용: `getClaims()` → 없으면 `redirect('/auth/login')`, 비관리자면 `notFound()`)
-  - [ ] 관리자 페이지와 모든 Server Action 시작부에서 `requireAdmin()` 호출(레이아웃 검사에만 의존하지 않음) — 레이아웃(`AdminGuard`)과 `posts`·`edit` 페이지는 적용 완료, Server Action은 Task 013에서 적용
+  - [x] 관리자 페이지와 모든 Server Action 시작부에서 `requireAdmin()` 호출(레이아웃 검사에만 의존하지 않음) — 레이아웃(`AdminGuard`)과 `posts`·`edit` 페이지는 적용 완료. 현재 Server Action은 로그인·로그아웃뿐이라 관리자 가드 대상이 없으며, `savePost`·`deletePost`의 적용은 Task 013으로 이월
   - [x] 로그인 폼을 Server Action + `useActionState` 패턴으로 전환(`forms-react-hook-form.md`), 실패 시 한국어 오류 유지, 성공 시 `/admin/posts` — e2e로 로그인 성공·실패 확인
   - [x] 로그아웃 버튼을 관리자 레이아웃에 배치, 완료 후 `/`로 이동. 스타터 `auth-button.tsx` 삭제 — e2e로 로그아웃 후 `/` 이동 확인
   - [x] 공개 헤더 `AdminLink`: `<Suspense>` 안에서 claims를 읽어 관리자일 때만 "관리" 링크 렌더링 — 푸터 슬롯에 구현, e2e로 관리자 로그인 시 노출·로그아웃 후 사라짐 확인
@@ -300,10 +300,10 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 정상: Playwright MCP → 관리자 로그인 상태에서 `/` → 헤더 "관리" 링크 표시 → 클릭 시 `/admin/posts`
     - 정상: Playwright MCP → 관리자 레이아웃 "로그아웃" 클릭 → `/` 이동, "관리" 링크 사라짐, `/admin/posts` 재접근 시 `/auth/login`
     - 오류: Playwright MCP → 잘못된 비밀번호로 로그인 → 같은 페이지에 오류 메시지, 입력한 이메일 유지
-    - 오류: Playwright MCP → 비관리자 테스트 계정으로 로그인 후 `/admin/posts`·`/admin/posts/edit` 접속 → not-found 화면
-    - 엣지: Supabase Auth API(수동 확인) → `signUp` 호출 → 가입 비활성화 오류
+    - (제외) 비관리자 테스트 계정으로 로그인 후 `/admin/posts`·`/admin/posts/edit` 접속 → not-found 화면: 관리자는 본인 1명만 두는 방침이라 비관리자 계정이 존재하지 않아 수행 대상에서 제외, `requireAdmin()`의 `notFound()` 코드로 보장
+    - (제외) Supabase Auth API `signUp` 호출 → 가입 비활성화 오류: 대시보드에서 "Allow new users to sign up" 해제를 직접 확인했으므로 수행 대상에서 제외
     - 엣지: `lib/auth/is-admin.test.ts` → `role` 없음 / `user_metadata.role = 'admin'`(사용자 수정 가능 영역) → false
-  - 테스트 결과: 2026-10-27 `npm run check`(Vitest 30개)·`npm run build`·`npm run knip` 통과, 공개 페이지 PPR 분류 유지. 임시 E2E 관리자 계정을 만들어 `npm run test:e2e` 28개 모두 통과(skip 0)를 확인한 뒤, 관리자는 본인 1명만 두는 방침에 따라 그 계정을 삭제함(현재 `auth.users`는 관리자 1건). `playwright.config.ts`가 `.env`의 `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD`를 로드하며, 본인 관리자 계정으로 설정해 다시 돌린 `npm run test:e2e`도 28개 모두 통과(skip 0). 값이 없으면 관리자 시나리오는 skip. 통과한 시나리오: 로그인 → `/admin/posts`, 푸터 "관리" 링크 표시, 로그아웃 → `/` 후 링크 사라짐·`/admin/posts` 재접근 시 `/auth/login`, 잘못된 비밀번호 시 오류 메시지·이메일 유지, 비로그인 `/admin/**` 리다이렉트. `knip.jsonc`에서 `logout-button`·`server.ts` 예외를 제거했고 `lib/supabase/client.ts`는 Task 017 전까지 임시 예외로 추가. `hasEnvVars` 검사는 env 미설정 시 공개 페이지 500을 막는 안전장치라 유지(근거는 `lib/supabase/proxy.ts` 주석). advisor 보안 경고는 기존 예외 1건뿐. 2026-10-27 사용자가 Supabase 대시보드에서 "Allow new users to sign up" 해제 상태를 직접 확인함(MCP로는 확인 불가, `signUp` API 호출 테스트는 수행하지 않음). 미수행: 로그인한 비관리자의 not-found 확인(비관리자 계정을 만들지 않기로 해 `requireAdmin()`의 `notFound()` 코드로만 보장), `signUp` API 호출 시 가입 비활성화 오류 확인, Playwright MCP 수동 시나리오(e2e로 대체 확인)
+  - 테스트 결과: 2026-10-27 `npm run check`(Vitest 30개)·`npm run build`·`npm run knip` 통과, 공개 페이지 PPR 분류 유지. 임시 E2E 관리자 계정을 만들어 `npm run test:e2e` 28개 모두 통과(skip 0)를 확인한 뒤, 관리자는 본인 1명만 두는 방침에 따라 그 계정을 삭제함(현재 `auth.users`는 관리자 1건). `playwright.config.ts`가 `.env`의 `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD`를 로드하며, 본인 관리자 계정으로 설정해 다시 돌린 `npm run test:e2e`도 28개 모두 통과(skip 0). 값이 없으면 관리자 시나리오는 skip. 통과한 시나리오: 로그인 → `/admin/posts`, 푸터 "관리" 링크 표시, 로그아웃 → `/` 후 링크 사라짐·`/admin/posts` 재접근 시 `/auth/login`, 잘못된 비밀번호 시 오류 메시지·이메일 유지, 비로그인 `/admin/**` 리다이렉트. `knip.jsonc`에서 `logout-button`·`server.ts` 예외를 제거했고 `lib/supabase/client.ts`는 Task 017 전까지 임시 예외로 추가. `hasEnvVars` 검사는 env 미설정 시 공개 페이지 500을 막는 안전장치라 유지(근거는 `lib/supabase/proxy.ts` 주석). advisor 보안 경고는 기존 예외 1건뿐. 2026-10-27 사용자가 Supabase 대시보드에서 "Allow new users to sign up" 해제 상태를 직접 확인함(MCP로는 확인 불가, `signUp` API 호출 테스트는 수행하지 않음). 수행 대상 제외: 로그인한 비관리자의 not-found 확인(관리자 1명만 두는 방침이라 비관리자 계정이 없음, `requireAdmin()`의 `notFound()` 코드로 보장), `signUp` API 호출 시 가입 비활성화 오류 확인(대시보드 해제 상태를 직접 확인). Playwright MCP 수동 시나리오는 e2e(`e2e/admin-auth.spec.ts`)로 대체
 
 - **Task 012: 블로그 공개 조회 데이터 연동**
   - 관련 기능: F005, F006, F010(초안 비노출)
@@ -331,6 +331,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [ ] `zod` 설치 및 `lib/schemas/post.ts`: title 1~200, slug(NFC 정규화·`slugify` 규칙 일치·비어 있지 않음), category(기본 "일반"), tags(trim·중복 제거·최대 10), excerpt ≤150, content 최대 길이(Task 005 값), thumbnail_url은 `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/blog-images/` 접두만 허용 + 단위 테스트
   - [ ] `savePost`(create/update 공용) Server Action: `requireAdmin()` → 스키마 검증 → upsert → unique 위반(23505)을 slug 필드 오류로 변환 → 성공 시 `redirect('/admin/posts')`
   - [ ] 발행 규칙: 처음 발행할 때 `published_at = now()`, 이미 발행된 글 수정 시 기존 값 유지, 초안 전환 시 유지/초기화 정책을 정해 주석으로 명시(기본: 유지)
+  - [ ] (Task 011 이월) `savePost`·`deletePost` 등 모든 관리자 Server Action 시작부에서 `requireAdmin()` 호출(레이아웃 검사에만 의존하지 않음)
   - [ ] `deletePost` Server Action + 확인 `Dialog`, 삭제 후 목록 갱신(`revalidatePath`/`updateTag` 중 Task 019 캐싱 전략과 일치하는 방식, `nextjs-16.md` 확인)
   - [ ] 관리자 글 목록·편집기(수정 모드 `?id=`)를 실제 데이터로 연결, 존재하지 않는 id는 not-found
   - 테스트 체크리스트:
