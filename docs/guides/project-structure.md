@@ -36,6 +36,7 @@ hkoikoi-dev/
 │   └── *.tsx               # 로그인 폼, AuthButton, LogoutButton, ThemeSwitcher
 ├── data/                   # 이력·프로젝트·논문 등 정적 콘텐츠 (TypeScript 데이터)
 ├── lib/
+│   ├── auth/               # is-admin.ts(역할 판별), require-admin.ts(서버 가드)
 │   ├── supabase/           # client.ts / server.ts / proxy.ts / database.types.ts
 │   ├── types/              # 도메인 타입 (post, profile, resume)
 │   ├── posts/ projects/ publications/   # 정렬·필터 등 순수 함수와 옆의 테스트
@@ -84,10 +85,12 @@ app/
 │   ├── volunteer/ activities/ projects/ publications/
 │   └── blog/               # /blog, /blog/[slug], _components/ (필터·목록)
 ├── admin/                  # 관리자 영역 (로그인 필요)
-│   ├── layout.tsx
+│   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
+│   ├── actions.ts          # logout Server Action
+│   ├── _components/        # admin-guard.tsx
 │   └── posts/              # 글 목록 + edit/ (작성·수정), 각 _components/
 └── auth/
-    ├── login/              # 로그인
+    ├── login/              # 로그인 (actions.ts: login Server Action)
     └── error/              # 인증 오류 안내
 ```
 
@@ -110,7 +113,7 @@ app/
 - **공개 페이지는 별도 설정 없이 `app/(site)/` 아래에 만들면 됩니다.** 기본이 공개입니다.
 - **관리자 페이지는 `app/admin/` 아래에 둡니다.** 이 밖의 새 경로를 보호하려면 `updateSession()`의 `isAdminPath` 조건을 함께 고칩니다.
 - 리다이렉트 응답에는 `getClaims()`가 갱신한 쿠키를 그대로 복사합니다. 이 흐름과 `createServerClient`~`getClaims()` 사이를 건드리지 않습니다.
-- proxy는 로그인 여부만 보는 낙관적 검사입니다. **관리자 권한(`app_metadata.role = 'admin'`) 검증은 아직 `app/admin/layout.tsx`에 TODO로 남아 있고(Task 011), 현재 데이터 보호는 RLS가 담당합니다.** 서버 코드에서도 `getClaims()`로 한 번 더 확인합니다.
+- proxy는 로그인 여부만 보는 낙관적 검사입니다. **관리자 권한(`app_metadata.role = 'admin'`) 검증은 서버 코드의 `requireAdmin()`(`lib/auth/require-admin.ts`)이 맡습니다.** 비로그인이면 `/auth/login`으로 보내고, 로그인했지만 관리자가 아니면 `notFound()`를 호출합니다. `app/admin/layout.tsx`가 `<Suspense>` 안의 `AdminGuard`(`app/admin/_components/admin-guard.tsx`)로 본문을 감싸고, `posts/page.tsx`·`posts/edit/page.tsx`도 `requireAdmin()`을 다시 호출합니다. 데이터 보호는 RLS가 함께 담당합니다. 푸터의 `AdminLink`(`components/layout/admin-link.tsx`)는 관리자일 때만 `관리` 링크를 그립니다.
 
 ## components/ — 컴포넌트
 

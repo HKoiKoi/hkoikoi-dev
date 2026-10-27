@@ -72,24 +72,26 @@ export default function Page() {
 
 상태, 이벤트 핸들러, 브라우저 API, Context 소비가 필요한 말단 컴포넌트에만 `'use client'`를 붙입니다. 파일 최상단에 선언하고, 서버에서 받은 데이터는 props로 전달합니다.
 
+단순히 서버 동작을 호출하는 버튼은 클라이언트 컴포넌트가 필요 없습니다. `components/logout-button.tsx`는 `'use client'` 없이 `<form action={logout}>`에 `Button`을 넣은 서버 컴포넌트이고, `logout`은 `app/admin/actions.ts`의 Server Action입니다. `variant`/`size`만 선택적 props로 받습니다.
+
 ```tsx
-// components/logout-button.tsx (현재 코드. starter 원본이며 Task 011에서 관리자 레이아웃용으로 교체)
-"use client";
-
-import { useRouter } from "next/navigation";
+// components/logout-button.tsx (서버 컴포넌트)
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { logout } from "@/app/admin/actions";
 
-export function LogoutButton() {
-  const router = useRouter();
+type LogoutButtonProps = Pick<
+  React.ComponentProps<typeof Button>,
+  "variant" | "size"
+>;
 
-  const logout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/auth/login");
-  };
-
-  return <Button onClick={logout}>Logout</Button>;
+export function LogoutButton({ variant, size }: LogoutButtonProps) {
+  return (
+    <form action={logout}>
+      <Button type="submit" variant={variant} size={size}>
+        로그아웃
+      </Button>
+    </form>
+  );
 }
 ```
 
@@ -117,7 +119,7 @@ export default function BlogPage(props: PageProps<"/blog">) {
 
 ### 폼 상태: `useActionState`
 
-폼은 Server Action + `useActionState`가 기본입니다. 전체 패턴은 `forms-react-hook-form.md`를 참고하세요. 현재 `components/login-form.tsx`는 `useState` + 브라우저 Supabase 클라이언트 방식의 starter 코드이고(Task 011에서 Server Action으로 전환 예정), 관리자 편집기(`post-editor.tsx`)도 아직 저장 동작 없이 `useState`로 입력만 관리합니다(Task 013에서 연결).
+폼은 Server Action + `useActionState`가 기본입니다. 전체 패턴은 `forms-react-hook-form.md`를 참고하세요. `components/login-form.tsx`가 이 방식의 실제 예시입니다. `'use client'` 컴포넌트에서 `useActionState(login, initialState)`로 `app/auth/login/actions.ts`의 Server Action을 연결하고, 실패 시 이메일을 `defaultValue={state.email}`로 유지하며 오류는 `role="alert"` 요소로 표시합니다. 관리자 편집기(`post-editor.tsx`)도 아직 저장 동작 없이 `useState`로 입력만 관리합니다(Task 013에서 연결).
 
 ### 마운트 여부: `useSyncExternalStore`
 

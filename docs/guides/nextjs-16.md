@@ -31,7 +31,7 @@
 
 ```tsx
 // 서버 컴포넌트: 데이터는 서버에서 읽고 상호작용만 클라이언트로 분리
-// (Task 011에서 AdminLink가 이 구조가 된다. 지금은 null을 반환하는 placeholder)
+// components/layout/admin-link.tsx (현재 코드를 줄인 것)
 export async function AdminLink() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
@@ -108,11 +108,11 @@ export async function proxy(request: NextRequest) {
 - 반환하는 `supabaseResponse`를 그대로 반환합니다. 새 응답을 만들면 요청을 넘기고 쿠키를 복사해야 합니다.
 - 보호 대상은 `/admin` 세그먼트(`/admin`, `/admin/*`)뿐이고 나머지는 공개입니다. 공개 페이지는 이 파일을 고칠 필요가 없고, 보호 경로를 늘릴 때만 `isAdminPath` 조건을 같이 고칩니다 (`project-structure.md` 참고).
 - 리다이렉트 응답을 만들 때는 `supabaseResponse`의 쿠키를 복사합니다 (현재 구현이 이미 그렇게 합니다).
-- 관리자 역할(`app_metadata.role`) 검사는 proxy가 아니라 서버 코드(`requireAdmin()`, Task 011 예정)와 RLS가 맡습니다.
+- 관리자 역할(`app_metadata.role`) 검사는 proxy가 아니라 서버 코드(`lib/auth/require-admin.ts`의 `requireAdmin()`)와 RLS가 맡습니다.
 
 ### 인증 UI는 Suspense 안에서
 
-세션 읽기는 요청 시점이라 정적 셸에 포함할 수 없습니다. 인증 UI는 `<Suspense>` 안에서 스트리밍합니다. `app/(site)/layout.tsx`가 푸터 안의 `AdminLink`를 `<Suspense fallback={null}>`로 감싸 둔 것이 이 패턴입니다(지금은 placeholder이고 Task 011에서 `getClaims()`를 읽게 됩니다).
+세션 읽기는 요청 시점이라 정적 셸에 포함할 수 없습니다. 인증 UI는 `<Suspense>` 안에서 스트리밍합니다. `app/(site)/layout.tsx`가 푸터 안의 `AdminLink`를 `<Suspense fallback={null}>`로 감싸 둔 것이 이 패턴입니다(`getClaims()`로 `app_metadata.role`을 확인해 관리자일 때만 `/admin/posts` 링크를 그립니다). 관리자 영역도 `app/admin/layout.tsx`가 `AdminGuard`(`app/admin/_components/admin-guard.tsx`)를 `<Suspense>` 안에 두고, 그 안에서 `requireAdmin()`을 호출합니다.
 
 ```tsx
 export default function Page() {
@@ -126,7 +126,7 @@ export default function Page() {
 
 - 페이지 본문에서 `await createClient()`를 직접 하면 Suspense 경계 밖의 동적 접근이 되어 에러가 납니다. **읽는 쪽을 별도 async 컴포넌트로 분리해 경계 안에 둡니다.**
 - 인증 구현 패턴은 `01-app/02-guides/authentication-with-cache-components.md`와 `data-security.md`를 먼저 읽습니다.
-- 미인증이면 `redirect("/auth/login")`, 로그인했지만 관리자가 아니면 `notFound()`를 호출합니다(Task 011의 `requireAdmin()` 설계). `redirect()`와 `notFound()`는 예외를 던지므로 `try/catch` 안에서 호출하지 않습니다.
+- 미인증이면 `redirect("/auth/login")`, 로그인했지만 관리자가 아니면 `notFound()`를 호출합니다(`lib/auth/require-admin.ts`의 `requireAdmin()`). `redirect()`와 `notFound()`는 예외를 던지므로 `try/catch` 안에서 호출하지 않습니다.
 
 ### 로그인 이후 캐시
 
