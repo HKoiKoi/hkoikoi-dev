@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,42 +11,16 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { login, type LoginState } from "@/app/auth/login/actions";
+import { useActionState } from "react";
+
+const initialState: LoginState = { error: null, email: "" };
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-
-  const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const supabase = createClient();
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      router.push("/admin/posts");
-    } catch (error: unknown) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "로그인 중 오류가 발생했습니다.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [state, formAction, isPending] = useActionState(login, initialState);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -59,36 +32,30 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin}>
+          <form action={formAction}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="email">이메일</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="m@example.com"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  defaultValue={state.email}
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">비밀번호</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <Input id="password" name="password" type="password" required />
               </div>
-              {error && (
+              {state.error && (
                 <p role="alert" className="text-sm text-destructive">
-                  {error}
+                  {state.error}
                 </p>
               )}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "로그인 중..." : "로그인"}
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? "로그인 중..." : "로그인"}
               </Button>
             </div>
           </form>
