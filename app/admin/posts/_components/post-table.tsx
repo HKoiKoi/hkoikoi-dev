@@ -59,7 +59,7 @@ export function PostTable({ posts }: { posts: PostSummary[] }) {
               <td className="px-4 py-3">
                 <div className="flex justify-end gap-2">
                   <Link
-                    href="/admin/posts/edit"
+                    href={`/admin/posts/edit?id=${post.id}`}
                     className={buttonVariants({
                       variant: "outline",
                       size: "sm",
@@ -67,7 +67,7 @@ export function PostTable({ posts }: { posts: PostSummary[] }) {
                   >
                     수정
                   </Link>
-                  <DeletePostDialog postTitle={post.title} />
+                  <DeletePostDialog postId={post.id} postTitle={post.title} />
                 </div>
               </td>
             </tr>

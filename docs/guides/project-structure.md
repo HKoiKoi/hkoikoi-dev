@@ -21,7 +21,7 @@
 | 테스트     | Vitest 5 + Testing Library(jsdom), Playwright(chromium)                             |
 | 런타임     | Node `>=20.9` (`.nvmrc`는 24)                                                       |
 
-아직 없는 것(필요할 때 추가): 폼 검증 라이브러리(`zod`, `react-hook-form`), `hooks/`, `public/`. 공개 블로그 글은 `lib/queries/posts.ts`가 Supabase `posts`의 발행 글을 조회합니다. 관리자 글 목록은 Task 013 전까지 빈 목록입니다.
+아직 없는 것(필요할 때 추가): `react-hook-form`(`zod`는 설치됨), `hooks/`, `public/`. 공개 블로그 글은 `lib/queries/posts.ts`가 발행 글을, 관리자 글 목록·편집은 `lib/queries/admin-posts.ts`가 초안 포함 전체 글을 조회합니다.
 
 ## 전체 구조
 
@@ -39,8 +39,9 @@ hkoikoi-dev/
 │   ├── auth/               # is-admin.ts(역할 판별), require-admin.ts(서버 가드)
 │   ├── supabase/           # client.ts / server.ts / proxy.ts / database.types.ts
 │   ├── types/              # 도메인 타입 (post, profile, resume)
-│   ├── queries/            # posts.ts(공개 글 조회, 서버 전용) + 테스트
-│   ├── posts/ projects/ publications/   # slugify·정렬 등 순수 함수와 옆의 테스트
+│   ├── schemas/            # post.ts(zod 입력 스키마, POST_LIMITS, parseTags) + 테스트
+│   ├── queries/            # posts.ts(공개 글 조회), admin-posts.ts(관리자 조회), 서버 전용 + 테스트
+│   ├── posts/ projects/ publications/   # slugify·form-data·published-at·정렬 등 순수 함수와 옆의 테스트
 │   ├── site-config.ts      # 사이트 이름, 내비게이션 항목
 │   ├── format-date.ts / is-active-path.ts / utils.ts   # 공용 유틸 (+ *.test.ts)
 ├── supabase/migrations/    # DB 마이그레이션 SQL (원격 version과 파일명 일치)
@@ -88,7 +89,7 @@ app/
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
 │   ├── actions.ts          # logout Server Action
 │   ├── _components/        # admin-guard.tsx
-│   └── posts/              # 글 목록 + edit/ (작성·수정), 각 _components/
+│   └── posts/              # 글 목록 + edit/ (작성·수정), 각 _components/, actions.ts(savePost·deletePost Server Action)
 └── auth/
     ├── login/              # 로그인 (actions.ts: login Server Action)
     └── error/              # 인증 오류 안내
@@ -145,8 +146,9 @@ lib/
 │   ├── proxy.ts           # proxy.ts에서 호출하는 updateSession()
 │   └── database.types.ts  # 생성 파일 (직접 편집 금지)
 ├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
-├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getPostBySlug (+ 테스트)
-├── posts/                 # slugify.ts (+ 테스트)
+├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
+├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getPostBySlug, admin-posts.ts: getAdminPosts / getAdminPostById (+ 테스트)
+├── posts/                 # slugify.ts, form-data.ts, published-at.ts (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
 ├── site-config.ts         # siteConfig, navItems
 ├── format-date.ts / is-active-path.ts   # (+ 테스트)
@@ -158,7 +160,7 @@ lib/
 - Supabase 클라이언트는 **요청마다 새로 만듭니다.** 모듈 전역 변수에 담지 않습니다 (`server.ts` 주석 참고). 세 클라이언트 모두 `Database` 제네릭이 적용되어 있습니다.
 - `lib/supabase/server.ts`는 `next/headers`를 쓰는 서버 전용 모듈이므로 Client Component에서 import하지 않습니다. 필요하면 상단에 `import "server-only"`를 추가합니다 (패키지 설치 필요).
 - `lib/types/post.ts`의 `PostSummary`/`Post`/`PostInput`은 `Tables<'posts'>`에서 파생합니다. 컬럼을 바꾸면 마이그레이션 → 타입 재생성 순서로 진행합니다.
-- 스키마(zod)나 훅이 생기면 `lib/schemas/`, 루트 `hooks/`를 추가하고, 관리자 조회는 `lib/queries/admin-posts.ts`에 둡니다 (`components.json`의 `hooks` 별칭은 `@/hooks`).
+- 검증 스키마(zod)는 `lib/schemas/`에, 관리자 조회는 `lib/queries/admin-posts.ts`에 둡니다. 훅이 생기면 루트 `hooks/`를 추가합니다 (`components.json`의 `hooks` 별칭은 `@/hooks`).
 - 순수 로직은 `lib/<도메인>/`에 함수로 분리하고 옆에 `*.test.ts`를 둡니다. 컴포넌트에는 화면 코드만 남깁니다.
 
 ## supabase/ — 마이그레이션

@@ -284,12 +284,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: 브라우저 클라이언트(수동 확인) → 비관리자 세션으로 `blog-images`에 업로드 → 정책 거부, SVG 업로드 → MIME 거부
   - 테스트 결과: 2026-10-26 마이그레이션 2건 원격 적용(version `20261026105752` create_posts, `20261026105803` create_blog_images_bucket, 로컬 파일명과 일치). 롤백 트랜잭션으로 체크리스트의 정상·오류·엣지 SQL 케이스 11건을 실행해 모두 기대 결과를 확인했고 잔존 행 0. `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, 브라우저·서버·proxy 클라이언트에 `Database` 제네릭 적용, `lib/types/post.ts`를 `Tables<'posts'>`에서 파생(`PostSummary`/`Post`/`PostInput` 이름·필드 형태 유지, 더미 데이터 수정 없이 typecheck 통과). `npm run check` 통과(Vitest 25개), `npm run knip`은 `knip.jsonc` ignore에 `database.types.ts` 추가 후 통과. advisor 보안 경고 1건(`auth_leaked_password_protection`)은 Pro 플랜 미사용이라 예외 수용(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수 적용)이라 수락 기준 "경고 0건"은 이 1건을 예외로 둔 상태에서 충족(경고 자체는 남아 있음). 성능 advisor INFO `unused_index` 3건은 빈 테이블이라 정상. 관리자 계정은 `app_metadata.role = 'admin'` 부여 완료. 미확인(관리자 UI에 DB 연동 후 수동 확인으로 이월): 비관리자 세션의 `blog-images` 업로드 거부, SVG 업로드 MIME 거부, 5MB 제한, 실제 관리자 JWT 기반 posts CRUD
 
-- **Task 011: 관리자 인증·권한 시스템 구축** ✅ (Server Action 시작부의 `requireAdmin()` 적용은 Server Action이 생기는 Task 013으로 이월)
+- **Task 011: 관리자 인증·권한 시스템 구축** ✅
   - 관련 기능: F012, F013("관리" 링크)
   - 관련 파일: `lib/auth/require-admin.ts`, `lib/auth/is-admin.ts`, `app/auth/login/actions.ts`, `components/login-form.tsx`, `components/logout-button.tsx`, `components/auth-button.tsx`(삭제), `components/layout/admin-link.tsx`, `app/admin/**`, `lib/supabase/proxy.ts`
   - 수락 기준: 관리자 계정은 로그인 후 `/admin/posts`로 이동하고, 비로그인 사용자의 `/admin/**` 접근은 `/auth/login`으로, 로그인한 비관리자의 접근은 not-found로 처리됨. 로그아웃 시 `/`로 이동. 관리자 로그인 상태에서만 공개 헤더에 "관리" 링크 표시. 회원가입은 UI와 Supabase 설정 모두에서 차단됨
   - [x] `isAdmin(claims)` 순수 함수(`app_metadata.role === 'admin'`) + 단위 테스트, `requireAdmin()`(서버 전용: `getClaims()` → 없으면 `redirect('/auth/login')`, 비관리자면 `notFound()`)
-  - [x] 관리자 페이지와 모든 Server Action 시작부에서 `requireAdmin()` 호출(레이아웃 검사에만 의존하지 않음) — 레이아웃(`AdminGuard`)과 `posts`·`edit` 페이지는 적용 완료. 현재 Server Action은 로그인·로그아웃뿐이라 관리자 가드 대상이 없으며, `savePost`·`deletePost`의 적용은 Task 013으로 이월
+  - [x] 관리자 페이지와 모든 Server Action 시작부에서 `requireAdmin()` 호출(레이아웃 검사에만 의존하지 않음) — 레이아웃(`AdminGuard`)과 `posts`·`edit` 페이지는 적용 완료. `savePost`·`deletePost`의 시작부 `requireAdmin()` 적용은 Task 013에서 완료
   - [x] 로그인 폼을 Server Action + `useActionState` 패턴으로 전환(`forms-react-hook-form.md`), 실패 시 한국어 오류 유지, 성공 시 `/admin/posts` — e2e로 로그인 성공·실패 확인
   - [x] 로그아웃 버튼을 관리자 레이아웃에 배치, 완료 후 `/`로 이동. 스타터 `auth-button.tsx` 삭제 — e2e로 로그아웃 후 `/` 이동 확인
   - [x] 공개 헤더 `AdminLink`: `<Suspense>` 안에서 claims를 읽어 관리자일 때만 "관리" 링크 렌더링 — 푸터 슬롯에 구현, e2e로 관리자 로그인 시 노출·로그아웃 후 사라짐 확인
@@ -305,7 +305,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: `lib/auth/is-admin.test.ts` → `role` 없음 / `user_metadata.role = 'admin'`(사용자 수정 가능 영역) → false
   - 테스트 결과: 2026-10-27 `npm run check`(Vitest 30개)·`npm run build`·`npm run knip` 통과, 공개 페이지 PPR 분류 유지. 임시 E2E 관리자 계정을 만들어 `npm run test:e2e` 28개 모두 통과(skip 0)를 확인한 뒤, 관리자는 본인 1명만 두는 방침에 따라 그 계정을 삭제함(현재 `auth.users`는 관리자 1건). `playwright.config.ts`가 `.env`의 `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD`를 로드하며, 본인 관리자 계정으로 설정해 다시 돌린 `npm run test:e2e`도 28개 모두 통과(skip 0). 값이 없으면 관리자 시나리오는 skip. 통과한 시나리오: 로그인 → `/admin/posts`, 푸터 "관리" 링크 표시, 로그아웃 → `/` 후 링크 사라짐·`/admin/posts` 재접근 시 `/auth/login`, 잘못된 비밀번호 시 오류 메시지·이메일 유지, 비로그인 `/admin/**` 리다이렉트. `knip.jsonc`에서 `logout-button`·`server.ts` 예외를 제거했고 `lib/supabase/client.ts`는 Task 017 전까지 임시 예외로 추가. `hasEnvVars` 검사는 env 미설정 시 공개 페이지 500을 막는 안전장치라 유지(근거는 `lib/supabase/proxy.ts` 주석). advisor 보안 경고는 기존 예외 1건뿐. 2026-10-27 사용자가 Supabase 대시보드에서 "Allow new users to sign up" 해제 상태를 직접 확인함(MCP로는 확인 불가, `signUp` API 호출 테스트는 수행하지 않음). 수행 대상 제외: 로그인한 비관리자의 not-found 확인(관리자 1명만 두는 방침이라 비관리자 계정이 없음, `requireAdmin()`의 `notFound()` 코드로 보장), `signUp` API 호출 시 가입 비활성화 오류 확인(대시보드 해제 상태를 직접 확인). Playwright MCP 수동 시나리오는 e2e(`e2e/admin-auth.spec.ts`)로 대체
 
-- **Task 012: 블로그 공개 조회 데이터 연동** ✅ (관리자 글 목록 실데이터 연결은 Task 013으로 이월)
+- **Task 012: 블로그 공개 조회 데이터 연동** ✅
   - 관련 기능: F005, F006, F010(초안 비노출)
   - 관련 파일: `lib/queries/posts.ts`, `app/(site)/page.tsx`, `app/(site)/blog/page.tsx`, `app/(site)/blog/[slug]/page.tsx`, `lib/dummy/posts.ts`(삭제), `lib/posts/filter.ts`(삭제)
   - 수락 기준: 메인 최신 글 3개·블로그 목록·상세가 Supabase `posts`의 발행 글을 표시하고 더미 데이터·필터 순수 함수가 제거됨. 조회 실패 시 목록은 빈 목록 안내, 상세는 not-found. 한글 슬러그 상세 정상 조회
@@ -330,16 +330,16 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - `npm run test:e2e` 27개 통과. `e2e/routes.spec.ts`의 더미 슬러그 시나리오는 시드 비의존 "없는 슬러그 not-found"로, `e2e/static-pages.spec.ts`의 최신 글 항목 수 검사는 섹션 표시 검사로 바꿈(글은 DB 데이터라 0건일 수 있음).
     - `app/admin/posts/page.tsx`는 더미를 지우면서 빈 목록 TODO로 바꿨고 실데이터 연결은 Task 013에서 한다.
 
-- **Task 013: 글 저장·발행·삭제 Server Action 구현**
+- **Task 013: 글 저장·발행·삭제 Server Action 구현** ✅
   - 관련 기능: F008, F010, F011, F012
   - 관련 파일: `lib/schemas/post.ts`, `app/admin/posts/actions.ts`, `app/admin/posts/page.tsx`, `app/admin/posts/edit/page.tsx`, `app/admin/posts/edit/_components/post-editor.tsx`, `lib/queries/admin-posts.ts`
   - 수락 기준: 관리자가 새 글·수정을 초안/발행으로 저장하면 `/admin/posts`로 이동하고 공개 영역 노출 여부가 상태와 일치. 검증 실패·슬러그 중복은 해당 필드 옆에 오류로 표시되고 입력값 유지. 삭제는 확인 후 목록과 공개 목록에 즉시 반영
-  - [ ] `zod` 설치 및 `lib/schemas/post.ts`: title 1~200, slug(NFC 정규화·`slugify` 규칙 일치·비어 있지 않음), category(기본 "일반"), tags(trim·중복 제거·최대 10), excerpt ≤150, content 최대 길이(Task 005 값), thumbnail_url은 `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/blog-images/` 접두만 허용 + 단위 테스트
-  - [ ] `savePost`(create/update 공용) Server Action: `requireAdmin()` → 스키마 검증 → upsert → unique 위반(23505)을 slug 필드 오류로 변환 → 성공 시 `redirect('/admin/posts')`
-  - [ ] 발행 규칙: 처음 발행할 때 `published_at = now()`, 이미 발행된 글 수정 시 기존 값 유지, 초안 전환 시 유지/초기화 정책을 정해 주석으로 명시(기본: 유지)
-  - [ ] (Task 011 이월) `savePost`·`deletePost` 등 모든 관리자 Server Action 시작부에서 `requireAdmin()` 호출(레이아웃 검사에만 의존하지 않음)
-  - [ ] `deletePost` Server Action + 확인 `Dialog`, 삭제 후 목록 갱신(`revalidatePath`/`updateTag` 중 Task 019 캐싱 전략과 일치하는 방식, `nextjs-16.md` 확인)
-  - [ ] 관리자 글 목록·편집기(수정 모드 `?id=`)를 실제 데이터로 연결, 존재하지 않는 id는 not-found (Task 012 이월: `app/admin/posts/page.tsx`가 현재 빈 목록 TODO이므로 `lib/queries/admin-posts.ts`로 초안 포함 전체 글을 연결하고, 이때 `lib/types/post.ts`의 `PostInput` 사용으로 `knip.jsonc` 예외도 제거)
+  - [x] `zod` 설치 및 `lib/schemas/post.ts`: title 1~200, slug(NFC 정규화·`slugify` 규칙 일치·비어 있지 않음), category(기본 "일반"), tags(trim·중복 제거·최대 10), excerpt ≤150, content 최대 길이(Task 005 값), thumbnail_url은 `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/blog-images/` 접두만 허용 + 단위 테스트
+  - [x] `savePost`(create/update 공용) Server Action: `requireAdmin()` → 스키마 검증 → upsert → unique 위반(23505)을 slug 필드 오류로 변환 → 성공 시 `redirect('/admin/posts')`
+  - [x] 발행 규칙: 처음 발행할 때 `published_at = now()`, 이미 발행된 글 수정 시 기존 값 유지, 초안 전환 시 유지/초기화 정책을 정해 주석으로 명시(기본: 유지)
+  - [x] (Task 011 이월) `savePost`·`deletePost` 등 모든 관리자 Server Action 시작부에서 `requireAdmin()` 호출(레이아웃 검사에만 의존하지 않음)
+  - [x] `deletePost` Server Action + 확인 `Dialog`, 삭제 후 목록 갱신(`revalidatePath`/`updateTag` 중 Task 019 캐싱 전략과 일치하는 방식, `nextjs-16.md` 확인)
+  - [x] 관리자 글 목록·편집기(수정 모드 `?id=`)를 실제 데이터로 연결, 존재하지 않는 id는 not-found (Task 012 이월: `app/admin/posts/page.tsx`가 현재 빈 목록 TODO이므로 `lib/queries/admin-posts.ts`로 초안 포함 전체 글을 연결하고, 이때 `lib/types/post.ts`의 `PostInput` 사용으로 `knip.jsonc` 예외도 제거)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 관리자 로그인 → "새 글" → 제목·본문 입력, 발행 체크 후 저장 → `/admin/posts`에 "발행" 배지 → `/blog`에 노출
     - 정상: Playwright MCP → 초안으로 저장 → 목록 "초안" 배지, `/blog` 미노출, 상세 URL은 not-found
@@ -351,7 +351,11 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: `lib/schemas/post.test.ts` → 외부 도메인 썸네일 URL / `javascript:` URL → 거부, 버킷 URL → 통과
     - 엣지: `lib/schemas/post.test.ts` → NFD 한글 슬러그 입력 → NFC로 정규화되어 저장 값과 조회 값 일치
     - 엣지: Playwright MCP → 삭제 대화상자에서 "취소" → 글 유지
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-27 수행.
+    - 통과: `e2e/admin-posts.spec.ts` 7개 시나리오 통과(`npx playwright test e2e/admin-posts.spec.ts`, skip 0). 발행 저장→'발행' 배지→`/blog` 노출 / 초안 저장→'초안' 배지→`/blog` 미노출·상세 URL not-found / 수정 후 목록·상세 제목 반영 / 삭제 확인→목록·`/blog`에서 사라짐 / 삭제 취소→글 유지 / 중복 슬러그→슬러그 필드 '이미 사용 중인 슬러그입니다' 오류와 제목·소개글·본문 입력값 유지 / 제목 비움·소개글 151자→`aria-invalid`와 필드별 오류. 테스트 글은 `e2e-` 접두로 만들고 `afterAll`에서 UI로 지우며, 실행 후 `posts`의 `e2e-` 행 0건을 SQL로 확인했다.
+    - 통과: 비로그인 상태 Server Action 재전송(curl, 쿠키 없음). 서버 참조 매니페스트에서 `savePost`·`deletePost` action ID를 찾아 `/admin/posts`(deletePost)·`/admin/posts/edit`(savePost 신규·수정)로 POST하면 모두 307 `/auth/login`. 관리자 경로가 아닌 `/blog`·`/auth/login`으로 보내면 409 'Server Action unavailable'. 요청 후 확인용 글(`e2e-curl-probe`)은 삭제·수정되지 않았고 `e2e-curl-hack` 글도 생기지 않았다(확인 후 확인용 글은 삭제).
+    - 통과: `lib/schemas/post.test.ts`의 외부 도메인·`javascript:` 썸네일 거부, 버킷 URL 통과, NFD 한글 슬러그의 NFC 정규화. `npm run check`(Vitest 76개)·`npm run knip` 통과.
+    - 제한 사항: 체크리스트의 'Playwright MCP' 항목은 MCP 브라우저가 아니라 위 Playwright e2e 스펙으로 같은 시나리오를 확인했다(관리자 자격 증명이 `.env`에만 있고 에이전트가 읽지 못해 MCP 브라우저로는 로그인하지 않음). `published_at` 불변은 e2e에서 상세 페이지의 발행일 표시(일 단위)가 수정 전후 같은지만 확인했고, 초 단위 값은 `lib/posts/published-at.test.ts` 단위 테스트가 보장한다. 비관리자(로그인했지만 admin이 아닌) 계정의 Server Action 호출은 미수행(`requireAdmin()`이 `notFound()`로 처리하는 경로는 코드 리뷰와 단위 테스트 범위).
 
 - **Task 014: 핵심 기능 통합 테스트**
   - 관련 기능: F001~F006, F008, F010~F013

@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { PostTable } from "@/app/admin/posts/_components/post-table";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import type { PostSummary } from "@/lib/types/post";
+import { getAdminPosts } from "@/lib/queries/admin-posts";
 
 export default function AdminPostsPage() {
   return (
@@ -17,8 +17,8 @@ async function AdminPostsContent() {
   // 레이아웃 검사에만 의존하지 않고 페이지에서도 관리자 권한을 확인한다.
   await requireAdmin();
 
-  // TODO: Task 013에서 초안 포함 전체 글을 최신 수정순으로 조회한다(lib/queries/admin-posts.ts).
-  const posts: PostSummary[] = [];
+  // 초안 포함 전체 글을 최근 수정순으로 조회한다. 반드시 requireAdmin() 이후에 호출한다.
+  const posts = await getAdminPosts();
 
   return (
     <main className="grid gap-6">
