@@ -230,7 +230,7 @@
 
 비로그인 사용자는 발행된 글만 읽을 수 있고, 쓰기는 관리자 역할만 가능하다. 발행(`published`)된 글은 발행 시각(`published_at`)이 반드시 있어야 한다. (F012)
 
-구현 상태: `public.posts` 테이블, check 제약, 인덱스, `updated_at` 트리거, RLS가 마이그레이션(`supabase/migrations/`)으로 원격에 적용되어 있고, 타입은 `lib/supabase/database.types.ts`(생성 파일)에서 `lib/types/post.ts`가 파생한다. 블로그 화면은 DB 연동 전까지 `lib/dummy/posts.ts`를 사용한다.
+구현 상태: `public.posts` 테이블, check 제약, 인덱스, `updated_at` 트리거, RLS가 마이그레이션(`supabase/migrations/`)으로 원격에 적용되어 있고, 타입은 `lib/supabase/database.types.ts`(생성 파일)에서 `lib/types/post.ts`가 파생한다. 공개 블로그 화면은 `lib/queries/posts.ts`로 발행 글만 조회한다.
 
 ### 이미지 파일 (스토리지 버킷 `blog-images`, F009)
 

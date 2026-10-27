@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { PageHeader } from "@/components/content/page-header";
-import { dummyPosts } from "@/lib/dummy/posts";
-import { filterPosts } from "@/lib/posts/filter";
+import { PostListSkeleton } from "@/components/blog/post-list-skeleton";
+import { getPublishedPosts } from "@/lib/queries/posts";
 
 import { PostFilterBar } from "./_components/post-filter-bar";
 import { PostList } from "./_components/post-list";
@@ -25,7 +25,7 @@ async function FilteredPosts({
   const params = await searchParams;
   const category = first(params.category) || undefined;
   const tag = first(params.tag) || undefined;
-  const posts = filterPosts(dummyPosts, { category, tag });
+  const posts = await getPublishedPosts({ category, tag });
 
   return (
     <>
@@ -42,9 +42,7 @@ export default function BlogPage(props: PageProps<"/blog">) {
         title="블로그"
         description="개발과 일상에 대한 글을 모아둔 블로그입니다."
       />
-      <Suspense
-        fallback={<p className="text-muted-foreground">불러오는 중…</p>}
-      >
+      <Suspense fallback={<PostListSkeleton />}>
         <FilteredPosts searchParams={props.searchParams} />
       </Suspense>
     </div>

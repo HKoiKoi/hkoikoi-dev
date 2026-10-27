@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { PostTable } from "@/app/admin/posts/_components/post-table";
-import { dummyPosts } from "@/lib/dummy/posts";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import type { PostSummary } from "@/lib/types/post";
 
 export default function AdminPostsPage() {
   return (
@@ -17,10 +17,8 @@ async function AdminPostsContent() {
   // 레이아웃 검사에만 의존하지 않고 페이지에서도 관리자 권한을 확인한다.
   await requireAdmin();
 
-  // 관리자는 초안 포함 전체 글을 최신 수정순으로 본다.
-  const posts = [...dummyPosts].sort((a, b) =>
-    b.updated_at.localeCompare(a.updated_at),
-  );
+  // TODO: Task 013에서 초안 포함 전체 글을 최신 수정순으로 조회한다(lib/queries/admin-posts.ts).
+  const posts: PostSummary[] = [];
 
   return (
     <main className="grid gap-6">

@@ -70,4 +70,21 @@ test.describe("관리자 인증", () => {
     await expect(page.getByLabel("이메일")).toHaveValue(adminEmail);
     await expect(page).toHaveURL(/\/auth\/login$/);
   });
+
+  // 초안 글(slug: e2e-seed-draft, 제목 "[시드] 초안 글")이 DB에 있을 때만 의미가 있다.
+  // 없으면 아무 글도 없는 것과 구분되지 않으므로, 시드를 넣고 실행한 뒤 지운다.
+  test("관리자로 로그인해도 공개 영역에는 초안이 보이지 않는다", async ({
+    page,
+  }) => {
+    await submitLogin(page, adminEmail, adminPassword);
+    await expect(page).toHaveURL(/\/admin\/posts$/);
+
+    await page.goto("/blog/e2e-seed-draft");
+    await expect(
+      page.getByRole("heading", { name: "페이지를 찾을 수 없습니다" }),
+    ).toBeVisible();
+
+    await page.goto("/blog");
+    await expect(page.getByText("[시드] 초안 글")).toHaveCount(0);
+  });
 });

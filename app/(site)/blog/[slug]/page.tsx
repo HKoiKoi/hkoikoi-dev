@@ -4,8 +4,8 @@ import { Suspense } from "react";
 
 import { CategoryBadge } from "@/components/blog/category-badge";
 import { TagBadge } from "@/components/blog/tag-badge";
-import { dummyPosts } from "@/lib/dummy/posts";
 import { formatDate } from "@/lib/format-date";
+import { getPostBySlug } from "@/lib/queries/posts";
 
 // params는 퍼센트 인코딩된 채로 전달되므로(한글 슬러그 등) 직접 디코딩한다.
 // 잘못된 인코딩(URIError)이면 원문을 그대로 쓴다.
@@ -17,29 +17,19 @@ function decodeSlug(slug: string) {
   }
 }
 
-// 초안과 없는 슬러그는 undefined
-function findPublishedPost(slug: string) {
-  return dummyPosts.find((post) => post.published && post.slug === slug);
-}
-
-export function generateStaticParams() {
-  return dummyPosts
-    .filter((post) => post.published)
-    .map((post) => ({ slug: post.slug }));
-}
-
+// 본문과 같은 원시값으로 호출해 React cache로 DB 조회를 한 번만 한다.
 export async function generateMetadata({
   params,
 }: PageProps<"/blog/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const post = findPublishedPost(decodeSlug(slug));
+  const post = await getPostBySlug(decodeSlug(slug));
   return post ? { title: post.title, description: post.excerpt } : {};
 }
 
 // params는 요청 시점 데이터이므로 Suspense 안에서 await한다 (cacheComponents).
 async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
   const { slug } = await params;
-  const post = findPublishedPost(decodeSlug(slug));
+  const post = await getPostBySlug(decodeSlug(slug));
   if (!post) notFound();
 
   const date = post.published_at ?? post.created_at;

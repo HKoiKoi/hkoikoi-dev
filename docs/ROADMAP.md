@@ -309,11 +309,11 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 기능: F005, F006, F010(초안 비노출)
   - 관련 파일: `lib/queries/posts.ts`, `app/(site)/page.tsx`, `app/(site)/blog/page.tsx`, `app/(site)/blog/[slug]/page.tsx`, `lib/dummy/posts.ts`(삭제), `lib/posts/filter.ts`(삭제)
   - 수락 기준: 메인 최신 글 3개·블로그 목록·상세가 Supabase `posts`의 발행 글을 표시하고 더미 데이터·필터 순수 함수가 제거됨. 조회 실패 시 목록은 빈 목록 안내, 상세는 not-found. 한글 슬러그 상세 정상 조회
-  - [ ] `lib/queries/posts.ts`(서버 전용): `getLatestPosts(limit)`, `getPublishedPosts({ category, tag })`(`published_at desc`, 태그는 `contains`), `getPostBySlug(slug)`(NFC 정규화 후 조회)
-  - [ ] 공개 조회는 `published = true` 조건을 쿼리에도 명시(RLS와 이중 방어, 관리자 로그인 상태에서도 공개 페이지에 초안이 섞이지 않게)
-  - [ ] 요청 시점 데이터 컴포넌트를 `<Suspense>` + 스켈레톤으로 감쌈(캐싱 전략은 Task 019)
-  - [ ] 조회 오류는 `console.error` 후 빈 목록 반환, 상세는 `notFound()`
-  - [ ] 더미 데이터 제거 후 `npm run knip` 통과
+  - [x] `lib/queries/posts.ts`(서버 전용): `getLatestPosts(limit)`, `getPublishedPosts({ category, tag })`(`published_at desc`, 태그는 `contains`), `getPostBySlug(slug)`(NFC 정규화 후 조회, React `cache()`로 `generateMetadata`와 본문이 한 번만 조회). `generateStaticParams`는 제거해 요청 시점에 조회
+  - [x] 공개 조회는 `published = true` 조건을 쿼리에도 명시(RLS와 이중 방어, 관리자 로그인 상태에서도 공개 페이지에 초안이 섞이지 않게)
+  - [x] 요청 시점 데이터 컴포넌트를 `<Suspense>` + 스켈레톤으로 감쌈(캐싱 전략은 Task 019)
+  - [x] 조회 오류는 `console.error` 후 빈 목록 반환, 상세는 `notFound()`. catch에서 `unstable_rethrow`를 먼저 호출해 프리렌더 중단 신호(`HANGING_PROMISE_REJECTION`)를 삼키지 않음
+  - [x] 더미 데이터 제거 후 `npm run knip` 통과 (`lib/types/post.ts` 예외는 `PostInput`이 아직 미사용이라 유지, Task 013에서 제거)
   - 테스트 체크리스트:
     - 정상: Supabase MCP로 발행 글 2건·초안 1건 시드 → Playwright MCP → `/blog` → 발행 2건만 최신순 표시
     - 정상: Playwright MCP → `/` → 최신 글 카드 최대 3개, 클릭 시 상세 이동
@@ -322,7 +322,13 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: `.env.local`의 Supabase URL을 잘못된 값으로 바꾼 상태(수동 확인) → `/blog` 빈 목록 안내, 페이지 오류 화면 없음
     - 엣지: Playwright MCP → 한글 슬러그 글을 퍼센트 인코딩 URL(`/blog/%ED%85%8C...`)로 접속 → 정상 상세
     - 엣지: Playwright MCP → 발행 글 0건 상태 `/` → 최신 글 안내 문구
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-27 `npm run check`(Vitest 38개)·`npm run build`·`npm run knip` 통과, 빌드에서 `/`는 Partial Prerender(◐) 유지. 원격 `posts`(0행)에 `e2e-seed-` 시드(발행 4건·초안 1건, 체크리스트의 2건+1건과 달리 홈 3개 제한까지 보려고 4건)를 넣고 dev 서버에서 Playwright(스크립트)로 확인한 뒤 시드 5건을 삭제함(현재 `posts` 0행).
+    - 통과: `/blog` 발행 4건만 최신순(초안 제외) / `/` 최신 글 3개(가장 오래된 글 제외) / `?category=일반` 해당 2건 / `?tag=한글` 1건 / 한글 슬러그를 퍼센트 인코딩 URL로 접속 시 상세 표시 / 비로그인 초안 슬러그·없는 슬러그는 not-found 화면 / 발행 0건에서 `/`·`/blog` 모두 "아직 작성된 글이 없습니다" 표시.
+    - 알려진 동작: not-found 화면이 뜨는데도 `curl -I` 기준 HTTP 상태는 200이다(스트리밍 시작 후 `notFound()`). 대신 `noindex` 메타가 주입된다. 404 상태 코드가 필요하면 Task 019(SEO·캐싱)에서 재검토.
+    - 통과(2026-10-27 추가): 관리자 로그인 상태에서 초안 슬러그 `/blog/e2e-seed-draft` 접속 시 not-found, `/blog` 목록에 초안 미노출. `e2e/admin-auth.spec.ts`에 시나리오로 추가했고(`playwright.config.ts`가 `.env`의 `E2E_ADMIN_*`를 읽는 기존 경로 사용) 시드(발행 1건·초안 1건)를 넣고 5개 모두 통과, skip 0. 이 시나리오는 초안이 DB에 있을 때만 의미가 있어 시드 없이 돌리면 통과해도 검증이 되지 않으며, 실행 후 시드는 삭제함(`posts` 0행).
+    - 통과(2026-10-27 추가): 잘못된 Supabase URL. `.env.local`은 수정하지 않고 셸 환경변수로 `NEXT_PUBLIC_SUPABASE_URL=https://invalid-host.example.invalid npx next dev -p 3100`을 띄워 확인했다(셸 환경변수가 `.env` 파일보다 우선). `/blog`·`/`는 200과 "아직 작성된 글이 없습니다" 안내, `/blog/anything`은 not-found 화면, 오류 오버레이 없음. 서버 로그에는 `[getLatestPosts]`·`[getPublishedPosts]` `TypeError: fetch failed`가 `console.error`로 남았다.
+    - `npm run test:e2e` 27개 통과. `e2e/routes.spec.ts`의 더미 슬러그 시나리오는 시드 비의존 "없는 슬러그 not-found"로, `e2e/static-pages.spec.ts`의 최신 글 항목 수 검사는 섹션 표시 검사로 바꿈(글은 DB 데이터라 0건일 수 있음).
+    - `app/admin/posts/page.tsx`는 더미를 지우면서 빈 목록 TODO로 바꿨고 실데이터 연결은 Task 013에서 한다.
 
 - **Task 013: 글 저장·발행·삭제 Server Action 구현**
   - 관련 기능: F008, F010, F011, F012
@@ -333,7 +339,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [ ] 발행 규칙: 처음 발행할 때 `published_at = now()`, 이미 발행된 글 수정 시 기존 값 유지, 초안 전환 시 유지/초기화 정책을 정해 주석으로 명시(기본: 유지)
   - [ ] (Task 011 이월) `savePost`·`deletePost` 등 모든 관리자 Server Action 시작부에서 `requireAdmin()` 호출(레이아웃 검사에만 의존하지 않음)
   - [ ] `deletePost` Server Action + 확인 `Dialog`, 삭제 후 목록 갱신(`revalidatePath`/`updateTag` 중 Task 019 캐싱 전략과 일치하는 방식, `nextjs-16.md` 확인)
-  - [ ] 관리자 글 목록·편집기(수정 모드 `?id=`)를 실제 데이터로 연결, 존재하지 않는 id는 not-found
+  - [ ] 관리자 글 목록·편집기(수정 모드 `?id=`)를 실제 데이터로 연결, 존재하지 않는 id는 not-found (Task 012 이월: `app/admin/posts/page.tsx`가 현재 빈 목록 TODO이므로 `lib/queries/admin-posts.ts`로 초안 포함 전체 글을 연결하고, 이때 `lib/types/post.ts`의 `PostInput` 사용으로 `knip.jsonc` 예외도 제거)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 관리자 로그인 → "새 글" → 제목·본문 입력, 발행 체크 후 저장 → `/admin/posts`에 "발행" 배지 → `/blog`에 노출
     - 정상: Playwright MCP → 초안으로 저장 → 목록 "초안" 배지, `/blog` 미노출, 상세 URL은 not-found
