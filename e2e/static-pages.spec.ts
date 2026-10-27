@@ -15,9 +15,8 @@ test.describe("메인 페이지", () => {
     await expect(
       page.getByRole("region", { name: "바로가기" }).getByRole("link"),
     ).toHaveCount(9);
-    await expect(
-      page.getByRole("region", { name: "최신 글" }).getByRole("listitem"),
-    ).not.toHaveCount(0);
+    // 글은 DB 데이터라 0건일 수 있으므로 섹션이 보이는지만 확인한다.
+    await expect(page.getByRole("region", { name: "최신 글" })).toBeVisible();
   });
 
   test("바로가기 카드로 이동한다", async ({ page }) => {
