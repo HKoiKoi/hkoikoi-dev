@@ -325,7 +325,8 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 테스트 결과: 2026-10-27 `npm run check`(Vitest 38개)·`npm run build`·`npm run knip` 통과, 빌드에서 `/`는 Partial Prerender(◐) 유지. 원격 `posts`(0행)에 `e2e-seed-` 시드(발행 4건·초안 1건, 체크리스트의 2건+1건과 달리 홈 3개 제한까지 보려고 4건)를 넣고 dev 서버에서 Playwright(스크립트)로 확인한 뒤 시드 5건을 삭제함(현재 `posts` 0행).
     - 통과: `/blog` 발행 4건만 최신순(초안 제외) / `/` 최신 글 3개(가장 오래된 글 제외) / `?category=일반` 해당 2건 / `?tag=한글` 1건 / 한글 슬러그를 퍼센트 인코딩 URL로 접속 시 상세 표시 / 비로그인 초안 슬러그·없는 슬러그는 not-found 화면 / 발행 0건에서 `/`·`/blog` 모두 "아직 작성된 글이 없습니다" 표시.
     - 알려진 동작: not-found 화면이 뜨는데도 `curl -I` 기준 HTTP 상태는 200이다(스트리밍 시작 후 `notFound()`). 대신 `noindex` 메타가 주입된다. 404 상태 코드가 필요하면 Task 019(SEO·캐싱)에서 재검토.
-    - 미수행: 관리자 로그인 상태에서 초안 슬러그 접속(자격 증명을 `.env`에서 스크립트로 불러오는 것이 자동 모드에 막혀 수행하지 않음, `published = true` 쿼리 조건으로 보장), `.env.local`의 Supabase URL을 잘못된 값으로 바꿔 `/blog` 빈 목록 안내를 보는 수동 확인(`.env.local` 수정이 필요해 수행하지 않음, 단위 테스트로 오류 시 빈 목록 반환만 확인).
+    - 통과(2026-10-27 추가): 관리자 로그인 상태에서 초안 슬러그 `/blog/e2e-seed-draft` 접속 시 not-found, `/blog` 목록에 초안 미노출. `e2e/admin-auth.spec.ts`에 시나리오로 추가했고(`playwright.config.ts`가 `.env`의 `E2E_ADMIN_*`를 읽는 기존 경로 사용) 시드(발행 1건·초안 1건)를 넣고 5개 모두 통과, skip 0. 이 시나리오는 초안이 DB에 있을 때만 의미가 있어 시드 없이 돌리면 통과해도 검증이 되지 않으며, 실행 후 시드는 삭제함(`posts` 0행).
+    - 통과(2026-10-27 추가): 잘못된 Supabase URL. `.env.local`은 수정하지 않고 셸 환경변수로 `NEXT_PUBLIC_SUPABASE_URL=https://invalid-host.example.invalid npx next dev -p 3100`을 띄워 확인했다(셸 환경변수가 `.env` 파일보다 우선). `/blog`·`/`는 200과 "아직 작성된 글이 없습니다" 안내, `/blog/anything`은 not-found 화면, 오류 오버레이 없음. 서버 로그에는 `[getLatestPosts]`·`[getPublishedPosts]` `TypeError: fetch failed`가 `console.error`로 남았다.
     - `npm run test:e2e` 27개 통과. `e2e/routes.spec.ts`의 더미 슬러그 시나리오는 시드 비의존 "없는 슬러그 not-found"로, `e2e/static-pages.spec.ts`의 최신 글 항목 수 검사는 섹션 표시 검사로 바꿈(글은 DB 데이터라 0건일 수 있음).
     - `app/admin/posts/page.tsx`는 더미를 지우면서 빈 목록 TODO로 바꿨고 실데이터 연결은 Task 013에서 한다.
 
