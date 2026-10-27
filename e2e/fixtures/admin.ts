@@ -65,6 +65,9 @@ export async function confirmDelete(page: Page, title: string) {
     .getByRole("dialog")
     .getByRole("button", { name: "삭제", exact: true })
     .click();
+  // 모달이 열려 있는 동안은 뒤쪽 표가 aria-hidden이라 row 단언이 액션 완료 전에 통과한다.
+  // Server Action이 끝나야 닫히므로 닫힘을 기다려 삭제 완료를 보장한다.
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 }
 
 // 접두가 같은 글을 UI로 모두 지운다. 테스트 실패로 남은 글도 함께 정리한다.
@@ -83,7 +86,6 @@ export async function cleanup(browser: Browser, prefix: string) {
         await rows.first().getByRole("rowheader").innerText()
       ).trim();
       await confirmDelete(page, title);
-      await expect(page.getByRole("dialog")).toHaveCount(0);
       await expect(rowOf(page, title)).toHaveCount(0);
     }
   } finally {
