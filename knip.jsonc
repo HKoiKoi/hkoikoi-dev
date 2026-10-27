@@ -8,7 +8,7 @@
 
     // 아직 사용처가 없는 임시 예외: 쓰이게 되는 시점에 제거
     "lib/supabase/client.ts", // 이미지 업로드(Task 017)가 브라우저 클라이언트를 쓰면 제거
-    "lib/types/post.ts", // 관리자 편집기가 PostInput을 쓰면 제거
+    "lib/types/post.ts", // PostInput만 미사용: 관리자 편집기(Task 013)가 쓰면 제거
   ],
   "ignoreDependencies": [
     "@testing-library/user-event", // 테스트에서 import하면 제거

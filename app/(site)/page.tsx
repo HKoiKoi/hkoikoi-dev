@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
-import { PostCard } from "@/components/blog/post-card";
+import { PostListSkeleton } from "@/components/blog/post-list-skeleton";
 import { EmptyState } from "@/components/content/empty-state";
 import { ProjectCard } from "@/components/content/project-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,10 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { profile } from "@/data/profile";
 import { projects } from "@/data/projects";
-import { dummyPosts } from "@/lib/dummy/posts";
-import { filterPosts } from "@/lib/posts/filter";
 import { selectFeatured } from "@/lib/projects/select-featured";
 import { isNavGroup, navItems } from "@/lib/site-config";
+
+import { LatestPosts } from "./_components/latest-posts";
 
 // 그룹 메뉴를 펼쳐 이동 가능한 leaf 링크만 평탄화한다.
 const shortcuts = navItems.flatMap((item) =>
@@ -20,7 +21,6 @@ const shortcuts = navItems.flatMap((item) =>
 
 export default function Home() {
   const featuredProjects = selectFeatured(projects);
-  const latestPosts = filterPosts(dummyPosts).slice(0, 3);
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-14 px-4 py-12">
@@ -105,17 +105,9 @@ export default function Home() {
         <h2 id="posts-heading" className="text-xl font-semibold">
           최신 글
         </h2>
-        {latestPosts.length === 0 ? (
-          <EmptyState title="아직 작성된 글이 없습니다" />
-        ) : (
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {latestPosts.map((post) => (
-              <li key={post.id}>
-                <PostCard post={post} />
-              </li>
-            ))}
-          </ul>
-        )}
+        <Suspense fallback={<PostListSkeleton count={3} />}>
+          <LatestPosts />
+        </Suspense>
       </section>
     </div>
   );
