@@ -293,7 +293,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] 로그인 폼을 Server Action + `useActionState` 패턴으로 전환(`forms-react-hook-form.md`), 실패 시 한국어 오류 유지, 성공 시 `/admin/posts` — e2e로 로그인 성공·실패 확인
   - [x] 로그아웃 버튼을 관리자 레이아웃에 배치, 완료 후 `/`로 이동. 스타터 `auth-button.tsx` 삭제 — e2e로 로그아웃 후 `/` 이동 확인
   - [x] 공개 헤더 `AdminLink`: `<Suspense>` 안에서 claims를 읽어 관리자일 때만 "관리" 링크 렌더링 — 푸터 슬롯에 구현, e2e로 관리자 로그인 시 노출·로그아웃 후 사라짐 확인
-  - [x] 수동 설정(2026-10-26 완료): Supabase 대시보드에서 관리자 계정 생성, `app_metadata.role = 'admin'` 부여(SQL), "Allow new users to sign up" 해제, 최소 비밀번호 12자·대소문자·숫자·기호 필수 적용. 남은 항목: 부여 후 재로그인, MFA(선택)
+  - [x] 수동 설정(2026-10-26 완료): Supabase 대시보드에서 관리자 계정 생성, `app_metadata.role = 'admin'` 부여(SQL), "Allow new users to sign up" 해제(2026-10-27 대시보드에서 해제 상태 재확인), 최소 비밀번호 12자·대소문자·숫자·기호 필수 적용. 남은 항목: 부여 후 재로그인, MFA(선택)
   - [x] `e2e/admin-auth.spec.ts`(`E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` 사용, 미설정 시 `test.skip`)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/auth/login`에서 관리자 이메일·비밀번호 입력 후 로그인 → `/admin/posts` 이동
@@ -303,7 +303,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → 비관리자 테스트 계정으로 로그인 후 `/admin/posts`·`/admin/posts/edit` 접속 → not-found 화면
     - 엣지: Supabase Auth API(수동 확인) → `signUp` 호출 → 가입 비활성화 오류
     - 엣지: `lib/auth/is-admin.test.ts` → `role` 없음 / `user_metadata.role = 'admin'`(사용자 수정 가능 영역) → false
-  - 테스트 결과: 2026-10-27 `npm run check`(Vitest 30개)·`npm run build`·`npm run knip` 통과, 공개 페이지 PPR 분류 유지. 임시 E2E 관리자 계정을 만들어 `npm run test:e2e` 28개 모두 통과(skip 0)를 확인한 뒤, 관리자는 본인 1명만 두는 방침에 따라 그 계정을 삭제함(현재 `auth.users`는 관리자 1건). `playwright.config.ts`가 `.env`의 `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD`를 로드하며, 본인 관리자 계정으로 설정해 다시 돌린 `npm run test:e2e`도 28개 모두 통과(skip 0). 값이 없으면 관리자 시나리오는 skip. 통과한 시나리오: 로그인 → `/admin/posts`, 푸터 "관리" 링크 표시, 로그아웃 → `/` 후 링크 사라짐·`/admin/posts` 재접근 시 `/auth/login`, 잘못된 비밀번호 시 오류 메시지·이메일 유지, 비로그인 `/admin/**` 리다이렉트. `knip.jsonc`에서 `logout-button`·`server.ts` 예외를 제거했고 `lib/supabase/client.ts`는 Task 017 전까지 임시 예외로 추가. `hasEnvVars` 검사는 env 미설정 시 공개 페이지 500을 막는 안전장치라 유지(근거는 `lib/supabase/proxy.ts` 주석). advisor 보안 경고는 기존 예외 1건뿐. 미수행: 로그인한 비관리자의 not-found 확인(비관리자 계정 필요), `signUp` 비활성 확인(MCP로 확인 불가, 대시보드 Authentication 설정 확인 필요), Playwright MCP 수동 시나리오(e2e로 대체 확인)
+  - 테스트 결과: 2026-10-27 `npm run check`(Vitest 30개)·`npm run build`·`npm run knip` 통과, 공개 페이지 PPR 분류 유지. 임시 E2E 관리자 계정을 만들어 `npm run test:e2e` 28개 모두 통과(skip 0)를 확인한 뒤, 관리자는 본인 1명만 두는 방침에 따라 그 계정을 삭제함(현재 `auth.users`는 관리자 1건). `playwright.config.ts`가 `.env`의 `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD`를 로드하며, 본인 관리자 계정으로 설정해 다시 돌린 `npm run test:e2e`도 28개 모두 통과(skip 0). 값이 없으면 관리자 시나리오는 skip. 통과한 시나리오: 로그인 → `/admin/posts`, 푸터 "관리" 링크 표시, 로그아웃 → `/` 후 링크 사라짐·`/admin/posts` 재접근 시 `/auth/login`, 잘못된 비밀번호 시 오류 메시지·이메일 유지, 비로그인 `/admin/**` 리다이렉트. `knip.jsonc`에서 `logout-button`·`server.ts` 예외를 제거했고 `lib/supabase/client.ts`는 Task 017 전까지 임시 예외로 추가. `hasEnvVars` 검사는 env 미설정 시 공개 페이지 500을 막는 안전장치라 유지(근거는 `lib/supabase/proxy.ts` 주석). advisor 보안 경고는 기존 예외 1건뿐. 2026-10-27 사용자가 Supabase 대시보드에서 "Allow new users to sign up" 해제 상태를 직접 확인함(MCP로는 확인 불가, `signUp` API 호출 테스트는 수행하지 않음). 미수행: 로그인한 비관리자의 not-found 확인(비관리자 계정을 만들지 않기로 해 `requireAdmin()`의 `notFound()` 코드로만 보장), `signUp` API 호출 시 가입 비활성화 오류 확인, Playwright MCP 수동 시나리오(e2e로 대체 확인)
 
 - **Task 012: 블로그 공개 조회 데이터 연동**
   - 관련 기능: F005, F006, F010(초안 비노출)
