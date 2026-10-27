@@ -361,19 +361,20 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 기능: F001~F006, F008, F010~F013
   - 관련 파일: `e2e/visitor-flow.spec.ts`, `e2e/admin-flow.spec.ts`, `e2e/access-control.spec.ts`, `e2e/fixtures/**`
   - 수락 기준: PRD 사용자 여정 1~7(방문자·관리자)이 E2E로 통과하고, 테스트가 만든 글은 종료 시 정리됨. 실패 시나리오(권한·검증·없는 글)가 모두 포함됨
-  - [ ] 방문자 여정: 메인 → 섹션 카드 → 이력 페이지 → 헤더로 프로젝트·논문 → 블로그 목록 → 태그 필터 → 상세 → 카테고리 → 로고로 메인
-  - [ ] 관리자 여정: 로그인 → 새 글(초안) → 수정 후 발행 → 공개 확인 → 삭제 → 로그아웃
-  - [ ] 접근 제어: 비로그인/비관리자의 관리자 영역·Server Action 접근 차단
-  - [ ] 테스트 데이터 고유 접두(`e2e-`) 사용 및 `afterAll` 정리
-  - [ ] 발견된 결함은 해당 Task로 되돌려 수정 후 재실행
+  - [x] 방문자 여정: 메인 → 섹션 카드 → 이력 페이지 → 헤더로 프로젝트·논문 → 블로그 목록 → 태그 필터 → 상세 → 카테고리 → 로고로 메인
+  - [x] 관리자 여정: 로그인 → 새 글(초안) → 수정 후 발행 → 공개 확인 → 삭제 → 로그아웃
+  - [x] 접근 제어: 비로그인의 관리자 영역 접근 차단
+    - (제외) 비관리자의 관리자 영역·Server Action 접근 차단: 수행 대상 제외(관리자 1명만 두는 방침, `requireAdmin()`의 `notFound()` 코드와 `isAdmin` 단위 테스트로 보장)
+  - [x] 테스트 데이터 고유 접두(`e2e-visitor-`·`e2e-flow-`·`e2e-posts-`) 사용 및 `afterAll` 정리
+  - [x] 발견된 결함은 해당 Task로 되돌려 수정 후 재실행(앱 결함은 없었고 e2e 헬퍼의 삭제 대기 레이스를 수정)
   - 테스트 체크리스트:
-    - 정상: Playwright MCP → 위 방문자 여정 전체 → 각 단계 URL·제목 일치
-    - 정상: Playwright MCP → 위 관리자 여정 전체 → 상태 배지·공개 노출이 단계별로 일치
-    - 오류: Playwright MCP → 비관리자 계정으로 `/admin/posts/edit?id=<실제 id>` → not-found
-    - 오류: Playwright MCP → 로그인 실패 3회 반복 → 매번 오류 표시, 페이지 깨짐 없음
-    - 엣지: Playwright MCP → 한글 슬러그 글 생성 → 목록 카드 클릭 → 상세 → 브라우저 뒤로 가기 시 필터 상태 유지
+    - 정상: 방문자 여정 전체 → 각 단계 URL·제목 일치 (Playwright MCP 대신 `e2e/visitor-flow.spec.ts`로 확인)
+    - 정상: 관리자 여정 전체 → 상태 배지·공개 노출이 단계별로 일치 (Playwright MCP 대신 `e2e/admin-flow.spec.ts`로 확인)
+    - (제외) 비관리자 계정으로 `/admin/posts/edit?id=<실제 id>` → not-found: 수행 대상 제외(관리자 1명만 두는 방침, `requireAdmin()`의 `notFound()` 코드와 `isAdmin` 단위 테스트로 보장)
+    - 오류: 로그인 실패 3회 반복 → 매번 오류 표시, 페이지 깨짐 없음 (`e2e/access-control.spec.ts`로 확인)
+    - 엣지: 한글 슬러그 글 생성 → 목록 카드 클릭 → 상세 → 브라우저 뒤로 가기 시 필터 상태 유지 (`e2e/visitor-flow.spec.ts`로 확인)
     - 엣지: 터미널 → `npm run test:e2e` → 전체 통과(관리자 자격 증명 미설정 시 관리자 스펙만 skip)
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-27 `npm run check`(Vitest 76개)·`npm run knip` 통과. `npm run test:e2e`는 관리자 자격 증명 설정 상태에서 42개 모두 통과(skip 0)를 3회 연속 확인했고, 자격 증명을 비운 상태에서는 28개 통과·14개 skip(관리자 스펙만)·실패 0. 통과한 시나리오: 방문자 여정(정적 구간, 태그 필터·상세·뒤로 가기 필터 유지, 카테고리·로고), 관리자 여정(초안→발행→삭제→로그아웃, 단계별 배지·공개 노출), 비로그인의 `/admin/posts`·`/admin/posts/edit` 리다이렉트, 임의 계정 로그인 실패 3회 반복 시 매번 오류 표시. 종료 후 DB에 `e2e-` 접두 글 0건. 삭제 직후 `/blog`에 글이 간헐적으로 남는 현상(약 10~30%)이 발견됐으나 캐시·앱 결함이 아니라 `confirmDelete`가 Server Action 완료 전에 반환하는 e2e 헬퍼 레이스였다(삭제 모달이 열린 동안 뒤쪽 표가 `aria-hidden`이라 row 단언이 먼저 통과). 모달이 닫힐 때까지 기다리도록 `e2e/fixtures/admin.ts`를 수정했고 수정 전 임시 스펙으로 dev 40회·프로덕션 30회 반복에서 stale 0건을 확인했다. 수행 대상 제외: 비관리자 계정 시나리오(관리자 1명만 두는 방침, `requireAdmin()`의 `notFound()` 코드와 `isAdmin` 단위 테스트로 보장), Server Action 직접 호출 검증(`savePost`·`deletePost` 첫 줄의 `requireAdmin()` 호출은 코드로 확인). Playwright MCP 수동 재확인은 하지 않고 e2e로 대체
 
 ### Phase 4: 마크다운 렌더링 및 편집기 고도화
 

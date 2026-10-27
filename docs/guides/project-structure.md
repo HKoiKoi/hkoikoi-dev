@@ -243,7 +243,7 @@ import { cn } from "@/lib/utils";
 ### 테스트 배치
 
 - 단위/컴포넌트 테스트: 대상 파일 옆의 `*.test.ts(x)` (예: `lib/format-date.test.ts`). 환경은 jsdom이고 `vitest.setup.ts`가 `jest-dom` 매처와 `cleanup`을 설정합니다.
-- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`). Vitest는 `e2e/`와 `.agents`를 제외합니다.
+- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `visitor-flow`, `admin-flow`, `access-control`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
 - 커버리지는 `app/`, `components/`, `lib/`를 대상으로 하되 `components/ui/**`는 제외합니다.
 - Server Component(async)는 Vitest로 직접 렌더링하기 어렵습니다. 로직은 함수로 분리해 단위 테스트하고, 화면 흐름은 E2E로 검증합니다.
 
