@@ -7,8 +7,8 @@
 
 - 설치된 폼 관련 UI: `input`, `label`, `checkbox`, `textarea`, `button`, `card`, `dialog`, `tabs`. **`field`는 아직 없습니다.**
 - `zod`, `react-hook-form`, `@hookform/resolvers`는 **미설치**입니다. 아래 Zod 예시를 쓰려면 먼저 설치합니다(Task 013에서 `zod` 설치 예정).
-- 현재 폼은 두 개입니다. 둘 다 아직 새 폼의 기준이 아닙니다.
-  - `components/login-form.tsx`: Supabase starter 코드입니다. `useState`로 입력을 제어하고 **브라우저 클라이언트**(`@/lib/supabase/client`)로 `signInWithPassword`를 직접 호출한 뒤 `router.push("/admin/posts")`로 이동합니다. `Label` + `div.grid`로 배치하고 오류는 `text-destructive`로 표시하지만, `error.message`를 그대로 보여 줍니다. Task 011에서 Server Action + `useActionState`로 전환합니다.
+- 현재 폼은 두 개입니다.
+  - `components/login-form.tsx`: Server Action `login`(`app/auth/login/actions.ts`)을 `useActionState`로 연결한 로그인 폼입니다. 오류 시 이메일 입력값을 state로 돌려받아 `defaultValue`에 쓰고, 오류는 `role="alert"` + `text-destructive`로 표시하며, 서버 원문 메시지 대신 고정 문구만 보여 줍니다. 성공하면 Action이 `redirect("/admin/posts")` 합니다. 배치는 아직 `Label` + `div.grid`이고 `field` 컴포넌트가 없어 `FieldGroup`/`Field`로 옮기지 못했습니다. 새 폼은 아래 `Field` 규칙을 따릅니다.
   - `app/admin/posts/edit/_components/post-editor.tsx`: 관리자 편집기 UI입니다. 입력은 `useState`로 관리하고 저장·삭제는 아직 동작하지 않습니다(Task 013에서 Server Action 연결). 슬러그 자동 제안은 `lib/posts/slugify.ts`, 소개글 150자·태그 10개 제한은 화면 표시만 합니다.
 - 가입·비밀번호 재설정 폼과 이메일 확인 Route Handler(`app/auth/confirm/route.ts`)는 삭제되었습니다.
 
@@ -138,32 +138,38 @@ export async function createNoteAction(
 - 응답 후 처리(로그, 알림)는 `after()`(`next/server`)로 넘깁니다.
 - Server Action은 POST로만 호출되고 Next.js가 `Origin`/`Host` 헤더를 검증하므로, 별도의 자체 CSRF 토큰을 만들지 않습니다. 프록시 뒤에서 호스트가 달라지면 `serverActions.allowedOrigins`를 설정합니다.
 - 접근 제어는 Action 한 곳만 믿지 않고 데이터 계층(RLS)에서도 확인합니다 (`node_modules/next/dist/docs/01-app/02-guides/data-security.md`).
-- `proxy.ts`는 로그인하지 않은 `/admin` 요청을 `/auth/login`으로 보내지만 이는 낙관적 검사일 뿐이고 관리자 역할도 보지 않습니다. 관리자 Action은 시작부에서 `requireAdmin()`(Task 011 예정: `getClaims()` → 비로그인 `redirect`, 비관리자 `notFound()`)을 호출하고, 페이지 레이아웃 검사에만 의존하지 않습니다.
+- `proxy.ts`는 로그인하지 않은 `/admin` 요청을 `/auth/login`으로 보내지만 이는 낙관적 검사일 뿐이고 관리자 역할도 보지 않습니다. 관리자 Action은 시작부에서 `requireAdmin()`(`lib/auth/require-admin.ts`, 구현 완료: `getClaims()` → 비로그인 `redirect("/auth/login")`, 비관리자 `notFound()`)을 호출하고, 페이지 레이아웃 검사에만 의존하지 않습니다.
 
 ### 인증 Action 예시 (로그인)
 
-로그인·가입을 서버 Action으로 옮기면 JS 없이도 동작하고 오류 문구를 일관되게 통제할 수 있습니다. 서버 클라이언트의 `setAll`이 Action에서는 쿠키를 정상적으로 씁니다.
+로그인을 서버 Action으로 처리하면 JS 없이도 동작하고 오류 문구를 일관되게 통제할 수 있습니다. 서버 클라이언트의 `setAll`이 Action에서는 쿠키를 정상적으로 씁니다. 실제 구현은 `app/auth/login/actions.ts`이며 요지는 다음과 같습니다.
 
 ```ts
-// app/auth/login/actions.ts
+// app/auth/login/actions.ts (요약)
 "use server";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export async function loginAction(
-  _prev: { message: string },
+export type LoginState = { error: string | null; email: string };
+
+export async function login(
+  _prevState: LoginState,
   formData: FormData,
-): Promise<{ message: string }> {
+): Promise<LoginState> {
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !password) {
+    return { error: "이메일과 비밀번호를 입력해주세요.", email };
+  }
+
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: String(formData.get("email") ?? ""),
-    password: String(formData.get("password") ?? ""),
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    // 계정 존재 여부 등 세부 사유를 노출하지 않는다
-    return { message: "이메일 또는 비밀번호를 확인해주세요" };
+    // 서버 원문 메시지와 계정 존재 여부 등 세부 사유를 노출하지 않는다
+    return { error: "이메일 또는 비밀번호가 올바르지 않습니다.", email };
   }
 
   redirect("/admin/posts"); // try/catch 밖

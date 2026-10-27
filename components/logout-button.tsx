@@ -1,17 +1,17 @@
-"use client";
-
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { logout } from "@/app/admin/actions";
 
-export function LogoutButton() {
-  const router = useRouter();
+type LogoutButtonProps = Pick<
+  React.ComponentProps<typeof Button>,
+  "variant" | "size"
+>;
 
-  const logout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/auth/login");
-  };
-
-  return <Button onClick={logout}>Logout</Button>;
+export function LogoutButton({ variant, size }: LogoutButtonProps) {
+  return (
+    <form action={logout}>
+      <Button type="submit" variant={variant} size={size}>
+        로그아웃
+      </Button>
+    </form>
+  );
 }

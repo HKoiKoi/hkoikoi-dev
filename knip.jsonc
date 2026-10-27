@@ -7,9 +7,7 @@
     "lib/supabase/database.types.ts", // generate_typescript_types 생성물
 
     // 아직 사용처가 없는 임시 예외: 쓰이게 되는 시점에 제거
-    "components/auth-button.tsx", // 관리자 UI에서 import하면 제거
-    "components/logout-button.tsx", // 관리자 UI에서 import하면 제거
-    "lib/supabase/server.ts", // DB를 읽는 서버 코드가 생기면 제거
+    "lib/supabase/client.ts", // 이미지 업로드(Task 017)가 브라우저 클라이언트를 쓰면 제거
     "lib/types/post.ts", // 관리자 편집기가 PostInput을 쓰면 제거
   ],
   "ignoreDependencies": [
