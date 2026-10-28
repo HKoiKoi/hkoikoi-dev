@@ -5,6 +5,7 @@ import rehypeSanitize from "rehype-sanitize";
 import { describe, expect, it } from "vitest";
 
 import { rehypePlugins, remarkPlugins } from "./plugins";
+import { rehypeSanitizeStyle } from "./rehype-sanitize-style";
 import { sanitizeSchema } from "./sanitize-schema";
 
 const pluginFn = (entry: unknown) => (Array.isArray(entry) ? entry[0] : entry);
@@ -36,10 +37,11 @@ describe("plugins", () => {
     expect(remarkPlugins).toHaveLength(2);
   });
 
-  it("rehype 순서는 raw → sanitize → katex → highlight로 고정된다", () => {
+  it("rehype 순서는 raw → sanitize → sanitize-style → katex → highlight로 고정된다", () => {
     expect(rehypePlugins.map(pluginFn)).toEqual([
       rehypeRaw,
       rehypeSanitize,
+      rehypeSanitizeStyle,
       rehypeKatex,
       rehypeHighlight,
     ]);
@@ -47,7 +49,7 @@ describe("plugins", () => {
 
   it("sanitize에 확장 스키마를, katex에 trust:false·throwOnError:false를 넘긴다", () => {
     expect(rehypePlugins[1]).toEqual([rehypeSanitize, sanitizeSchema]);
-    expect(rehypePlugins[2]).toEqual([
+    expect(rehypePlugins[3]).toEqual([
       rehypeKatex,
       { trust: false, throwOnError: false },
     ]);

@@ -154,7 +154,7 @@ lib/
 ├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
 ├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
 ├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getPostBySlug, admin-posts.ts: getAdminPosts / getAdminPostById (+ 테스트)
-├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), plugins.ts(remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
+├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), rehype-sanitize-style.ts(`<style>` CSS 내용 검사), plugins.ts(remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
 ├── posts/                 # slugify.ts, form-data.ts, published-at.ts (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
 ├── site-config.ts         # siteConfig, navItems
