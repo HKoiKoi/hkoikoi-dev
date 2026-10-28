@@ -74,6 +74,23 @@ where (schemaname = 'public' and tablename = 'posts')
 - 쓰기 거부(일반 사용자 insert/update/delete)는 읽기 전용 트랜잭션으로 증명할 수 없다. 운영 DB에 쓰기를 시도하는 점검은 이 절차에 넣지 않는다. Task 017 이월 항목에 `blog-images` INSERT 거부를 롤백되는 DO 블록으로 확인한 기록이 있다(ROADMAP 참고). 정책을 크게 바꿀 때만 같은 방식을 사용자 확인 후 수동으로 쓴다.
 - `set_config('request.jwt.claims')`는 PostgREST가 JWT를 풀어 넣는 경로와 같지만 서명 검증 단계는 포함하지 않는다. 실제 비관리자 계정으로 로그인한 세션 검증은 하지 않는다(관리자 1명만 두는 방침).
 
-## 알려진 불일치: 원격 GRANT
+## 테이블 권한(GRANT)
 
-마이그레이션은 `posts`에 `select`(anon, authenticated)와 `insert, update, delete`(authenticated)만 grant하지만, 원격에서는 anon과 authenticated 모두 `TRUNCATE`, `REFERENCES`, `TRIGGER`까지 갖고 있다(Supabase 기본 권한이 남은 것으로 보인다, 2026-10-28 조회). RLS는 `TRUNCATE`를 막지 않지만 PostgREST가 `TRUNCATE`를 노출하지 않아 실질 위험은 낮다. 이번에는 정리하지 않고 기록만 한다. `revoke`는 권한 변경이므로 필요해지면 사용자 확인 후 별도 마이그레이션으로 처리한다.
+RLS는 행을 거르고, GRANT는 명령 자체를 허용한다. `public` 스키마의 default privileges가 새 테이블에 `anon`, `authenticated`, `service_role`의 모든 권한을 자동으로 주기 때문에, 마이그레이션의 `grant`만으로는 권한이 좁혀지지 않는다. `posts`는 `20261028133002_revoke_excess_posts_grants.sql`로 회수했다.
+
+### D. posts GRANT 점검
+
+```sql
+select grantee, string_agg(privilege_type, ', ' order by privilege_type) as privs
+from information_schema.role_table_grants
+where table_schema = 'public' and table_name = 'posts'
+  and grantee in ('anon', 'authenticated')
+group by grantee order by grantee;
+```
+
+기대: `anon = SELECT`, `authenticated = DELETE, INSERT, SELECT, UPDATE`. `service_role`, `postgres`는 Supabase 기본값(전체)을 그대로 둔다.
+
+### 알려진 한계
+
+- default privileges는 바꾸지 않았다. 앞으로 `public`에 만드는 새 테이블은 다시 모든 권한을 받으므로, 테이블을 추가하는 마이그레이션에는 RLS와 함께 `revoke`를 넣고 점검 D를 돌린다.
+- 회수 전 상태(2026-10-28 조회)는 anon이 `INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER`, authenticated가 `TRUNCATE, REFERENCES, TRIGGER`를 추가로 갖고 있었다. RLS가 쓰기를 막고 PostgREST가 `TRUNCATE`를 노출하지 않아 실질 위험은 낮았다.
