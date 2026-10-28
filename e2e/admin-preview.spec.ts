@@ -39,7 +39,7 @@ test.describe("편집기 미리보기", () => {
     await expect(preview(page).getByText("본문")).toBeVisible();
 
     await expect(
-      page.getByRole("button", { name: "저장하기", exact: true }),
+      page.getByRole("button", { name: "발행하기", exact: true }),
     ).toBeVisible();
     const after = await page.evaluate(
       () => getComputedStyle(document.body).backgroundColor,
@@ -54,7 +54,7 @@ test.describe("편집기 미리보기", () => {
       0,
     );
     await expect(
-      page.getByRole("button", { name: "저장하기", exact: true }),
+      page.getByRole("button", { name: "발행하기", exact: true }),
     ).toBeVisible();
   });
 

@@ -46,7 +46,7 @@ export async function createPost(page: Page, fields: PostFields) {
   await page.goto("/admin/posts/new");
   await fillEditor(page, fields);
   // 발행 여부는 어느 버튼으로 저장하느냐로 정해진다. 기본값은 초안이다.
-  const button = fields.published ? "저장하기" : "임시 저장";
+  const button = fields.published ? "발행하기" : "임시 저장";
   await page.getByRole("button", { name: button, exact: true }).click();
   if (fields.published) {
     await expect(page).toHaveURL(/\/admin\/posts$/);

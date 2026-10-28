@@ -161,7 +161,7 @@ test.describe("관리자 글 관리", () => {
       excerpt: "유지되어야 하는 소개글",
       content: "유지되어야 하는 본문",
     });
-    await page.getByRole("button", { name: "저장하기", exact: true }).click();
+    await page.getByRole("button", { name: "발행하기", exact: true }).click();
 
     await expect(
       page
@@ -183,7 +183,7 @@ test.describe("관리자 글 관리", () => {
       slug: uniqueName(PREFIX, "invalid"),
       excerpt: "가".repeat(151),
     });
-    await page.getByRole("button", { name: "저장하기", exact: true }).click();
+    await page.getByRole("button", { name: "발행하기", exact: true }).click();
 
     await expect(page).toHaveURL(/\/admin\/posts\/new$/);
     await expect(page.getByLabel("제목")).toHaveAttribute(
