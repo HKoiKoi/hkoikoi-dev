@@ -53,7 +53,14 @@ function mockPostsTable(results: {
   insert?: DbResult;
   delete?: DbResult;
 }) {
-  const insert = vi.fn().mockResolvedValue(results.insert ?? { error: null });
+  const insert = vi.fn(() => ({
+    select: () => ({
+      single: () =>
+        Promise.resolve(
+          results.insert ?? { data: { id: POST_ID }, error: null },
+        ),
+    }),
+  }));
   const update = vi.fn(() => ({
     eq: () => ({
       select: () => ({
@@ -235,8 +242,9 @@ describe("savePost", () => {
     const formData = buildFormData();
     formData.delete("published");
 
+    // 임시 저장은 목록이 아니라 방금 만든 글의 수정 화면으로 이동한다.
     await expect(savePost({ ok: false }, formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/admin/posts",
+      `NEXT_REDIRECT:/admin/posts/${POST_ID}/edit`,
     );
 
     const payload = (insert.mock.calls[0] as unknown[])[0] as {
@@ -250,9 +258,11 @@ describe("savePost", () => {
     const formData = buildFormData({ id: POST_ID });
     formData.delete("published");
 
-    await expect(savePost({ ok: false }, formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/admin/posts",
-    );
+    // 수정 화면의 임시 저장은 redirect 없이 ok 상태를 반환한다.
+    await expect(savePost({ ok: false }, formData)).resolves.toEqual({
+      ok: true,
+      message: "임시 저장했습니다.",
+    });
 
     expect(update).toHaveBeenCalledTimes(1);
     const payload = (update.mock.calls[0] as unknown[])[0] as {

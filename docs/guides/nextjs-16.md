@@ -27,7 +27,7 @@
 ### 2. Server Components 우선
 
 모든 컴포넌트는 기본적으로 Server Component입니다. 상태, 이벤트 핸들러, 브라우저 API가 필요한 말단 컴포넌트에만 `'use client'`를 붙입니다.
-이 프로젝트의 예: `components/layout/site-header.tsx`(서버)가 메뉴를 그리고, 현재 경로(`usePathname`)가 필요한 `nav-link.tsx`·`nav-group-dropdown.tsx`·`mobile-nav.tsx`(클라이언트)만 분리되어 있습니다. 관리자 편집기(`app/admin/posts/edit/_components/post-editor.tsx`)도 입력 상태가 필요해 클라이언트이고, 그 `page.tsx`는 서버입니다.
+이 프로젝트의 예: `components/layout/site-header.tsx`(서버)가 메뉴를 그리고, 현재 경로(`usePathname`)가 필요한 `nav-link.tsx`·`nav-group-dropdown.tsx`·`mobile-nav.tsx`(클라이언트)만 분리되어 있습니다. 관리자 편집기(`app/admin/posts/_components/post-editor.tsx`)도 입력 상태가 필요해 클라이언트이고, 그 `page.tsx`는 서버입니다.
 
 ```tsx
 // 서버 컴포넌트: 데이터는 서버에서 읽고 상호작용만 클라이언트로 분리

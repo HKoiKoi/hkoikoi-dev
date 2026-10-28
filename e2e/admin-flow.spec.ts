@@ -48,9 +48,9 @@ test.describe("관리자 여정", () => {
     await test.step("수정해서 발행하면 공개된다", async () => {
       await page.goto("/admin/posts");
       await rowOf(page, title).getByRole("link", { name: "수정" }).click();
-      await expect(page).toHaveURL(/\/admin\/posts\/edit\?id=/);
-      await fillEditor(page, { title, published: true });
-      await page.getByRole("button", { name: "저장", exact: true }).click();
+      await expect(page).toHaveURL(/\/admin\/posts\/[0-9a-f-]+\/edit$/);
+      await fillEditor(page, { title });
+      await page.getByRole("button", { name: "수정하기", exact: true }).click();
       await expect(page).toHaveURL(/\/admin\/posts$/);
       await expect(rowOf(page, title).getByText("발행")).toBeVisible();
 

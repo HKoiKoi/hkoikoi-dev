@@ -40,19 +40,21 @@ export async function fillEditor(page: Page, fields: PostFields) {
     await page.getByLabel("태그", { exact: true }).fill(fields.tags.join(", "));
   }
   await page.getByLabel("본문").fill(fields.content ?? "e2e 본문");
-  const checkbox = page.getByRole("checkbox", { name: "발행" });
-  if (fields.published !== undefined) {
-    if ((await checkbox.isChecked()) !== fields.published) {
-      await checkbox.click();
-    }
-  }
 }
 
 export async function createPost(page: Page, fields: PostFields) {
-  await page.goto("/admin/posts/edit");
+  await page.goto("/admin/posts/new");
   await fillEditor(page, fields);
-  await page.getByRole("button", { name: "저장", exact: true }).click();
-  await expect(page).toHaveURL(/\/admin\/posts$/);
+  // 발행 여부는 어느 버튼으로 저장하느냐로 정해진다. 기본값은 초안이다.
+  const button = fields.published ? "저장하기" : "임시 저장";
+  await page.getByRole("button", { name: button, exact: true }).click();
+  if (fields.published) {
+    await expect(page).toHaveURL(/\/admin\/posts$/);
+  } else {
+    // 임시 저장은 방금 만든 글의 수정 화면에 머문다. 목록 검증을 위해 직접 이동한다.
+    await expect(page).toHaveURL(/\/admin\/posts\/[0-9a-f-]+\/edit$/);
+    await page.goto("/admin/posts");
+  }
 }
 
 export function rowOf(page: Page, title: string) {

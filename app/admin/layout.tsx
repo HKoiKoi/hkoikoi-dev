@@ -28,7 +28,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
                 글 관리
               </Link>
               <Link
-                href="/admin/posts/edit"
+                href="/admin/posts/new"
                 className={buttonVariants({ variant: "ghost", size: "sm" })}
               >
                 새 글

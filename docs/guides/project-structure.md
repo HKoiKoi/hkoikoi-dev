@@ -90,7 +90,7 @@ app/
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
 │   ├── actions.ts          # logout Server Action
 │   ├── _components/        # admin-guard.tsx
-│   └── posts/              # 글 목록 + edit/ (작성·수정), 각 _components/, actions.ts(savePost·deletePost Server Action)
+│   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx, actions.ts(savePost·deletePost Server Action)
 └── auth/
     ├── login/              # 로그인 (actions.ts: login Server Action)
     └── error/              # 인증 오류 안내

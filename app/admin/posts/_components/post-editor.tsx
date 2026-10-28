@@ -1,10 +1,11 @@
 "use client";
 
+import { ArrowLeftIcon } from "lucide-react";
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { savePost } from "@/app/admin/posts/actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -56,12 +57,14 @@ export function PostEditor({ initialPost }: PostEditorProps) {
   const [category, setCategory] = useState(initialPost?.category ?? "일반");
   const [tagInput, setTagInput] = useState(initialPost?.tags.join(", ") ?? "");
   const [excerpt, setExcerpt] = useState(initialPost?.excerpt ?? "");
-  const [published, setPublished] = useState(initialPost?.published ?? false);
+  // 어느 버튼으로 제출했는지 저장 중 문구에만 사용한다. 발행 여부는 제출 버튼의 name/value로 전송된다.
+  const [submitKind, setSubmitKind] = useState<"draft" | "publish">("draft");
   // 본문은 편집기가 보유한다. Task 009-c 미리보기가 같은 값을 사용한다.
   const [content, setContent] = useState(initialPost?.content ?? "");
   // 모바일(lg 미만) 전용 탭 선택값. 두 패널은 항상 마운트되고 CSS로만 숨겨 입력값이 유지된다.
   const [mobileTab, setMobileTab] = useState<"write" | "preview">("write");
 
+  const isEdit = Boolean(initialPost);
   const allTags = parseTags(tagInput);
   const tags = allTags.slice(0, TAGS_MAX);
   const tagsOverflow = allTags.length > TAGS_MAX;
@@ -73,7 +76,7 @@ export function PostEditor({ initialPost }: PostEditorProps) {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 pb-20">
       <Tabs
         value={mobileTab}
         onValueChange={(value) => setMobileTab(value as "write" | "preview")}
@@ -232,19 +235,6 @@ export function PostEditor({ initialPost }: PostEditorProps) {
               썸네일 업로드는 준비 중입니다
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="post-published"
-              // 체크 시에만 name=published, value=on으로 전송된다. 미체크 시 전송되지 않는다.
-              name="published"
-              value="on"
-              className="size-6 rounded-md [&_svg]:size-5!"
-              checked={published}
-              onCheckedChange={(checked) => setPublished(checked)}
-            />
-            <Label htmlFor="post-published">발행</Label>
-          </div>
         </div>
 
         {/* 본문 입력과 미리보기를 나란히 둔다. 모바일에서는 탭으로 전환한다. */}
@@ -295,16 +285,52 @@ export function PostEditor({ initialPost }: PostEditorProps) {
           </section>
         </div>
 
-        <div className="grid gap-2">
-          {state.message && (
-            <p role="alert" className="text-sm text-destructive">
-              {state.message}
-            </p>
-          )}
-          <div>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "저장 중…" : "저장"}
-            </Button>
+        {/* 하단 고정 바: 긴 본문을 스크롤해도 나가기·저장 버튼이 항상 보인다. */}
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background">
+          <div className="mx-auto flex min-h-16 w-full max-w-5xl items-center justify-between gap-4 px-4 py-3">
+            <Link
+              href="/admin/posts"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              <ArrowLeftIcon aria-hidden="true" />
+              나가기
+            </Link>
+            {state.message && (
+              <p
+                role={state.ok ? "status" : "alert"}
+                className={cn(
+                  "min-w-0 flex-1 text-right text-sm",
+                  state.ok ? "text-muted-foreground" : "text-destructive",
+                )}
+              >
+                {state.message}
+              </p>
+            )}
+            <div className="flex gap-2">
+              {/* 발행 값을 보내지 않으므로 초안으로 저장된다. */}
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={isPending}
+                onClick={() => setSubmitKind("draft")}
+              >
+                {isPending && submitKind === "draft" ? "저장 중…" : "임시 저장"}
+              </Button>
+              {/* 체크 시와 같은 published=on을 보내 발행 상태로 저장한다. */}
+              <Button
+                type="submit"
+                name="published"
+                value="on"
+                disabled={isPending}
+                onClick={() => setSubmitKind("publish")}
+              >
+                {isPending && submitKind === "publish"
+                  ? "저장 중…"
+                  : isEdit
+                    ? "수정하기"
+                    : "저장하기"}
+              </Button>
+            </div>
           </div>
         </div>
       </form>

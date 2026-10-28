@@ -57,22 +57,23 @@ hkoikoi.dev는 채용 담당자·동료 개발자(방문자)와 관리자 본인
 
 PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는 아래 안으로 진행하고, 바꾸면 이 표와 헤더 메뉴 설정(`lib/site-config.ts`)을 함께 고친다.
 
-| 페이지         | 경로                                     | 파일 (예정)                               | 인증        | 기능 ID                |
-| -------------- | ---------------------------------------- | ----------------------------------------- | ----------- | ---------------------- |
-| 메인           | `/`                                      | `app/(site)/page.tsx`                     | 불필요      | F001, F003, F005, F013 |
-| 학력           | `/education`                             | `app/(site)/education/page.tsx`           | 불필요      | F002                   |
-| 경력           | `/career`                                | `app/(site)/career/page.tsx`              | 불필요      | F002                   |
-| 자격증         | `/certifications`                        | `app/(site)/certifications/page.tsx`      | 불필요      | F002                   |
-| 사회봉사       | `/volunteer`                             | `app/(site)/volunteer/page.tsx`           | 불필요      | F002                   |
-| 어학           | `/languages`                             | `app/(site)/languages/page.tsx`           | 불필요      | F002                   |
-| 사회활동       | `/activities`                            | `app/(site)/activities/page.tsx`          | 불필요      | F002                   |
-| 프로젝트       | `/projects`                              | `app/(site)/projects/page.tsx`            | 불필요      | F003                   |
-| 논문           | `/publications`                          | `app/(site)/publications/page.tsx`        | 불필요      | F004                   |
-| 블로그 목록    | `/blog?category=&tag=`                   | `app/(site)/blog/page.tsx`                | 불필요      | F005                   |
-| 블로그 상세    | `/blog/{slug}` (한글 슬러그 허용)        | `app/(site)/blog/[slug]/page.tsx`         | 불필요      | F006, F007, F014       |
-| 로그인         | `/auth/login`                            | `app/auth/login/page.tsx` (스타터 재사용) | 불필요      | F012                   |
-| 관리자 글 목록 | `/admin/posts`                           | `app/admin/posts/page.tsx`                | 관리자 역할 | F010, F011, F012       |
-| 글 편집기      | `/admin/posts/edit` (`?id=` 있으면 수정) | `app/admin/posts/edit/page.tsx`           | 관리자 역할 | F007~F010, F012        |
+| 페이지         | 경로                              | 파일 (예정)                               | 인증        | 기능 ID                |
+| -------------- | --------------------------------- | ----------------------------------------- | ----------- | ---------------------- |
+| 메인           | `/`                               | `app/(site)/page.tsx`                     | 불필요      | F001, F003, F005, F013 |
+| 학력           | `/education`                      | `app/(site)/education/page.tsx`           | 불필요      | F002                   |
+| 경력           | `/career`                         | `app/(site)/career/page.tsx`              | 불필요      | F002                   |
+| 자격증         | `/certifications`                 | `app/(site)/certifications/page.tsx`      | 불필요      | F002                   |
+| 사회봉사       | `/volunteer`                      | `app/(site)/volunteer/page.tsx`           | 불필요      | F002                   |
+| 어학           | `/languages`                      | `app/(site)/languages/page.tsx`           | 불필요      | F002                   |
+| 사회활동       | `/activities`                     | `app/(site)/activities/page.tsx`          | 불필요      | F002                   |
+| 프로젝트       | `/projects`                       | `app/(site)/projects/page.tsx`            | 불필요      | F003                   |
+| 논문           | `/publications`                   | `app/(site)/publications/page.tsx`        | 불필요      | F004                   |
+| 블로그 목록    | `/blog?category=&tag=`            | `app/(site)/blog/page.tsx`                | 불필요      | F005                   |
+| 블로그 상세    | `/blog/{slug}` (한글 슬러그 허용) | `app/(site)/blog/[slug]/page.tsx`         | 불필요      | F006, F007, F014       |
+| 로그인         | `/auth/login`                     | `app/auth/login/page.tsx` (스타터 재사용) | 불필요      | F012                   |
+| 관리자 글 목록 | `/admin/posts`                    | `app/admin/posts/page.tsx`                | 관리자 역할 | F010, F011, F012       |
+| 새 글 작성     | `/admin/posts/new`                | `app/admin/posts/new/page.tsx`            | 관리자 역할 | F007~F010, F012        |
+| 글 수정        | `/admin/posts/[id]/edit`          | `app/admin/posts/[id]/edit/page.tsx`      | 관리자 역할 | F007~F010, F012        |
 
 - 공개 페이지는 Route Group `app/(site)/`의 `layout.tsx`가 공통 헤더·푸터를 제공한다. 관리자 영역(`app/admin/`)과 로그인(`app/auth/`)은 별도 레이아웃을 쓴다.
 - 접근 정책: `proxy.ts`(`lib/supabase/proxy.ts`)는 **`/admin` 경로만** 비로그인 시 `/auth/login`으로 리다이렉트하고, 나머지는 공개한다. 관리자 역할 검사는 proxy가 아니라 서버 코드(`requireAdmin()`)와 RLS가 담당하며, 로그인했지만 관리자가 아니면 `notFound()`로 처리한다.

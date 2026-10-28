@@ -24,7 +24,7 @@ async function AdminPostsContent() {
     <main className="grid gap-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">글 관리</h1>
-        <Link href="/admin/posts/edit" className={buttonVariants()}>
+        <Link href="/admin/posts/new" className={buttonVariants()}>
           새 글
         </Link>
       </div>

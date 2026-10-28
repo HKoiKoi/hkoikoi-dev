@@ -14,6 +14,7 @@ import type { PostInput } from "@/lib/types/post";
 const SAVE_FAILED = "글을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 const DELETE_FAILED = "글을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 const NOT_FOUND = "수정할 글을 찾을 수 없습니다.";
+const DRAFT_SAVED = "임시 저장했습니다.";
 const UNIQUE_VIOLATION = "23505";
 
 /**
@@ -47,6 +48,9 @@ export async function savePost(
   if (id !== null && !z.uuid().safeParse(id).success) {
     return { ok: false, message: NOT_FOUND };
   }
+
+  // 새 글 insert 직후 편집 화면으로 보내기 위한 id
+  let createdId: string | null = null;
 
   try {
     // 요청마다 새 클라이언트를 만든다.
@@ -87,11 +91,16 @@ export async function savePost(
       if (!error && !updated) return { ok: false, message: NOT_FOUND };
     } else {
       const payload: PostInput = parsed.data;
-      const result = await supabase.from("posts").insert({
-        ...payload,
-        published_at: resolvePublishedAt(null, payload.published),
-      });
+      const result = await supabase
+        .from("posts")
+        .insert({
+          ...payload,
+          published_at: resolvePublishedAt(null, payload.published),
+        })
+        .select("id")
+        .single();
       error = result.error;
+      createdId = result.data?.id ?? null;
     }
 
     if (error) {
@@ -113,8 +122,16 @@ export async function savePost(
     return { ok: false, message: SAVE_FAILED };
   }
 
-  // redirect는 예외를 던지므로 try/catch 밖에서 호출한다.
   revalidatePostPaths();
+
+  // 임시 저장(발행 아님)은 목록으로 보내지 않고 편집 화면에 머문다.
+  // 새 글은 이후 저장이 중복 생성이 되지 않도록 방금 만든 글의 수정 화면으로 보낸다.
+  if (!parsed.data.published) {
+    // redirect는 예외를 던지므로 try/catch 밖에서 호출한다.
+    if (createdId) redirect(`/admin/posts/${createdId}/edit`);
+    return { ok: true, message: DRAFT_SAVED };
+  }
+
   redirect("/admin/posts");
 }
 
