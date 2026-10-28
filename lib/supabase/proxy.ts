@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "./database.types";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAdminPath } from "@/lib/auth/is-admin-path";
 import { hasEnvVars } from "../utils";
 
 export async function updateSession(request: NextRequest) {
@@ -53,11 +54,7 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
-  // 보호 대상은 /admin 세그먼트뿐이다. /administrator 같은 경로는 보호하지 않는다.
-  const { pathname } = request.nextUrl;
-  const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin/");
-
-  if (!user && isAdminPath) {
+  if (!user && isAdminPath(request.nextUrl.pathname)) {
     // 비로그인 사용자는 로그인 페이지로 보낸다.
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
