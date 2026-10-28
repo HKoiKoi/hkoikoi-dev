@@ -22,7 +22,7 @@ import { MarkdownPreview } from "@/app/admin/posts/_components/markdown-preview"
 import {
   createUploadPlaceholder,
   insertAtCursor,
-  replaceOnce,
+  replaceWithCaret,
 } from "@/lib/editor/insert-at-cursor";
 import { slugify } from "@/lib/posts/slugify";
 import {
@@ -115,6 +115,13 @@ export function PostEditor({ initialPost }: PostEditorProps) {
     setContent(contentRef.current);
   }
 
+  // 값이 렌더에 반영된 다음 프레임에 캐럿을 옮긴다.
+  function moveCaret(position: number) {
+    requestAnimationFrame(() => {
+      textareaRef.current?.setSelectionRange(position, position);
+    });
+  }
+
   function addUploadError(message: string) {
     setUploadErrors((prev) => [...prev, message]);
   }
@@ -122,6 +129,8 @@ export function PostEditor({ initialPost }: PostEditorProps) {
   // 파일을 순차 업로드한다. 각 파일은 시작 시점의 선택 영역에 자리표시를 넣고 결과로 치환한다.
   async function uploadFiles(files: File[]) {
     setUploadErrors([]);
+    // 직전 파일을 치환한 뒤의 캐럿. DOM 선택 영역은 다음 렌더 전까지 옛 위치라 다음 파일 삽입에는 이 값을 쓴다.
+    let nextCaret: number | null = null;
     for (const file of files) {
       const validationError = validateImage(file);
       if (validationError) {
@@ -130,8 +139,10 @@ export function PostEditor({ initialPost }: PostEditorProps) {
       }
 
       const textarea = textareaRef.current;
-      const start = textarea?.selectionStart ?? contentRef.current.length;
-      const end = textarea?.selectionEnd ?? contentRef.current.length;
+      const start =
+        nextCaret ?? textarea?.selectionStart ?? contentRef.current.length;
+      const end =
+        nextCaret ?? textarea?.selectionEnd ?? contentRef.current.length;
       const placeholder = createUploadPlaceholder(crypto.randomUUID());
       const inserted = insertAtCursor(
         contentRef.current,
@@ -140,21 +151,32 @@ export function PostEditor({ initialPost }: PostEditorProps) {
         placeholder,
       );
       updateContent(() => inserted.value);
-      requestAnimationFrame(() => {
-        textareaRef.current?.setSelectionRange(
-          inserted.cursor,
-          inserted.cursor,
+      moveCaret(inserted.cursor);
+
+      // 치환 후에도 캐럿이 같은 글자 옆에 남도록 보정한다(URL 한가운데에 남아 이어 입력이 깨지는 것을 방지).
+      const swapPlaceholder = (replacement: string) => {
+        const el = textareaRef.current;
+        const caret =
+          el && document.activeElement === el
+            ? el.selectionStart
+            : inserted.cursor;
+        const result = replaceWithCaret(
+          contentRef.current,
+          caret,
+          placeholder,
+          replacement,
         );
-      });
+        updateContent(() => result.value);
+        moveCaret(result.cursor);
+        nextCaret = result.cursor;
+      };
 
       setUploadingCount((count) => count + 1);
       try {
         const url = await uploadImage(file);
-        updateContent((prev) =>
-          replaceOnce(prev, placeholder, `![${toAltText(file.name)}](${url})`),
-        );
+        swapPlaceholder(`![${toAltText(file.name)}](${url})`);
       } catch {
-        updateContent((prev) => replaceOnce(prev, placeholder, ""));
+        swapPlaceholder("");
         addUploadError(`${file.name}: 이미지 업로드에 실패했습니다.`);
       } finally {
         setUploadingCount((count) => count - 1);

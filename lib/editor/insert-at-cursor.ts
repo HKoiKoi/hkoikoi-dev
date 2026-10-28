@@ -33,6 +33,26 @@ export function replaceOnce(
   );
 }
 
+/**
+ * target의 첫 항목을 replacement로 치환하고, 치환 뒤에도 캐럿이 같은 글자 옆에 남도록 보정한다.
+ * target 끝 이후의 캐럿은 길이 차이만큼 밀고, target 안(끝 포함 전)에 있던 캐럿은 치환 텍스트 끝으로 옮긴다.
+ * target이 없으면 value와 caret을 그대로 반환한다.
+ */
+export function replaceWithCaret(
+  value: string,
+  caret: number,
+  target: string,
+  replacement: string,
+): { value: string; cursor: number } {
+  const index = value.indexOf(target);
+  if (index === -1) return { value, cursor: caret };
+  const end = index + target.length;
+  let cursor = caret;
+  if (caret >= end) cursor = caret + replacement.length - target.length;
+  else if (caret > index) cursor = index + replacement.length;
+  return { value: replaceOnce(value, target, replacement), cursor };
+}
+
 /** 업로드마다 고유한 자리표시. URL 자리에 id를 넣어 동시 업로드끼리 서로 치환되지 않게 한다. */
 export function createUploadPlaceholder(id: string): string {
   return `![업로드 중…](#upload-${id})`;

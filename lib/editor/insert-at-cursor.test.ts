@@ -4,6 +4,7 @@ import {
   createUploadPlaceholder,
   insertAtCursor,
   replaceOnce,
+  replaceWithCaret,
 } from "./insert-at-cursor";
 
 describe("insertAtCursor", () => {
@@ -87,5 +88,43 @@ describe("createUploadPlaceholder", () => {
     const p1 = createUploadPlaceholder("1");
     const p10 = createUploadPlaceholder("10");
     expect(replaceOnce(`${p10}${p1}`, p1, "X")).toBe(`${p10}X`);
+  });
+});
+
+describe("replaceWithCaret", () => {
+  // 'ab[XX]cd' 에서 target은 index 2..4
+  const value = "ab[XX]cd";
+
+  it("캐럿이 target 끝에 있으면 치환 텍스트 끝으로 옮긴다", () => {
+    expect(replaceWithCaret(value, 6, "[XX]", "LONGER")).toEqual({
+      value: "abLONGERcd",
+      cursor: 8,
+    });
+  });
+
+  it("캐럿이 target 뒤에 있으면 길이 차이만큼 민다", () => {
+    expect(replaceWithCaret(value, 7, "[XX]", "LONGER")).toEqual({
+      value: "abLONGERcd",
+      cursor: 9,
+    });
+    expect(replaceWithCaret(value, 8, "[XX]", "")).toEqual({
+      value: "abcd",
+      cursor: 4,
+    });
+  });
+
+  it("캐럿이 target 앞에 있으면 그대로 둔다", () => {
+    expect(replaceWithCaret(value, 1, "[XX]", "LONGER").cursor).toBe(1);
+  });
+
+  it("캐럿이 target 안에 있으면 치환 텍스트 끝으로 옮긴다", () => {
+    expect(replaceWithCaret(value, 4, "[XX]", "LONGER").cursor).toBe(8);
+  });
+
+  it("target이 없으면 value와 caret을 그대로 반환한다", () => {
+    expect(replaceWithCaret(value, 3, "zzz", "Q")).toEqual({
+      value,
+      cursor: 3,
+    });
   });
 });
