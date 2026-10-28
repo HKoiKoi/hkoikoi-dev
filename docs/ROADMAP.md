@@ -143,7 +143,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] `MobileNav`: 기존 `components/ui/dropdown-menu`(Base UI) 기반 모바일 드롭다운
   - [x] `ThemeSwitcher` 한국어화 및 헤더 배치, 라이트/다크/시스템 전환
   - [x] `SiteFooter`: Profile 데이터의 이메일(mailto)·GitHub 링크
-  - [x] "관리" 링크 슬롯(`AdminLink`)을 `<Suspense>`로 감싸 자리만 마련(실제 역할 판별은 Task 011). 스타터 `auth-button.tsx`는 Task 011에서 대체·삭제
+  - [x] "관리" 링크 슬롯(`AdminLink`, 이후 푸터에 배치)을 `<Suspense>`로 감싸 자리만 마련(실제 역할 판별은 Task 011). 스타터 `auth-button.tsx`는 Task 011에서 대체·삭제
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/` 접속 후 헤더 "프로젝트" 클릭 → `/projects` 이동, 해당 메뉴 `aria-current="page"`
     - 정상: Playwright MCP → 테마 전환 버튼으로 다크 선택 → `html`에 `dark` 클래스, 새로고침 후 유지
@@ -202,7 +202,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: `lib/format-date.test.ts` → UTC 자정 직전 시각 입력 → 서울 기준 다음 날짜로 표시
     - 엣지: Playwright MCP → Task 007/008 페이지에서 다크 모드·375px로 카드 확인 → 텍스트 넘침·대비 문제 없음
     - 오류: (해당 없음, 표시 컴포넌트)
-  - 테스트 결과: 2026-10-26 `npm run check` 통과(`lib/format-date.test.ts`의 정상·UTC 자정 직전 케이스 포함). shadcn 4종은 CLI로 추가했고 CLI가 잘못 생성한 `cn` import는 `@/lib/utils`로 수정. Playwright MCP 수동 확인(다크·375px)은 미수행
+  - 테스트 결과: 2026-10-26 `npm run check` 통과(`lib/format-date.test.ts`의 정상·UTC 자정 직전 케이스 포함). shadcn 4종은 CLI로 추가했고 CLI가 잘못 생성한 `cn` import는 `@/lib/utils`로 수정. Playwright MCP 수동 확인(다크·375px)은 미수행 → Task 007에서 수행
 
 - **Task 007: 메인·이력·프로젝트·논문 페이지 UI 완성** ✅
   - 관련 기능: F001, F002, F003, F004, F005(메인 최신 글 영역), F013
@@ -262,9 +262,9 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → 소개글 151자 입력 → 카운터가 오류 색으로 표시(제출 차단은 Task 013)
   - 테스트 결과(009-c 범위: 분할/탭): 2026-10-26 `npm run check` 통과. proxy 보호를 로컬에서만 임시 우회(원복·미커밋)하고 Playwright로 `/admin/posts/edit` 확인: 라이트·다크 1280px에서 폼(x=144)과 미리보기(x=656) 좌우 분할·탭 숨김, 본문 입력이 미리보기에 즉시 반영. 375px에서 작성 탭만 표시, 미리보기 탭 전환 시 폼 숨김·미리보기 표시, 작성 탭 복귀 후 제목·본문 입력값 유지, 가로 스크롤 없음(scrollWidth 375). 미리보기는 임시 whitespace-pre-wrap이며 Task 015·016에서 MarkdownContent로 교체
   - 테스트 결과(009-b 범위: 편집기 필드·slugify, 분할/탭·미리보기는 009-c 미수행): 2026-10-26 `npm run check` 통과(Vitest 25개, slugify 4개). proxy 보호를 로컬에서만 임시 우회(원복·미커밋)하고 Playwright로 `/admin/posts/edit` 확인: 제목 입력 시 슬러그 `nextjs-16-시작하기` 제안, 슬러그 직접 수정 후 제목 변경해도 유지, 카테고리 기본 `일반`, 소개글 카운터 `n/150` 갱신(150자까지 일반 색, 151자 text-destructive), 태그 11개+중복 입력 시 칩 10개와 초과 경고, 저장 버튼 비활성. 라이트·다크 1280px, 375px(가로 스크롤 없음) 확인
-  - 테스트 결과(009-a 범위: 로그인·관리자 레이아웃·글 목록, 편집기·slugify는 미수행): 2026-10-26 `npm run check` 통과. proxy 보호를 로컬에서만 임시 우회(원복·미커밋)하고 Playwright로 `/admin/posts` 확인: 라이트·다크 1280px에서 7행, 초안 2건/발행 5건 배지 구분, 삭제 클릭 시 Dialog 열림, Dialog 내 삭제 확정 시 닫힘, 375px에서 표 컨테이너만 가로 스크롤(scrollWidth 603 > clientWidth 341, 문서 폭 375 유지). `/auth/login`은 한국어 문구, 링크(가입·재설정) 0개. 로그인 오류 영역은 `role="alert"`로 유지(실제 오류 발생은 Supabase 연동 범위라 미확인)
+  - 테스트 결과(009-a 범위: 로그인·관리자 레이아웃·글 목록, 편집기·slugify는 미수행): 2026-10-26 `npm run check` 통과. proxy 보호를 로컬에서만 임시 우회(원복·미커밋)하고 Playwright로 `/admin/posts` 확인: 라이트·다크 1280px에서 7행, 초안 2건/발행 5건 배지 구분, 삭제 클릭 시 Dialog 열림, Dialog 내 삭제 확정 시 닫힘, 375px에서 표 컨테이너만 가로 스크롤(scrollWidth 603 > clientWidth 341, 문서 폭 375 유지). `/auth/login`은 한국어 문구, 링크(가입·재설정) 0개. 로그인 오류 영역은 `role="alert"`로 유지(실제 오류 발생은 Supabase 연동 범위라 당시 미확인 → Task 011 e2e(잘못된 비밀번호)로 확인됨)
 
-### Phase 3: 핵심 기능 구현 (DB·인증·블로그)
+### Phase 3: 핵심 기능 구현 (DB·인증·블로그) ✅
 
 - **Task 010: posts 테이블·RLS·스토리지 마이그레이션 구축** ✅ - 우선순위 (스토리지 업로드·실제 관리자 JWT 확인은 관리자 UI 연동 후 수동 확인으로 이월)
   - 관련 기능: F005, F006, F008, F009, F010, F011, F012
@@ -282,22 +282,22 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Supabase MCP `execute_sql` → `anon` 역할로 초안 select → 0행, insert → RLS 거부
     - 엣지: Supabase MCP `execute_sql` → tags 11개 / excerpt 151자 / title 0자·201자 insert → 각 check 위반
     - 엣지: 브라우저 클라이언트(수동 확인) → 비관리자 세션으로 `blog-images`에 업로드 → 정책 거부, SVG 업로드 → MIME 거부
-  - 테스트 결과: 2026-10-26 마이그레이션 2건 원격 적용(version `20261026105752` create_posts, `20261026105803` create_blog_images_bucket, 로컬 파일명과 일치). 롤백 트랜잭션으로 체크리스트의 정상·오류·엣지 SQL 케이스 11건을 실행해 모두 기대 결과를 확인했고 잔존 행 0. `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, 브라우저·서버·proxy 클라이언트에 `Database` 제네릭 적용, `lib/types/post.ts`를 `Tables<'posts'>`에서 파생(`PostSummary`/`Post`/`PostInput` 이름·필드 형태 유지, 더미 데이터 수정 없이 typecheck 통과). `npm run check` 통과(Vitest 25개), `npm run knip`은 `knip.jsonc` ignore에 `database.types.ts` 추가 후 통과. advisor 보안 경고 1건(`auth_leaked_password_protection`)은 Pro 플랜 미사용이라 예외 수용(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수 적용)이라 수락 기준 "경고 0건"은 이 1건을 예외로 둔 상태에서 충족(경고 자체는 남아 있음). 성능 advisor INFO `unused_index` 3건은 빈 테이블이라 정상. 관리자 계정은 `app_metadata.role = 'admin'` 부여 완료. 미확인(관리자 UI에 DB 연동 후 수동 확인으로 이월): 비관리자 세션의 `blog-images` 업로드 거부, SVG 업로드 MIME 거부, 5MB 제한, 실제 관리자 JWT 기반 posts CRUD
+  - 테스트 결과: 2026-10-26 마이그레이션 2건 원격 적용(version `20261026105752` create_posts, `20261026105803` create_blog_images_bucket, 로컬 파일명과 일치). 롤백 트랜잭션으로 체크리스트의 정상·오류·엣지 SQL 케이스 11건을 실행해 모두 기대 결과를 확인했고 잔존 행 0. `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, 브라우저·서버·proxy 클라이언트에 `Database` 제네릭 적용, `lib/types/post.ts`를 `Tables<'posts'>`에서 파생(`PostSummary`/`Post`/`PostInput` 이름·필드 형태 유지, 더미 데이터 수정 없이 typecheck 통과). `npm run check` 통과(Vitest 25개), `npm run knip`은 `knip.jsonc` ignore에 `database.types.ts` 추가 후 통과. advisor 보안 경고 1건(`auth_leaked_password_protection`)은 Pro 플랜 미사용이라 예외 수용(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수 적용)이라 수락 기준 "경고 0건"은 이 1건을 예외로 둔 상태에서 충족(경고 자체는 남아 있음). 성능 advisor INFO `unused_index` 3건은 빈 테이블이라 정상. 관리자 계정은 `app_metadata.role = 'admin'` 부여 완료. 실제 관리자 JWT 기반 posts CRUD는 Task 013 e2e로 검증됨. 미확인(Task 017 이월): 비관리자 세션의 `blog-images` 업로드 거부, SVG 업로드 MIME 거부, 5MB 제한
 
 - **Task 011: 관리자 인증·권한 시스템 구축** ✅
   - 관련 기능: F012, F013("관리" 링크)
   - 관련 파일: `lib/auth/require-admin.ts`, `lib/auth/is-admin.ts`, `app/auth/login/actions.ts`, `components/login-form.tsx`, `components/logout-button.tsx`, `components/auth-button.tsx`(삭제), `components/layout/admin-link.tsx`, `app/admin/**`, `lib/supabase/proxy.ts`
-  - 수락 기준: 관리자 계정은 로그인 후 `/admin/posts`로 이동하고, 비로그인 사용자의 `/admin/**` 접근은 `/auth/login`으로, 로그인한 비관리자의 접근은 not-found로 처리됨. 로그아웃 시 `/`로 이동. 관리자 로그인 상태에서만 공개 헤더에 "관리" 링크 표시. 회원가입은 UI와 Supabase 설정 모두에서 차단됨
+  - 수락 기준: 관리자 계정은 로그인 후 `/admin/posts`로 이동하고, 비로그인 사용자의 `/admin/**` 접근은 `/auth/login`으로, 로그인한 비관리자의 접근은 not-found로 처리됨. 로그아웃 시 `/`로 이동. 관리자 로그인 상태에서만 공개 푸터의 "관리" 링크 슬롯에 링크 표시. 회원가입은 UI와 Supabase 설정 모두에서 차단됨
   - [x] `isAdmin(claims)` 순수 함수(`app_metadata.role === 'admin'`) + 단위 테스트, `requireAdmin()`(서버 전용: `getClaims()` → 없으면 `redirect('/auth/login')`, 비관리자면 `notFound()`)
   - [x] 관리자 페이지와 모든 Server Action 시작부에서 `requireAdmin()` 호출(레이아웃 검사에만 의존하지 않음) — 레이아웃(`AdminGuard`)과 `posts`·`edit` 페이지는 적용 완료. `savePost`·`deletePost`의 시작부 `requireAdmin()` 적용은 Task 013에서 완료
   - [x] 로그인 폼을 Server Action + `useActionState` 패턴으로 전환(`forms-react-hook-form.md`), 실패 시 한국어 오류 유지, 성공 시 `/admin/posts` — e2e로 로그인 성공·실패 확인
   - [x] 로그아웃 버튼을 관리자 레이아웃에 배치, 완료 후 `/`로 이동. 스타터 `auth-button.tsx` 삭제 — e2e로 로그아웃 후 `/` 이동 확인
-  - [x] 공개 헤더 `AdminLink`: `<Suspense>` 안에서 claims를 읽어 관리자일 때만 "관리" 링크 렌더링 — 푸터 슬롯에 구현, e2e로 관리자 로그인 시 노출·로그아웃 후 사라짐 확인
+  - [x] 공개 푸터 `AdminLink`: `<Suspense>` 안에서 claims를 읽어 관리자일 때만 "관리" 링크 렌더링 — 푸터 슬롯에 구현, e2e로 관리자 로그인 시 노출·로그아웃 후 사라짐 확인
   - [x] 수동 설정(2026-10-26 완료): Supabase 대시보드에서 관리자 계정 생성, `app_metadata.role = 'admin'` 부여(SQL), "Allow new users to sign up" 해제(2026-10-27 대시보드에서 해제 상태 재확인), 최소 비밀번호 12자·대소문자·숫자·기호 필수 적용. 남은 항목: 부여 후 재로그인, MFA(선택)
   - [x] `e2e/admin-auth.spec.ts`(`E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` 사용, 미설정 시 `test.skip`)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/auth/login`에서 관리자 이메일·비밀번호 입력 후 로그인 → `/admin/posts` 이동
-    - 정상: Playwright MCP → 관리자 로그인 상태에서 `/` → 헤더 "관리" 링크 표시 → 클릭 시 `/admin/posts`
+    - 정상: Playwright MCP → 관리자 로그인 상태에서 `/` → 푸터 "관리" 링크 표시 → 클릭 시 `/admin/posts`
     - 정상: Playwright MCP → 관리자 레이아웃 "로그아웃" 클릭 → `/` 이동, "관리" 링크 사라짐, `/admin/posts` 재접근 시 `/auth/login`
     - 오류: Playwright MCP → 잘못된 비밀번호로 로그인 → 같은 페이지에 오류 메시지, 입력한 이메일 유지
     - (제외) 비관리자 테스트 계정으로 로그인 후 `/admin/posts`·`/admin/posts/edit` 접속 → not-found 화면: 관리자는 본인 1명만 두는 방침이라 비관리자 계정이 존재하지 않아 수행 대상에서 제외, `requireAdmin()`의 `notFound()` 코드로 보장
@@ -357,7 +357,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 통과: `lib/schemas/post.test.ts`의 외부 도메인·`javascript:` 썸네일 거부, 버킷 URL 통과, NFD 한글 슬러그의 NFC 정규화. `npm run check`(Vitest 76개)·`npm run knip` 통과.
     - 제한 사항: 체크리스트의 'Playwright MCP' 항목은 MCP 브라우저가 아니라 위 Playwright e2e 스펙으로 같은 시나리오를 확인했다(관리자 자격 증명이 `.env`에만 있고 에이전트가 읽지 못해 MCP 브라우저로는 로그인하지 않음). `published_at` 불변은 e2e에서 상세 페이지의 발행일 표시(일 단위)가 수정 전후 같은지만 확인했고, 초 단위 값은 `lib/posts/published-at.test.ts` 단위 테스트가 보장한다. 비관리자(로그인했지만 admin이 아닌) 계정의 Server Action 호출은 미수행(`requireAdmin()`이 `notFound()`로 처리하는 경로는 코드 리뷰와 단위 테스트 범위).
 
-- **Task 014: 핵심 기능 통합 테스트**
+- **Task 014: 핵심 기능 통합 테스트** ✅
   - 관련 기능: F001~F006, F008, F010~F013
   - 관련 파일: `e2e/visitor-flow.spec.ts`, `e2e/admin-flow.spec.ts`, `e2e/access-control.spec.ts`, `e2e/fixtures/**`
   - 수락 기준: PRD 사용자 여정 1~7(방문자·관리자)이 E2E로 통과하고, 테스트가 만든 글은 종료 시 정리됨. 실패 시나리오(권한·검증·없는 글)가 모두 포함됨
@@ -519,7 +519,7 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
 | ------------------------------------------- | ----------------------------------------------------------- | --------- |
 | 대표 프로젝트 3개 선정 기준                 | `Project.featured` 우선, 부족하면 배열 앞에서 채움          | 005, 007  |
 | 블로그 기본 카테고리명 "일반" 유지 여부     | "일반" 유지(DB default·스키마 기본값 한 곳에서 상수로 관리) | 010, 013  |
-| 관리자 보조 진입 경로(푸터 등) 필요 여부    | MVP는 헤더 "관리" 링크와 `/auth/login` 직접 진입만 제공     | 004, 011  |
+| 관리자 보조 진입 경로(푸터 등) 필요 여부    | MVP는 푸터 "관리" 링크와 `/auth/login` 직접 진입만 제공     | 004, 011  |
 | 비밀번호 재설정 흐름 유지 여부(로드맵 추가) | 제거, 재설정은 Supabase 대시보드에서 수행                   | 002       |
 | 편집기 미리보기 격리 방식(로드맵 추가)      | Shadow DOM 우선 검토, 제약 시 `iframe srcdoc`               | 016       |
 
