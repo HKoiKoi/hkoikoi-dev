@@ -33,7 +33,7 @@ hkoikoi-dev/
 │   ├── blog/               # 블로그 카드·배지
 │   ├── content/            # 이력·프로젝트·논문 등 콘텐츠 표시용
 │   ├── layout/             # 헤더·푸터·내비게이션
-│   └── *.tsx               # 로그인 폼, AuthButton, LogoutButton, ThemeSwitcher
+│   └── *.tsx               # 로그인 폼, LogoutButton, ThemeSwitcher
 ├── data/                   # 이력·프로젝트·논문 등 정적 콘텐츠 (TypeScript 데이터)
 ├── lib/
 │   ├── auth/               # is-admin.ts(역할 판별), require-admin.ts(서버 가드)
@@ -125,7 +125,7 @@ components/
 ├── blog/       # category-badge, post-card, tag-badge
 ├── content/    # empty-state, page-header, project-card, publication-item, resume-*, tech-badge
 ├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link
-└── *.tsx       # auth-button, login-form, logout-button, theme-switcher
+└── *.tsx       # login-form, logout-button, theme-switcher
 ```
 
 분류 규칙:
@@ -302,7 +302,6 @@ Supabase starter에서 남은 것 중 실제 서비스에 맞게 바꾸거나 �
 
 - `lib/utils.ts`의 `hasEnvVars`
 - `components/login-form.tsx`의 `useState` 기반 구현 (새 폼은 `forms-react-hook-form.md`의 패턴을 따름)
-- `components/auth-button.tsx`, `components/logout-button.tsx`: 아직 어디서도 쓰이지 않는 상태로, 관리자 UI에서 쓰거나 삭제합니다.
 
 ## 체크리스트
 
