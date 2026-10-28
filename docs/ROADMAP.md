@@ -283,7 +283,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Supabase MCP `execute_sql` → `anon` 역할로 초안 select → 0행, insert → RLS 거부
     - 엣지: Supabase MCP `execute_sql` → tags 11개 / excerpt 151자 / title 0자·201자 insert → 각 check 위반
     - 엣지: 브라우저 클라이언트(수동 확인) → 비관리자 세션으로 `blog-images`에 업로드 → 정책 거부, SVG 업로드 → MIME 거부
-  - 테스트 결과: 2026-10-26 마이그레이션 2건 원격 적용(version `20261026105752` create_posts, `20261026105803` create_blog_images_bucket, 로컬 파일명과 일치). 롤백 트랜잭션으로 체크리스트의 정상·오류·엣지 SQL 케이스 11건을 실행해 모두 기대 결과를 확인했고 잔존 행 0. `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, 브라우저·서버·proxy 클라이언트에 `Database` 제네릭 적용, `lib/types/post.ts`를 `Tables<'posts'>`에서 파생(`PostSummary`/`Post`/`PostInput` 이름·필드 형태 유지, 더미 데이터 수정 없이 typecheck 통과). `npm run check` 통과(Vitest 25개), `npm run knip`은 `knip.jsonc` ignore에 `database.types.ts` 추가 후 통과. advisor 보안 경고 1건(`auth_leaked_password_protection`)은 Pro 플랜 미사용이라 예외 수용(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수 적용)이라 수락 기준 "경고 0건"은 이 1건을 예외로 둔 상태에서 충족(경고 자체는 남아 있음). 성능 advisor INFO `unused_index` 3건은 빈 테이블이라 정상. 관리자 계정은 `app_metadata.role = 'admin'` 부여 완료. 실제 관리자 JWT 기반 posts CRUD는 Task 013 e2e로 검증됨. 미확인(Task 017 이월): 비관리자 세션의 `blog-images` 업로드 거부, SVG 업로드 MIME 거부, 5MB 제한
+  - 테스트 결과: 2026-10-26 마이그레이션 2건 원격 적용(version `20261026105752` create_posts, `20261026105803` create_blog_images_bucket, 로컬 파일명과 일치). 롤백 트랜잭션으로 체크리스트의 정상·오류·엣지 SQL 케이스 11건을 실행해 모두 기대 결과를 확인했고 잔존 행 0. `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, 브라우저·서버·proxy 클라이언트에 `Database` 제네릭 적용, `lib/types/post.ts`를 `Tables<'posts'>`에서 파생(`PostSummary`/`Post`/`PostInput` 이름·필드 형태 유지, 더미 데이터 수정 없이 typecheck 통과). `npm run check` 통과(Vitest 25개), `npm run knip`은 `knip.jsonc` ignore에 `database.types.ts` 추가 후 통과. advisor 보안 경고 1건(`auth_leaked_password_protection`)은 Pro 플랜 미사용이라 예외 수용(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수 적용)이라 수락 기준 "경고 0건"은 이 1건을 예외로 둔 상태에서 충족(경고 자체는 남아 있음). 성능 advisor INFO `unused_index` 3건은 빈 테이블이라 정상. 관리자 계정은 `app_metadata.role = 'admin'` 부여 완료. 실제 관리자 JWT 기반 posts CRUD는 Task 013 e2e로 검증됨. 미확인(Task 017 이월, 2026-10-28 Task 017에서 확인 완료): 비관리자 세션의 `blog-images` 업로드 거부, SVG 업로드 MIME 거부, 5MB 제한
 
 - **Task 011: 관리자 인증·권한 시스템 구축** ✅
   - 관련 기능: F012, F013("관리" 링크)
@@ -424,14 +424,14 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 
 - **Task 017: 이미지 업로드 및 썸네일 지정 구현**
   - 관련 기능: F009, F008
-  - 관련 파일: `lib/storage/upload-image.ts`, `lib/storage/validate-image.ts`, `lib/editor/insert-at-cursor.ts`, `app/admin/posts/edit/_components/{image-upload-button,thumbnail-field}.tsx`, `next.config.ts`
+  - 관련 파일: `lib/storage/upload-image.ts`, `lib/storage/validate-image.ts`, `lib/editor/insert-at-cursor.ts`, `app/admin/posts/_components/{image-upload-button,thumbnail-field,post-editor}.tsx`, `next.config.ts`
   - 수락 기준: 파일 선택·붙여넣기·드래그앤드롭으로 이미지를 올리면 `blog-images/YYYY/MM/<uuid>.<ext>`에 저장되고 커서 위치에 `![파일명](공개 URL)`이 삽입됨. 썸네일 업로드·제거가 가능하고 저장 시 서버 검증 통과. jpeg/png/webp/gif 외 형식과 5MB 초과는 업로드 전에 거부
-  - [ ] `validate-image.ts`(MIME·확장자·크기) + 단위 테스트, 업로드 경로 생성(`crypto.randomUUID`)
-  - [ ] 업로드는 브라우저 Supabase 클라이언트로 스토리지에 직접 전송(Server Action 본문 크기 제한 회피, 스토리지 RLS가 관리자만 허용)
-  - [ ] `insert-at-cursor.ts`: textarea 선택 영역 기준 삽입 순수 함수 + 단위 테스트, 업로드 중 자리표시(`![업로드 중…]()`) 후 URL로 치환
-  - [ ] `paste`/`drop` 이벤트 처리(여러 파일 순차 업로드), 실패 시 자리표시 제거 및 오류 표시
-  - [ ] 썸네일 필드: 업로드·미리보기·제거, 값은 공개 URL(Task 013 스키마로 검증). 공개 페이지 썸네일을 `next/image`로 쓰면 `next.config.ts`의 `images.remotePatterns`에 Supabase 호스트 추가
-  - [ ] 고아 파일 정리는 MVP 범위 밖임을 주석으로 명시
+  - [x] `validate-image.ts`(MIME·확장자·크기) + 단위 테스트, 업로드 경로 생성(`crypto.randomUUID`)
+  - [x] 업로드는 브라우저 Supabase 클라이언트로 스토리지에 직접 전송(Server Action 본문 크기 제한 회피, 스토리지 RLS가 관리자만 허용)
+  - [x] `insert-at-cursor.ts`: textarea 선택 영역 기준 삽입 순수 함수 + 단위 테스트, 업로드 중 자리표시(구현은 동시 업로드 구분을 위해 `![업로드 중…](#upload-<id>)`) 후 URL로 치환, 치환 뒤 캐럿 보정(`replaceWithCaret`)
+  - [x] `paste`/`drop` 이벤트 처리(여러 파일 순차 업로드), 실패 시 자리표시 제거 및 오류 표시
+  - [x] 썸네일 필드: 업로드·미리보기·제거, 값은 공개 URL(Task 013 스키마로 검증). 공개 카드는 기존 `<img>`를 유지해 `next/image`·`remotePatterns`는 도입하지 않음(임의 업로드 URL이라 `<img>` 유지, `next.config.ts` 변경 없음)
+  - [x] 고아 파일 정리는 MVP 범위 밖임을 주석으로 명시
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 편집기 이미지 버튼으로 PNG 선택 → 커서 위치에 `![이름](https://…/blog-images/2026/10/<uuid>.png)` 삽입, 미리보기에 이미지 표시
     - 정상: Playwright MCP → 썸네일 업로드 후 발행 저장 → `/blog` 카드에 썸네일 표시
@@ -439,7 +439,11 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → 6MB 이미지 선택 → 크기 초과 오류, 본문 변화 없음
     - 엣지: Playwright MCP(수동 확인 가능) → 클립보드 이미지 붙여넣기·파일 드래그앤드롭 → 각각 삽입
     - 엣지: `insert-at-cursor.test.ts` → 선택 영역이 있을 때 → 선택 텍스트를 대체, 커서가 삽입 끝으로 이동
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-28 `npm run check`(typecheck·lint·prettier 통과, Vitest 21 파일 / 174개)·`npm run build`(21 페이지 생성, `/admin/posts/new`·`[id]/edit` Partial Prerender ◐ 유지)·`npm run knip`(종료 코드 0, `knip.jsonc`의 `lib/supabase/client.ts` 임시 예외 제거 후) 통과. 관리자 자격 증명(`.env`의 `E2E_ADMIN_*`)이 있어 임시 사용자는 만들지 않았다. `e2e/admin-image-upload.spec.ts` 12개 시나리오: PNG 선택→커서 위치(`앞|뒤` 사이)에 `![sample](…/blog-images/YYYY/MM/<uuid>.png)` 삽입·미리보기 이미지, 썸네일 업로드→발행 저장→`/blog` 카드 썸네일, 썸네일 제거, SVG·PDF 선택→형식 오류·업로드 요청 0건·본문 불변, 6MB→크기 오류·업로드 요청 0건·본문 불변, 여러 파일 순차 삽입, 업로드 요청 실패(`route.abort`)→자리표시 제거·오류 표시·본문 불변, 붙여넣기(이미지는 가로채고 텍스트는 가로채지 않음)·드롭 삽입, 업로드 요청을 붙잡아 둔 동안 임시 저장·발행 버튼 비활성화와 종료 후 복구, 375px 폭에서 가로 넘침 없음·이미지 버튼/썸네일 UI 표시·작성↔미리보기 탭 전환 후 유지. 전체 e2e `npm run test:e2e` 66/66 통과(skip 0).
+    - 구현 중 발견·수정한 결함: 여러 파일을 올리면 두 번째 이미지가 첫 번째 URL 중간에 삽입됨(자리표시를 URL로 치환한 뒤 textarea 캐럿이 옛 위치에 남음. 단일 파일에서도 캐럿이 URL 중간에 남아 이어 입력 시 URL이 깨짐). `lib/editor/insert-at-cursor.ts`에 `replaceWithCaret`을 추가하고(단위 테스트 5개) 에디터가 치환 후 캐럿을 보정하며 다음 파일에는 보정된 캐럿을 넘기도록 수정. 수정 직후 전체 실행에서 1회 이 시나리오가 실패했으나 원인은 확정하지 못했고(이후 전체 3회·단독 3회 통과), 같은 결함이 남은 것인지 일시적 문제인지는 구분하지 못했다.
+    - 이월 항목(실제 Supabase 원격, `.mcp.json` 고정 ref `gfrewivdclcitgysgsbi` 확인): 관리자 세션에서 클라이언트 검증을 우회해 Storage API 직접 호출 시 `image/svg+xml`·`application/pdf`는 415 `invalid_mime_type`, 6MB PNG는 413 `EntityTooLarge`로 서버가 거부. 로그인하지 않고 publishable key만으로 업로드하면 403 RLS 위반. 비관리자 INSERT 거부는 롤백되는 DO 블록으로 확인(anon과 `app_metadata.role='user'`(`user_metadata.role='admin'` 위조 포함) 모두 RLS 위반, `app_metadata.role='admin'` 대조군은 허용). 실제 비관리자 계정으로 로그인한 세션은 만들지 않았다(관리자 1명만 두는 방침).
+    - 잔존 데이터: `posts` e2e 글 0건, `auth.users` e2e 사용자 0건(총 1건), 프로브 객체 0건. 단 `blog-images`에는 테스트가 올린 1x1 PNG(70바이트)가 71건 남아 있다. 버킷에 select 정책이 없어 관리자 세션의 Storage API 삭제가 403이고, SQL 삭제는 `storage.protect_delete()` 트리거가 막는다. 사용자 결정으로 고아 파일을 수용했고(스키마 변경 없음), e2e를 실행할 때마다 객체가 늘어난다. 수락 기준의 "스토리지 잔존 0건"은 충족하지 못했다.
+    - 제한 사항·미확인: 자동 테스트의 붙여넣기·드롭은 `ClipboardEvent`/`DragEvent`를 합성한 것이다. Playwright MCP 수동 시나리오는 Playwright Test e2e로 대체했고 MCP는 사용하지 않음. Chromium만 확인했으며(375px 폭은 Chromium 뷰포트 크기 조정) Safari·Firefox·실제 휴대폰은 확인하지 않음(사용자가 Chrome만 쓰므로 범위에서 제외). 2026-10-28 사용자가 로컬 Chrome에서 실제 OS 클립보드 붙여넣기와 실제 파일 드래그앤드롭으로 삽입·미리보기 표시를 직접 확인함. Supabase 스키마 변경이 없어 `get_advisors`는 다시 실행하지 않음.
 
 ### Phase 5: SEO·최적화·마무리
 
