@@ -91,10 +91,10 @@ app/
 ├── admin/                  # 관리자 영역 (로그인 필요)
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
 │   ├── actions.ts          # logout Server Action
-│   ├── _components/        # admin-guard.tsx
+│   ├── _components/        # admin-guard.tsx, logout-button.tsx
 │   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx, 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·deletePost Server Action)
 └── auth/
-    ├── login/              # 로그인 (actions.ts: login Server Action)
+    ├── login/              # 로그인 (actions.ts: login Server Action, _components/login-form.tsx)
     └── error/              # 인증 오류 안내
 ```
 
@@ -129,7 +129,7 @@ components/
 ├── content/    # empty-state, page-header, project-card, publication-item, resume-*, tech-badge
 ├── markdown/   # markdown-content (+ 테스트): 동기 컴포넌트라 서버·클라이언트 양쪽에서 쓴다
 ├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link
-└── *.tsx       # login-form, logout-button, theme-switcher
+└── *.tsx       # theme-switcher (app을 import하는 컴포넌트는 두지 않는다: eslint로 강제)
 ```
 
 분류 규칙:
@@ -138,7 +138,7 @@ components/
 2. **`components/<domain>/`**: 여러 페이지가 쓰는 도메인 컴포넌트(`blog`, `content`, `layout`, `markdown`). 새 도메인이 생기면 폴더를 추가합니다.
 3. **`components/` 루트**: 도메인이 없는 인증·테마 관련 컴포넌트만 둡니다. 늘어나면 `components/auth/`로 묶습니다.
 4. **라우트 전용 컴포넌트**: 한 페이지에서만 쓰면 해당 라우트의 `_components/`.
-5. import 방향은 `components/ui` ← `components/*` ← `app/` 단방향입니다.
+5. import 방향은 `components/ui` ← `components/*` ← `app/` 단방향입니다. `components/**`에서 `@/app`을 import하면 eslint(`no-restricted-imports`)가 실패합니다.
 
 ## lib/ — 유틸리티, 도메인 로직, Supabase 클라이언트
 
@@ -309,7 +309,7 @@ ESLint가 `consistent-type-imports`를 강제하므로 타입은 `import { type 
 Supabase starter에서 남은 것 중 실제 서비스에 맞게 바꾸거나 지울 대상입니다. **새 코드의 기준으로 삼지 않습니다.**
 
 - `lib/utils.ts`의 `hasEnvVars`
-- `components/login-form.tsx`의 `useState` 기반 구현 (새 폼은 `forms-react-hook-form.md`의 패턴을 따름)
+- `app/auth/login/_components/login-form.tsx`의 `useState` 기반 구현 (새 폼은 `forms-react-hook-form.md`의 패턴을 따름)
 
 ## 체크리스트
 

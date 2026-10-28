@@ -8,7 +8,7 @@
 - 설치된 폼 관련 UI: `input`, `label`, `checkbox`, `textarea`, `button`, `card`, `dialog`, `tabs`. **`field`는 아직 없습니다.**
 - `zod`(v4)는 **설치됨**(`lib/schemas/post.ts`), `react-hook-form`, `@hookform/resolvers`는 **미설치**입니다.
 - 현재 폼은 두 개입니다.
-  - `components/login-form.tsx`: Server Action `login`(`app/auth/login/actions.ts`)을 `useActionState`로 연결한 로그인 폼입니다. 오류 시 이메일 입력값을 state로 돌려받아 `defaultValue`에 쓰고, 오류는 `role="alert"` + `text-destructive`로 표시하며, 서버 원문 메시지 대신 고정 문구만 보여 줍니다. 성공하면 Action이 `redirect("/admin/posts")` 합니다. 배치는 아직 `Label` + `div.grid`이고 `field` 컴포넌트가 없어 `FieldGroup`/`Field`로 옮기지 못했습니다. 새 폼은 아래 `Field` 규칙을 따릅니다.
+  - `app/auth/login/_components/login-form.tsx`: Server Action `login`(`app/auth/login/actions.ts`)을 `useActionState`로 연결한 로그인 폼입니다. 오류 시 이메일 입력값을 state로 돌려받아 `defaultValue`에 쓰고, 오류는 `role="alert"` + `text-destructive`로 표시하며, 서버 원문 메시지 대신 고정 문구만 보여 줍니다. 성공하면 Action이 `redirect("/admin/posts")` 합니다. 배치는 아직 `Label` + `div.grid`이고 `field` 컴포넌트가 없어 `FieldGroup`/`Field`로 옮기지 못했습니다. 새 폼은 아래 `Field` 규칙을 따릅니다.
   - `app/admin/posts/_components/post-editor.tsx`: 관리자 편집기입니다. `useActionState(savePost)`로 `app/admin/posts/actions.ts`의 Server Action에 연결되어 있고, 입력은 `useState`로 관리하며 각 입력에 `name`을 둡니다. 서버 검증은 `lib/schemas/post.ts`의 `postSchema`, 필드별 오류는 `state.fieldErrors`로 받아 `role="alert"`로 표시합니다. 슬러그 자동 제안은 `lib/posts/slugify.ts`, 소개글·태그 제한값은 `POST_LIMITS`를 씁니다. 글 삭제는 `app/admin/posts/_components/delete-post-dialog.tsx`가 `deletePost`를 호출합니다.
 - 가입·비밀번호 재설정 폼과 이메일 확인 Route Handler(`app/auth/confirm/route.ts`)는 삭제되었습니다.
 
