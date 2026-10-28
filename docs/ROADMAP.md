@@ -548,6 +548,9 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
 - 로그인 시도 횟수 제한은 Supabase Auth 기본 레이트 리밋(`/auth/v1/token`, IP당 5분 150회·burst 30, 공식 문서 기준)에 의존하고 앱 코드의 제한·CAPTCHA는 없다(관리자 1인, 최소 비밀번호 12자·가입 차단으로 완화, 2026-10-28 사용자 결정으로 수용). 이 프로젝트의 실제 설정값은 2026-10-28 사용자가 대시보드 Authentication > Rate Limits에서 확인했다(가입·로그인 30, 토큰 150, 기본값에서 변경 없음). 서버에서 호출할 때 Supabase가 보는 IP도 미확인이다. Turnstile CAPTCHA는 `login` 액션에 `captchaToken` 전달이 필요하고 Password Verification Attempt hook은 Teams 이상 플랜 전용이라 도입하지 않았다.
 - 관리자 레이아웃 헤더는 `AdminGuard` 바깥(정적 셸)에 둔다. 로그인한 비관리자에게 `notFound()` 전환 전 잠깐 보일 수 있으나 노출되는 것은 공개 상수와 링크뿐이고, 가드 안으로 옮기면 모든 `/admin` 진입에서 빈 화면이 생겨 현상 유지로 결정(2026-10-28 사용자 결정).
 - Supabase advisor 보안 경고 `auth_leaked_password_protection`(유출 비밀번호 보호)은 Pro 플랜 전용이라 예외로 수용. 완화책: 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수(Task 010, 011).
+- `hasEnvVars`(2026-10-28 결정): `lib/utils.ts`에서 `lib/supabase/proxy.ts`로 옮겨 그 파일의 지역 상수로 둔다(사용처가 proxy 하나뿐). `lib/env.ts` 통합은 하지 않는다. 브라우저 번들에서 쓰는 `process.env.NEXT_PUBLIC_*`는 리터럴로 읽어야 인라인되는데(`node_modules/next/dist/docs/01-app/02-guides/environment-variables.md`), 검증 함수가 `process.env`를 인자·객체로 받으면 클라이언트에서 `undefined`가 되고 사용처 3곳 대비 이득이 작다. 가드가 막는 것은 env 미설정 시 proxy 단계의 전 요청 500이며, 공개 글 쿼리는 자체 try/catch로 빈 목록을 반환한다.
+- `savePost` 단일 쿼리화(2026-10-28 결정): 하지 않는다. 관리자 1인이라 동시 저장 경합의 최악 결과는 최초 발행일 수 ms~수 초 오차이고 check 제약은 깨지지 않으며 삭제 경합은 0행 검사가 `NOT_FOUND`로 처리한다. 트리거·RPC로 옮기면 발행일 규칙이 TS(`resolvePublishedAt`과 단위 테스트)와 SQL 두 곳으로 갈라지고, CI는 DB 쓰기 e2e를 돌리지 않으며, 절약되는 것은 select 1회뿐이다. 실제 문제가 관측되면 재검토한다.
+- 2차 후속 브랜치 1(`refactor/env-and-query-cleanup`) 검증(2026-10-28): `lib/queries/columns.ts`로 `SUMMARY_COLUMNS`·`POST_COLUMNS` 분리(`admin-posts.ts`가 `posts.ts`를 더는 import하지 않음). `npm run check`(Vitest 24 파일 / 198개)·`npm run knip`·`npm run build`(placeholder env) 통과, `npm run test:e2e` 66개 모두 통과(실패 0). 마이그레이션·DB 변경 없음.
 
 ## MVP 이후 (범위 밖)
 
