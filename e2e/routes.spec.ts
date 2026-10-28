@@ -66,7 +66,7 @@ test.describe("관리자 경로 보호", () => {
     );
   });
 
-  for (const path of ["/admin", "/admin/posts", "/admin/posts/edit"]) {
+  for (const path of ["/admin", "/admin/posts", "/admin/posts/new"]) {
     test(`비로그인 ${path} 는 /auth/login 으로 이동한다`, async ({ page }) => {
       await page.goto(path);
 

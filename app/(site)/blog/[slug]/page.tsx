@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { CategoryBadge } from "@/components/blog/category-badge";
 import { TagBadge } from "@/components/blog/tag-badge";
+import { MarkdownContent } from "@/components/markdown/markdown-content";
 import { formatDate } from "@/lib/format-date";
 import { getPostBySlug } from "@/lib/queries/posts";
 
@@ -56,8 +57,7 @@ async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
           </ul>
         )}
       </header>
-      {/* TODO: Task 015에서 MarkdownContent로 교체한다 (임시 본문) */}
-      <div className="break-words whitespace-pre-wrap">{post.content}</div>
+      <MarkdownContent content={post.content} />
     </article>
   );
 }

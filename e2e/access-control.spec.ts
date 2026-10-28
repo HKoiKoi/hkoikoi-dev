@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const LOGIN_ERROR = "이메일 또는 비밀번호가 올바르지 않습니다.";
 
 test.describe("비로그인의 관리자 영역 접근 차단", () => {
-  for (const path of ["/admin/posts", "/admin/posts/edit"]) {
+  for (const path of ["/admin/posts", "/admin/posts/new"]) {
     test(`${path} 에 접근하면 /auth/login 으로 이동한다`, async ({ page }) => {
       await page.goto(path);
 

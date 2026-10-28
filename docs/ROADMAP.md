@@ -57,22 +57,23 @@ hkoikoi.dev는 채용 담당자·동료 개발자(방문자)와 관리자 본인
 
 PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는 아래 안으로 진행하고, 바꾸면 이 표와 헤더 메뉴 설정(`lib/site-config.ts`)을 함께 고친다.
 
-| 페이지         | 경로                                     | 파일 (예정)                               | 인증        | 기능 ID                |
-| -------------- | ---------------------------------------- | ----------------------------------------- | ----------- | ---------------------- |
-| 메인           | `/`                                      | `app/(site)/page.tsx`                     | 불필요      | F001, F003, F005, F013 |
-| 학력           | `/education`                             | `app/(site)/education/page.tsx`           | 불필요      | F002                   |
-| 경력           | `/career`                                | `app/(site)/career/page.tsx`              | 불필요      | F002                   |
-| 자격증         | `/certifications`                        | `app/(site)/certifications/page.tsx`      | 불필요      | F002                   |
-| 사회봉사       | `/volunteer`                             | `app/(site)/volunteer/page.tsx`           | 불필요      | F002                   |
-| 어학           | `/languages`                             | `app/(site)/languages/page.tsx`           | 불필요      | F002                   |
-| 사회활동       | `/activities`                            | `app/(site)/activities/page.tsx`          | 불필요      | F002                   |
-| 프로젝트       | `/projects`                              | `app/(site)/projects/page.tsx`            | 불필요      | F003                   |
-| 논문           | `/publications`                          | `app/(site)/publications/page.tsx`        | 불필요      | F004                   |
-| 블로그 목록    | `/blog?category=&tag=`                   | `app/(site)/blog/page.tsx`                | 불필요      | F005                   |
-| 블로그 상세    | `/blog/{slug}` (한글 슬러그 허용)        | `app/(site)/blog/[slug]/page.tsx`         | 불필요      | F006, F007, F014       |
-| 로그인         | `/auth/login`                            | `app/auth/login/page.tsx` (스타터 재사용) | 불필요      | F012                   |
-| 관리자 글 목록 | `/admin/posts`                           | `app/admin/posts/page.tsx`                | 관리자 역할 | F010, F011, F012       |
-| 글 편집기      | `/admin/posts/edit` (`?id=` 있으면 수정) | `app/admin/posts/edit/page.tsx`           | 관리자 역할 | F007~F010, F012        |
+| 페이지         | 경로                              | 파일 (예정)                               | 인증        | 기능 ID                |
+| -------------- | --------------------------------- | ----------------------------------------- | ----------- | ---------------------- |
+| 메인           | `/`                               | `app/(site)/page.tsx`                     | 불필요      | F001, F003, F005, F013 |
+| 학력           | `/education`                      | `app/(site)/education/page.tsx`           | 불필요      | F002                   |
+| 경력           | `/career`                         | `app/(site)/career/page.tsx`              | 불필요      | F002                   |
+| 자격증         | `/certifications`                 | `app/(site)/certifications/page.tsx`      | 불필요      | F002                   |
+| 사회봉사       | `/volunteer`                      | `app/(site)/volunteer/page.tsx`           | 불필요      | F002                   |
+| 어학           | `/languages`                      | `app/(site)/languages/page.tsx`           | 불필요      | F002                   |
+| 사회활동       | `/activities`                     | `app/(site)/activities/page.tsx`          | 불필요      | F002                   |
+| 프로젝트       | `/projects`                       | `app/(site)/projects/page.tsx`            | 불필요      | F003                   |
+| 논문           | `/publications`                   | `app/(site)/publications/page.tsx`        | 불필요      | F004                   |
+| 블로그 목록    | `/blog?category=&tag=`            | `app/(site)/blog/page.tsx`                | 불필요      | F005                   |
+| 블로그 상세    | `/blog/{slug}` (한글 슬러그 허용) | `app/(site)/blog/[slug]/page.tsx`         | 불필요      | F006, F007, F014       |
+| 로그인         | `/auth/login`                     | `app/auth/login/page.tsx` (스타터 재사용) | 불필요      | F012                   |
+| 관리자 글 목록 | `/admin/posts`                    | `app/admin/posts/page.tsx`                | 관리자 역할 | F010, F011, F012       |
+| 새 글 작성     | `/admin/posts/new`                | `app/admin/posts/new/page.tsx`            | 관리자 역할 | F007~F010, F012        |
+| 글 수정        | `/admin/posts/[id]/edit`          | `app/admin/posts/[id]/edit/page.tsx`      | 관리자 역할 | F007~F010, F012        |
 
 - 공개 페이지는 Route Group `app/(site)/`의 `layout.tsx`가 공통 헤더·푸터를 제공한다. 관리자 영역(`app/admin/`)과 로그인(`app/auth/`)은 별도 레이아웃을 쓴다.
 - 접근 정책: `proxy.ts`(`lib/supabase/proxy.ts`)는 **`/admin` 경로만** 비로그인 시 `/auth/login`으로 리다이렉트하고, 나머지는 공개한다. 관리자 역할 검사는 proxy가 아니라 서버 코드(`requireAdmin()`)와 RLS가 담당하며, 로그인했지만 관리자가 아니면 `notFound()`로 처리한다.
@@ -332,7 +333,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 
 - **Task 013: 글 저장·발행·삭제 Server Action 구현** ✅
   - 관련 기능: F008, F010, F011, F012
-  - 관련 파일: `lib/schemas/post.ts`, `app/admin/posts/actions.ts`, `app/admin/posts/page.tsx`, `app/admin/posts/edit/page.tsx`, `app/admin/posts/edit/_components/post-editor.tsx`, `lib/queries/admin-posts.ts`
+  - 관련 파일: `lib/schemas/post.ts`, `app/admin/posts/actions.ts`, `app/admin/posts/page.tsx`, `app/admin/posts/new/page.tsx`, `app/admin/posts/[id]/edit/page.tsx`, `app/admin/posts/_components/post-editor.tsx`, `lib/queries/admin-posts.ts`
   - 수락 기준: 관리자가 새 글·수정을 초안/발행으로 저장하면 `/admin/posts`로 이동하고 공개 영역 노출 여부가 상태와 일치. 검증 실패·슬러그 중복은 해당 필드 옆에 오류로 표시되고 입력값 유지. 삭제는 확인 후 목록과 공개 목록에 즉시 반영
   - [x] `zod` 설치 및 `lib/schemas/post.ts`: title 1~200, slug(NFC 정규화·`slugify` 규칙 일치·비어 있지 않음), category(기본 "일반"), tags(trim·중복 제거·최대 10), excerpt ≤150, content 최대 길이(Task 005 값), thumbnail_url은 `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/blog-images/` 접두만 허용 + 단위 테스트
   - [x] `savePost`(create/update 공용) Server Action: `requireAdmin()` → 스키마 검증 → upsert → unique 위반(23505)을 slug 필드 오류로 변환 → 성공 시 `redirect('/admin/posts')`
@@ -356,6 +357,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 통과: 비로그인 상태 Server Action 재전송(curl, 쿠키 없음). 서버 참조 매니페스트에서 `savePost`·`deletePost` action ID를 찾아 `/admin/posts`(deletePost)·`/admin/posts/edit`(savePost 신규·수정)로 POST하면 모두 307 `/auth/login`. 관리자 경로가 아닌 `/blog`·`/auth/login`으로 보내면 409 'Server Action unavailable'. 요청 후 확인용 글(`e2e-curl-probe`)은 삭제·수정되지 않았고 `e2e-curl-hack` 글도 생기지 않았다(확인 후 확인용 글은 삭제).
     - 통과: `lib/schemas/post.test.ts`의 외부 도메인·`javascript:` 썸네일 거부, 버킷 URL 통과, NFD 한글 슬러그의 NFC 정규화. `npm run check`(Vitest 76개)·`npm run knip` 통과.
     - 제한 사항: 체크리스트의 'Playwright MCP' 항목은 MCP 브라우저가 아니라 위 Playwright e2e 스펙으로 같은 시나리오를 확인했다(관리자 자격 증명이 `.env`에만 있고 에이전트가 읽지 못해 MCP 브라우저로는 로그인하지 않음). `published_at` 불변은 e2e에서 상세 페이지의 발행일 표시(일 단위)가 수정 전후 같은지만 확인했고, 초 단위 값은 `lib/posts/published-at.test.ts` 단위 테스트가 보장한다. 비관리자(로그인했지만 admin이 아닌) 계정의 Server Action 호출은 미수행(`requireAdmin()`이 `notFound()`로 처리하는 경로는 코드 리뷰와 단위 테스트 범위).
+  - 후속 개선(2026-10-28, 편집기 UX): 사용자 피드백 3건 반영.
+    - [x] 편집기 라우트 분리: `/admin/posts/edit(?id=)` → 새 글 `/admin/posts/new`, 수정 `/admin/posts/[id]/edit`. 공용 `post-editor.tsx`는 `app/admin/posts/_components/`로 이동하고 수정 페이지는 `key={id}`로 렌더링(같은 페이지를 재사용하며 이전 입력 상태가 남아 수정 화면이 비던 문제의 유력 원인 제거). 목록·헤더 링크와 e2e 경로 갱신
+    - [x] 하단 고정 바: 왼쪽 `←` 나가기(`/admin/posts`), 오른쪽 "임시 저장"과 "저장하기"(수정 모드는 "수정하기"). 발행 체크박스는 제거하고 발행 버튼이 `published=on`을 보내 상태를 결정(임시 저장은 값 없음 → 초안)
+    - [x] 임시 저장은 목록으로 이동하지 않고 편집 화면에 머문다. 수정 모드는 `{ ok: true, message }`를 반환해 바에 "임시 저장했습니다."를 표시하고, 새 글은 insert한 id의 `/admin/posts/{id}/edit`으로 redirect(이후 저장이 중복 생성이 되지 않게 함). 발행 저장은 기존처럼 `/admin/posts`로 redirect
+    - 테스트 결과: 2026-10-28 `npm run check`(Vitest 123개)·`npm run knip` 통과. `npx playwright test e2e/admin-posts.spec.ts e2e/admin-flow.spec.ts` 10개 통과(skip 0): 새 글 임시 저장→수정 화면 이동·재저장해도 1건·초안 배지 / 수정 화면 임시 저장→URL·입력값 유지·초안 전환·공개 상세 not-found / 수정 화면에 기존 제목 표시. e2e 헬퍼 `createPost`는 임시 저장 시 수정 화면 도착을 확인한 뒤 목록으로 이동하도록 변경, `savePost` 단위 테스트(임시 저장 redirect·ok 반환) 갱신. 하단 바는 Playwright 스크린샷으로 1280px·390px, 라이트·다크에서 스크롤 끝까지 바가 하단에 고정되고 내용이 가려지지 않음을 확인했다.
+    - 제한 사항: Playwright MCP 브라우저가 아니라 e2e 스펙과 임시 스펙(삭제함)으로 확인했다(관리자 자격 증명을 에이전트가 읽지 못함). 발행된 글을 수정 화면에서 "임시 저장"하면 초안으로 되돌아가 공개에서 내려가는 동작은 의도 확인이 필요하다. 개발 서버의 Next 인디케이터가 모바일에서 "나가기"를 일부 가리지만 프로덕션에는 없다.
 
 - **Task 014: 핵심 기능 통합 테스트** ✅
   - 관련 기능: F001~F006, F008, F010~F013
@@ -384,12 +391,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 기능: F007, F006
   - 관련 파일: `components/markdown/markdown-content.tsx`, `lib/markdown/sanitize-schema.ts`, `lib/markdown/plugins.ts`, `lib/markdown/*.test.ts(x)`, `app/globals.css`, `app/(site)/blog/[slug]/page.tsx`
   - 수락 기준: 상세 본문이 GFM(표·체크리스트·취소선), LaTeX(인라인·블록), 코드 하이라이트(라이트/다크 색), raw HTML(`<style>`, `figure/figcaption`, `details/summary`)을 렌더링하고, 위험 요소가 제거됨. 같은 컴포넌트가 서버(상세)와 클라이언트(편집기 미리보기) 양쪽에서 동작. sanitize 동작이 단위 테스트로 고정됨
-  - [ ] 설치: `react-markdown`, `remark-gfm`, `remark-math`, `rehype-raw`, `rehype-sanitize`, `rehype-katex`, `katex`, `rehype-highlight`, `@tailwindcss/typography`(`highlight.js` 직접 설치·`rehype-slug` 미사용)
-  - [ ] 플러그인 순서 고정: remark-gfm/remark-math → rehype-raw → rehype-sanitize(확장 스키마) → rehype-katex → rehype-highlight. KaTeX `trust` 비활성, `throwOnError: false`
-  - [ ] `sanitize-schema.ts`: 기본 스키마 확장 — `style` 태그, `figure/figcaption`, `post-` 접두 class(+ `math-inline`/`math-display`/`language-*`), `img`의 `loading/width/height` 허용. `script`·`on*`·`javascript:` 제거, id는 `user-content-` 접두 유지
-  - [ ] `MarkdownContent`: `.post-content prose dark:prose-invert` 래퍼, 본문 `img`는 `loading="lazy"`, 외부 링크 `rel="noreferrer"`. `<style>` 영향 범위(페이지 전체)를 컴포넌트 주석과 작성 안내에 명시
-  - [ ] `katex/dist/katex.min.css` 로드, 코드 토큰 색을 `app/globals.css`의 CSS 변수(`--hljs-*`)로 라이트/다크 정의
-  - [ ] 상세 페이지 임시 텍스트 본문을 `MarkdownContent`로 교체
+  - [x] 설치: `react-markdown`, `remark-gfm`, `remark-math`, `rehype-raw`, `rehype-sanitize`, `rehype-katex`, `katex`, `rehype-highlight`, `@tailwindcss/typography`(`highlight.js` 직접 설치·`rehype-slug` 미사용)
+  - [x] 플러그인 순서 고정: remark-gfm/remark-math → rehype-raw → rehype-sanitize(확장 스키마) → rehype-katex → rehype-highlight. KaTeX `trust` 비활성, `throwOnError: false`
+  - [x] `sanitize-schema.ts`: 기본 스키마 확장 — `style` 태그, `figure/figcaption`, `post-` 접두 class(+ `math-inline`/`math-display`/`language-*`), `img`의 `loading/width/height` 허용. `script`·`on*`·`javascript:` 제거, id는 `user-content-` 접두 유지
+  - [x] `MarkdownContent`: `.post-content prose dark:prose-invert` 래퍼, 본문 `img`는 `loading="lazy"`, 외부 링크 `rel="noreferrer"`. `<style>` 영향 범위(페이지 전체)를 컴포넌트 주석과 작성 안내에 명시
+  - [x] `katex/dist/katex.min.css` 로드, 코드 토큰 색을 `app/globals.css`의 CSS 변수(`--hljs-*`)로 라이트/다크 정의
+  - [x] 상세 페이지 임시 텍스트 본문을 `MarkdownContent`로 교체
   - 테스트 체크리스트:
     - 정상: `markdown-content.test.tsx` → 표 마크다운 → `<table>` 렌더링, `$a^2$` → `.katex` 요소, ` ```ts ` → `hljs` 클래스 토큰
     - 정상: `markdown-content.test.tsx` → `<style>.post-box{color:red}</style><div class="post-box">x</div>` → `style` 요소 유지, div에 `post-box` class 유지(규칙 매칭 가능)
@@ -397,11 +404,11 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: `markdown-content.test.tsx` → `class="evil post-ok"` → `post-ok`만 남음, `id="intro"` → `id="user-content-intro"`
     - 엣지: `markdown-content.test.tsx` → 미완성 수식 `$\frac{1}{` / 미지원 언어 ` ```foobar ` → 예외 없이 렌더링
     - 엣지: Playwright MCP → 수식·코드·표·이미지가 포함된 발행 글 상세 → 라이트/다크 모두 가독성 확인, 이미지 `loading="lazy"`
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-28 `npm run check`(Vitest 16 파일 / 123개, `lib/markdown` 7개·`components/markdown` 19개 포함)·`npm run knip`(katex 오탐 없음)·`npm run build` 통과(공개 페이지 Partial Prerender ◐ 유지). 사전 검증(소스·임시 테스트로 확인, 임시 파일 삭제): class에 RegExp 허용·class 배열 토큰별 검사, 기본 `clobberPrefix` `user-content-`, vitest(jsdom)와 `renderToString`에서 ESM unified 계열 import 가능, 동기 `Markdown`은 훅 없음(훅은 `MarkdownHooks`뿐). 미지원 언어는 `rehype-highlight`가 경고만 남기고 건너뛰어 별도 옵션 불필요. Playwright MCP 확인: 관리자 자격 증명을 읽을 수 없어 Supabase MCP로 원격 프로젝트(`.mcp.json` 고정 ref와 일치 확인)에 `e2e-md-seed` 발행 글을 시드하고 dev 서버(`/blog/e2e-md-seed`)에서 확인한 뒤 SQL로 삭제해 `e2e-` 행 0건을 확인했다(제한 사항: 실제 관리자 UI 작성 경로가 아니라 SQL 시드 경로). 표·인라인/블록 수식·ts 코드 하이라이트·체크리스트·취소선·이미지·`<style>` `post-box`·details를 라이트/다크 모두 가독성 있게 렌더링, `img loading="lazy"`·외부 링크 `rel="noreferrer"`·체크박스 disabled 확인, 본문의 `<script>`는 DOM에 없음. 라이트에서 미체크 체크박스가 어둡게 보이는 점은 기본 `accent-color` 때문이며 이번 범위에서는 손대지 않았다. 모바일 폭은 확인하지 않았다
 
 - **Task 016: 편집기 실시간 미리보기 및 스타일 격리 구현**
   - 관련 기능: F007, F008
-  - 관련 파일: `app/admin/posts/edit/_components/{post-editor,markdown-preview}.tsx`, `components/markdown/markdown-content.tsx`
+  - 관련 파일: `app/admin/posts/_components/{post-editor,markdown-preview}.tsx`, `components/markdown/markdown-content.tsx`
   - 수락 기준: 본문 입력이 미리보기에 실시간 반영되고(입력 지연 체감 없음), 본문의 `<style>`이 편집기 UI(헤더·입력란·버튼)에 영향을 주지 않음. 미리보기 렌더링은 상세 페이지와 동일 결과
   - [ ] 격리 방식 결정 및 구현: Shadow DOM(권장, `MarkdownContent`를 portal로 shadow root에 렌더링 + KaTeX·typography·hljs CSS 주입) 또는 `iframe srcdoc`. 선택 근거를 이 항목에 기록
   - [ ] `useDeferredValue`로 입력과 렌더링 분리, 미완성 마크다운에서도 예외 없이 표시

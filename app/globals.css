@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -90,6 +91,14 @@
   --sidebar-accent-foreground: oklch(0.3958 0.1331 25.723);
   --sidebar-border: oklch(0.9355 0.0324 80.9937);
   --sidebar-ring: oklch(0.465 0.147 24.9381);
+  --hljs-foreground: oklch(0.2178 0 0);
+  --hljs-comment: oklch(0.5 0.01 73);
+  --hljs-keyword: oklch(0.48 0.18 20);
+  --hljs-string: oklch(0.45 0.11 150);
+  --hljs-number: oklch(0.47 0.12 60);
+  --hljs-title: oklch(0.42 0.13 260);
+  --hljs-attr: oklch(0.46 0.1 200);
+  --hljs-built-in: oklch(0.45 0.15 310);
 }
 
 .dark {
@@ -124,6 +133,14 @@
   --sidebar-accent-foreground: oklch(0.9619 0.058 95.6174);
   --sidebar-border: oklch(0.3741 0.0087 67.5582);
   --sidebar-ring: oklch(0.5054 0.1905 27.5181);
+  --hljs-foreground: oklch(0.9699 0.0013 106);
+  --hljs-comment: oklch(0.72 0.01 73);
+  --hljs-keyword: oklch(0.78 0.12 25);
+  --hljs-string: oklch(0.82 0.11 150);
+  --hljs-number: oklch(0.82 0.11 75);
+  --hljs-title: oklch(0.8 0.1 255);
+  --hljs-attr: oklch(0.82 0.09 200);
+  --hljs-built-in: oklch(0.8 0.11 315);
 }
 
 @layer base {
@@ -136,4 +153,58 @@
   html {
     @apply font-sans;
   }
+}
+
+/* 글 본문 코드 블록: prose 기본 색 대신 테마 토큰과 highlight.js 토큰 색을 쓴다. */
+.post-content pre {
+  background: var(--muted);
+  color: var(--hljs-foreground);
+}
+.post-content .hljs {
+  color: var(--hljs-foreground);
+}
+.post-content .hljs-comment,
+.post-content .hljs-quote {
+  color: var(--hljs-comment);
+  font-style: italic;
+}
+.post-content .hljs-keyword,
+.post-content .hljs-selector-tag,
+.post-content .hljs-literal {
+  color: var(--hljs-keyword);
+}
+.post-content .hljs-string,
+.post-content .hljs-regexp,
+.post-content .hljs-addition {
+  color: var(--hljs-string);
+}
+.post-content .hljs-number,
+.post-content .hljs-symbol,
+.post-content .hljs-bullet {
+  color: var(--hljs-number);
+}
+.post-content .hljs-title,
+.post-content .hljs-section,
+.post-content .hljs-function .hljs-title {
+  color: var(--hljs-title);
+}
+.post-content .hljs-attr,
+.post-content .hljs-attribute,
+.post-content .hljs-variable,
+.post-content .hljs-property {
+  color: var(--hljs-attr);
+}
+.post-content .hljs-built_in,
+.post-content .hljs-type,
+.post-content .hljs-class .hljs-title {
+  color: var(--hljs-built-in);
+}
+.post-content .hljs-deletion {
+  color: var(--destructive);
+}
+.post-content .hljs-emphasis {
+  font-style: italic;
+}
+.post-content .hljs-strong {
+  font-weight: 700;
 }
