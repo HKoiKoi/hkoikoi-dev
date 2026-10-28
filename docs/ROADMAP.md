@@ -383,11 +383,11 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: 터미널 → `npm run test:e2e` → 전체 통과(관리자 자격 증명 미설정 시 관리자 스펙만 skip)
   - 테스트 결과: 2026-10-27 `npm run check`(Vitest 76개)·`npm run knip` 통과. `npm run test:e2e`는 관리자 자격 증명 설정 상태에서 42개 모두 통과(skip 0)를 3회 연속 확인했고, 자격 증명을 비운 상태에서는 28개 통과·14개 skip(관리자 스펙만)·실패 0. 통과한 시나리오: 방문자 여정(정적 구간, 태그 필터·상세·뒤로 가기 필터 유지, 카테고리·로고), 관리자 여정(초안→발행→삭제→로그아웃, 단계별 배지·공개 노출), 비로그인의 `/admin/posts`·`/admin/posts/edit` 리다이렉트, 임의 계정 로그인 실패 3회 반복 시 매번 오류 표시. 종료 후 DB에 `e2e-` 접두 글 0건. 삭제 직후 `/blog`에 글이 간헐적으로 남는 현상(약 10~30%)이 발견됐으나 캐시·앱 결함이 아니라 `confirmDelete`가 Server Action 완료 전에 반환하는 e2e 헬퍼 레이스였다(삭제 모달이 열린 동안 뒤쪽 표가 `aria-hidden`이라 row 단언이 먼저 통과). 모달이 닫힐 때까지 기다리도록 `e2e/fixtures/admin.ts`를 수정했고 수정 전 임시 스펙으로 dev 40회·프로덕션 30회 반복에서 stale 0건을 확인했다. 수행 대상 제외: 비관리자 계정 시나리오(관리자 1명만 두는 방침, `requireAdmin()`의 `notFound()` 코드와 `isAdmin` 단위 테스트로 보장), Server Action 직접 호출 검증(`savePost`·`deletePost` 첫 줄의 `requireAdmin()` 호출은 코드로 확인). Playwright MCP 수동 재확인은 하지 않고 e2e로 대체. 2026-10-28 리뷰 후속 재검증: `npm run check`(Vitest 13 파일 / 81개)·`npm run knip`·`npm run build` 통과(빌드에서 공개 페이지는 Partial Prerender ◐ 유지), 관리자 자격 증명 설정 상태에서 `npm run test:e2e` 45개 모두 통과(실패 0). Supabase advisor는 security `auth_leaked_password_protection` 1건(기존 예외)뿐이고 performance는 INFO `unused_index`(`posts_tags_idx`, `posts` 0행이라 정상)만 남았다. 원격 마이그레이션 3건의 version이 로컬 파일명과 일치하고 `posts_category_length_check`는 validated 상태다. 같은 날 후속 처리(인코딩 경로 e2e 단언 고정, `savePost`·`deletePost` 단위 테스트 추가) 뒤 재검증: `npm run check`(Vitest 14 파일 / 97개)·`npm run knip`·`npm run build` 통과, `npm run test:e2e` 47개 모두 통과(실패 0), advisor 결과는 위와 동일(새 경고 없음)
 
-### Phase 4: 마크다운 렌더링 및 편집기 고도화
+### Phase 4: 마크다운 렌더링 및 편집기 고도화 ✅
 
 > Task 015는 DB와 무관하므로 Phase 2 이후 언제든 병렬로 진행할 수 있다.
 
-- **Task 015: 마크다운 렌더링 파이프라인 구축** - 우선순위
+- **Task 015: 마크다운 렌더링 파이프라인 구축** ✅ - 우선순위
   - 관련 기능: F007, F006
   - 관련 파일: `components/markdown/markdown-content.tsx`, `lib/markdown/sanitize-schema.ts`, `lib/markdown/plugins.ts`, `lib/markdown/*.test.ts(x)`, `app/globals.css`, `app/(site)/blog/[slug]/page.tsx`
   - 수락 기준: 상세 본문이 GFM(표·체크리스트·취소선), LaTeX(인라인·블록), 코드 하이라이트(라이트/다크 색), raw HTML(`<style>`, `figure/figcaption`, `details/summary`)을 렌더링하고, 위험 요소가 제거됨. 같은 컴포넌트가 서버(상세)와 클라이언트(편집기 미리보기) 양쪽에서 동작. sanitize 동작이 단위 테스트로 고정됨
@@ -422,7 +422,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → 375px에서 작성 탭 입력 → 미리보기 탭 → 작성 탭 복귀 시 입력 유지
   - 테스트 결과: 2026-10-28 `npm run check`(typecheck·lint·prettier 통과, Vitest 17 파일 / 135개, `markdown-preview.test.tsx` 포함)·`npm run knip`(종료 코드 0)·`npm run build`(placeholder Supabase 환경변수, `/admin/posts/new`·`/admin/posts/[id]/edit` Partial Prerender ◐ 유지) 통과. `e2e/admin-preview.spec.ts` 5개 시나리오(h1·수식/코드·`<style>` 격리·`$` 단독·375px 탭 유지) 5/5 통과. 관리자 자격 증명이 없어 Supabase MCP로 원격 프로젝트(`.mcp.json` 고정 ref와 일치 확인)에 `app_metadata.role='admin'` 임시 사용자를 만들어 e2e와 Playwright MCP 확인에 쓰고, 끝난 뒤 삭제해 `e2e-` 사용자·글 0건을 확인했다(제한 사항: 실제 관리자 계정이 아니라 임시 계정 경로). Playwright MCP(dev 서버): 데스크톱 1280px 라이트/다크에서 h1·표·인라인/블록 수식·ts 하이라이트·체크리스트·본문 `<style>`(`.post-box` 적색)이 shadow 안에서만 적용되고 body 배경·버튼 `display`는 그대로, 다크에서는 shadow 래퍼에 `dark` 클래스가 붙어 h1·본문이 가독성 있게 표시됨. 미리보기 영역은 `scrollHeight` 2027 > `clientHeight` 536으로 독립 세로 스크롤. 375px에서 작성→미리보기→작성 전환 후 본문 203자 유지, 가로 넘침 없음, 다크 미리보기 가독성 확인. 미확인: 라이트 모드 375px 시각 확인(다크만 확인), Safari·Firefox(Chromium만 확인), 개발 중 HMR로 바뀐 CSS의 미리보기 반영(알려진 한계로 새로고침 필요)
 
-- **Task 017: 이미지 업로드 및 썸네일 지정 구현**
+- **Task 017: 이미지 업로드 및 썸네일 지정 구현** ✅
   - 관련 기능: F009, F008
   - 관련 파일: `lib/storage/upload-image.ts`, `lib/storage/validate-image.ts`, `lib/editor/insert-at-cursor.ts`, `app/admin/posts/_components/{image-upload-button,thumbnail-field,post-editor}.tsx`, `next.config.ts`
   - 수락 기준: 파일 선택·붙여넣기·드래그앤드롭으로 이미지를 올리면 `blog-images/YYYY/MM/<uuid>.<ext>`에 저장되고 커서 위치에 `![파일명](공개 URL)`이 삽입됨. 썸네일 업로드·제거가 가능하고 저장 시 서버 검증 통과. jpeg/png/webp/gif 외 형식과 5MB 초과는 업로드 전에 거부

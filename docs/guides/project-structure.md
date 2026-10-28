@@ -37,7 +37,7 @@ hkoikoi-dev/
 │   └── *.tsx               # ThemeSwitcher
 ├── data/                   # 이력·프로젝트·논문 등 정적 콘텐츠 (TypeScript 데이터)
 ├── lib/
-│   ├── auth/               # is-admin.ts(역할 판별), require-admin.ts(서버 가드)
+│   ├── auth/               # is-admin.ts(역할 판별), is-admin-path.ts(/admin 경로 판정), require-admin.ts(서버 가드) + 테스트
 │   ├── supabase/           # client.ts / server.ts / proxy.ts / database.types.ts
 │   ├── storage/            # validate-image.ts(형식·크기 검증, 경로 생성), upload-image.ts(브라우저 직접 업로드) + 테스트
 │   ├── editor/             # insert-at-cursor.ts(커서 삽입·자리표시 치환 순수 함수) + 테스트
@@ -51,7 +51,7 @@ hkoikoi-dev/
 ├── e2e/                    # Playwright 테스트 (*.spec.ts)
 ├── docs/                   # PRD.md, ROADMAP.md, guides/ (개발 가이드)
 ├── proxy.ts                # 요청 전처리: Supabase 세션 갱신 + /admin 보호
-├── next.config.ts          # cacheComponents + bundle analyzer
+├── next.config.ts          # cacheComponents + 보안 헤더 + bundle analyzer
 ├── components.json         # shadcn/ui 설정
 ├── eslint.config.mjs       # ESLint flat config
 ├── vitest.config.mts       # Vitest 설정 (+ vitest.setup.ts)
@@ -85,16 +85,17 @@ app/
 ├── (site)/                 # 공개 사이트 (Route Group, URL에 나타나지 않음)
 │   ├── layout.tsx          # 헤더·푸터
 │   ├── page.tsx            # /
+│   ├── _components/        # latest-posts.tsx (메인의 최신 글)
 │   ├── education/ career/ certifications/ languages/   # 이력
 │   ├── volunteer/ activities/ projects/ publications/
 │   └── blog/               # /blog, /blog/[slug], _components/ (필터·목록)
 ├── admin/                  # 관리자 영역 (로그인 필요)
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
-│   ├── actions.ts          # logout Server Action
+│   ├── actions.ts          # logout Server Action (+ actions.test.ts)
 │   ├── _components/        # admin-guard.tsx, logout-button.tsx
 │   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx(메타 필드 post-meta-fields.tsx, 본문 상태·이미지 업로드 훅 use-content-upload.ts, 필드 오류 field-error.tsx로 분리), 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·deletePost Server Action)
 └── auth/
-    ├── login/              # 로그인 (actions.ts: login Server Action, _components/login-form.tsx)
+    ├── login/              # 로그인 (actions.ts: login Server Action + 테스트, _components/login-form.tsx)
     └── error/              # 인증 오류 안내
 ```
 
@@ -125,10 +126,10 @@ app/
 components/
 ├── ui/         # shadcn/ui: avatar, badge, button, card, checkbox, dialog, dropdown-menu,
 │               #            input, label, separator, tabs, textarea
-├── blog/       # category-badge, post-card, tag-badge
+├── blog/       # category-badge, post-card, post-list-skeleton, tag-badge
 ├── content/    # empty-state, page-header, project-card, publication-item, resume-*, tech-badge
-├── markdown/   # markdown-content (+ 테스트): 동기 컴포넌트라 서버·클라이언트 양쪽에서 쓴다
-├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link
+├── markdown/   # markdown-content (+ 테스트), code-block, code-copy-button: 동기 컴포넌트라 서버·클라이언트 양쪽에서 쓴다
+├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link, scroll-to-top
 └── *.tsx       # theme-switcher (app을 import하는 컴포넌트는 두지 않는다: eslint로 강제)
 ```
 
@@ -147,10 +148,10 @@ lib/
 ├── supabase/
 │   ├── client.ts          # createBrowserClient<Database> — Client Component 전용
 │   ├── server.ts          # createServerClient<Database> + cookies() — Server Component / Action / Route Handler
-│   ├── proxy.ts           # proxy.ts에서 호출하는 updateSession()
+│   ├── proxy.ts           # proxy.ts에서 호출하는 updateSession()과 hasEnvVars(env 미설정 시 세션 검사 생략)
 │   └── database.types.ts  # 생성 파일 (직접 편집 금지)
 ├── storage/               # validate-image.ts: ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES, validateImage, buildImagePath / upload-image.ts: uploadImage (브라우저 전용, + 테스트)
-├── editor/                # insert-at-cursor.ts: insertAtCursor, replaceOnce, createUploadPlaceholder (+ 테스트)
+├── editor/                # insert-at-cursor.ts: insertAtCursor, replaceOnce, replaceWithCaret, createUploadPlaceholder (+ 테스트)
 ├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
 ├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
 ├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getPostBySlug, admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
@@ -159,11 +160,11 @@ lib/
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
 ├── site-config.ts         # siteConfig, navItems
 ├── format-date.ts / is-active-path.ts   # (+ 테스트)
-└── utils.ts               # cn(), hasEnvVars
+└── utils.ts               # cn()
 ```
 
 - `cn()`은 `clsx` + `tailwind-merge`로 `lib/utils.ts`에 직접 구현되어 있습니다. **모든 코드는 `import { cn } from "@/lib/utils"`를 사용**합니다 (`components/ui/*`도 동일).
-- `hasEnvVars`는 starter용 검사이며 지금은 `lib/supabase/proxy.ts`에서만 씁니다. Supabase 환경 변수가 없으면 세션 검사를 건너뜁니다.
+- `hasEnvVars`는 `lib/supabase/proxy.ts`의 지역 상수입니다(사용처가 proxy 하나뿐이라 `lib/utils.ts`에서 옮김, 근거는 ROADMAP "알려진 트레이드오프"). Supabase 환경 변수가 없으면 세션 검사를 건너뜁니다.
 - Supabase 클라이언트는 **요청마다 새로 만듭니다.** 모듈 전역 변수에 담지 않습니다 (`server.ts` 주석 참고). 세 클라이언트 모두 `Database` 제네릭이 적용되어 있습니다.
 - `lib/supabase/server.ts`는 `next/headers`를 쓰는 서버 전용 모듈이므로 Client Component에서 import하지 않습니다. 필요하면 상단에 `import "server-only"`를 추가합니다 (패키지 설치 필요).
 - `lib/types/post.ts`의 `PostSummary`/`Post`/`PostInput`은 `Tables<'posts'>`에서 파생합니다. 컬럼을 바꾸면 마이그레이션 → 타입 재생성 순서로 진행합니다.
@@ -176,7 +177,8 @@ lib/
 - `supabase/migrations/<version>_<name>.sql`. 파일명의 version은 원격에 적용된 `list_migrations`의 version과 **일치**시킵니다.
 - 적용은 Supabase MCP의 `apply_migration`으로 하고, 적용 후 `get_advisors`(security, performance)를 확인합니다.
 - 관리자 판별은 RLS에서 `(select auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin'`만 사용합니다. `user_metadata`는 사용자가 바꿀 수 있어 쓰지 않습니다.
-- 현재 마이그레이션: `create_posts`(테이블, check, 인덱스, `updated_at` 트리거, RLS), `create_blog_images_bucket`(public 버킷 `blog-images`, 5MB, 이미지 MIME 4종, 관리자 전용 insert/update/delete 정책).
+- 현재 마이그레이션: `create_posts`(테이블, check, 인덱스, `updated_at` 트리거, RLS), `create_blog_images_bucket`(public 버킷 `blog-images`, 5MB, 이미지 MIME 4종, 관리자 전용 insert/update/delete 정책), `add_posts_category_tags_length_checks`(category·tags 길이 check), `revoke_excess_posts_grants`(`public` 스키마 default privileges로 과잉 부여된 anon·authenticated GRANT 회수).
+- `public` 스키마의 default privileges는 바꾸지 않았으므로 새 테이블은 같은 과잉 GRANT를 받습니다. 새 테이블 마이그레이션에는 필요한 권한만 남기는 `revoke`를 함께 넣고, 점검은 `rls-verification.md`를 따릅니다.
 - 알려진 advisor 경고: `auth_leaked_password_protection` 1건은 Pro 플랜 미사용으로 예외 수용했습니다(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수).
 
 ## 파일/폴더 네이밍
@@ -215,10 +217,11 @@ import { cn } from "@/lib/utils";
 
 ## 환경 변수
 
-| 키                                     | 노출 범위 | 용도                                           |
-| -------------------------------------- | --------- | ---------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             | 브라우저  | Supabase 프로젝트 URL                          |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 브라우저  | publishable(또는 anon) 키. RLS가 보호를 담당함 |
+| 키                                       | 노출 범위       | 용도                                                     |
+| ---------------------------------------- | --------------- | -------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`               | 브라우저        | Supabase 프로젝트 URL                                    |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`   | 브라우저        | publishable(또는 anon) 키. RLS가 보호를 담당함           |
+| `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` | 서버 전용(로컬) | 관리자 e2e 로그인용. `.env.local`에만 두고 커밋하지 않음 |
 
 - `NEXT_PUBLIC_` 접두 변수는 브라우저 번들에 포함됩니다. **service role 키 등 비밀 값에는 절대 붙이지 않습니다.**
 - 새 키를 추가하면 `.env.example`에 키 이름(값 없이)도 추가합니다. CI의 `build` 단계에도 필요하면 `.github/workflows/ci.yml`의 `env`에 자리표시자 값을 넣습니다.
@@ -308,8 +311,7 @@ ESLint가 `consistent-type-imports`를 강제하므로 타입은 `import { type 
 
 Supabase starter에서 남은 것 중 실제 서비스에 맞게 바꾸거나 지울 대상입니다. **새 코드의 기준으로 삼지 않습니다.**
 
-- `lib/utils.ts`의 `hasEnvVars`
-- `app/auth/login/_components/login-form.tsx`의 `useState` 기반 구현 (새 폼은 `forms-react-hook-form.md`의 패턴을 따름)
+- 현재 알려진 잔재는 없습니다(`hasEnvVars`는 `lib/supabase/proxy.ts`로 이동했고 로그인 폼은 `useActionState` 패턴으로 전환됨). 새로 발견하면 여기에 적습니다.
 
 ## 체크리스트
 

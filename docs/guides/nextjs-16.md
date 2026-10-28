@@ -135,7 +135,7 @@ Supabase 세션이 필요한 데이터는 **공유 캐시(`use cache`)에 넣지
 공개 데이터(모든 방문자가 같은 값을 보는 것)만 쿠키 없는 클라이언트로 읽어 캐시합니다. 이때 테이블은 RLS로 `anon`/`authenticated`에 공개 조회가 허용되어 있어야 합니다.
 
 ```ts
-// lib/queries/posts.ts (예시: 아직 없음. Task 012에서 조회 함수, Task 019에서 캐시 적용)
+// lib/queries/posts.ts에 해당하는 공개 조회 예시(현재 구현은 cookies()를 읽는 서버 클라이언트이고 캐시 없음. 캐시 적용은 Task 019)
 import { createClient } from "@supabase/supabase-js";
 import { cacheLife, cacheTag } from "next/cache";
 

@@ -61,8 +61,8 @@
 - `components/ui/`는 **`npx shadcn@latest add <name>`로만 추가·갱신**한다. 직접 작성·수정하지 않는다. Radix 기반 코드를 가져오지 않는다.
 - 클래스 병합은 `import { cn } from "@/lib/utils"`만 사용한다.
 - 테마는 `next-themes`(`attribute="class"`). 색상은 `globals.css`의 CSS 변수/토큰을 쓰고 하드코딩 색상을 쓰지 않는다.
-- `components/tutorial/`, `components/deploy-button.tsx`, `hero.tsx`, `next-logo.tsx`, `supabase-logo.tsx`, `env-var-warning.tsx`는 starter 잔재다. 새 기능에서 재사용하지 않고, 정리 Task에서만 삭제한다.
-- `hasEnvVars`(`lib/utils.ts`)는 starter용이다. 참조처(홈, `app/protected/layout.tsx`, `lib/supabase/proxy.ts`)를 함께 수정하지 않고 단독 삭제하지 않는다.
+- starter 잔재(`components/tutorial/`, `deploy-button`, `hero`, `next-logo`, `supabase-logo`, `env-var-warning`, `app/protected/`)는 Task 002에서 모두 삭제했다. 되살리지 않는다.
+- `hasEnvVars`는 `lib/supabase/proxy.ts`의 지역 상수다. `lib/utils.ts`로 되돌리거나 `lib/env.ts`로 통합하지 않는다(근거: ROADMAP "알려진 트레이드오프").
 
 ## 폼 / 검증
 

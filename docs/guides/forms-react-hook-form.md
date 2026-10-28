@@ -181,7 +181,7 @@ export async function login(
 
 ### 글 저장 Action 설계 (Task 013 기준)
 
-아직 구현 전이며 ROADMAP의 설계를 요약한 것입니다. 구현 시 ROADMAP Task 013과 함께 확인합니다.
+`app/admin/posts/actions.ts`의 `savePost`·`deletePost`로 구현돼 있으며, 아래는 그 설계 요약입니다. 변경할 때는 ROADMAP Task 013과 함께 확인합니다.
 
 - 스키마는 `lib/schemas/post.ts`에서 서버와 편집기가 공유합니다. 제약은 DB check와 같은 값을 씁니다: title 1~200자, excerpt 150자 이하, tags 최대 10개(trim·중복 제거), content 최대 100,000자, slug는 NFC 정규화 후 `slugify` 규칙과 일치.
 - `thumbnail_url`은 `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/blog-images/` 접두의 주소만 허용합니다. 외부 도메인과 `javascript:` URL은 거부합니다.
