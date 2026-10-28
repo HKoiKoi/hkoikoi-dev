@@ -1,7 +1,7 @@
 # 프로젝트 구조 가이드
 
 이 문서는 `hkoikoi-dev`의 실제 폴더 구조, 네이밍 컨벤션, 품질 게이트를 정의합니다.
-이 프로젝트는 Next.js + Supabase 인증 starter에서 출발했고, `src/` 없이 루트에 `app/`, `components/`, `lib/`를 둡니다.
+이 프로젝트는 Next.js + Supabase 인증 starter에서 출발해 개인 포트폴리오·블로그 사이트로 바뀌었고, `src/` 없이 루트에 `app/`, `components/`, `lib/`를 둡니다.
 
 ## 현재 스택
 
@@ -12,15 +12,16 @@
 | TypeScript | 5, `strict`                                                                         |
 | Tailwind   | 4.3 (`postcss.config.mjs`의 `@tailwindcss/postcss`, `tailwind.config.ts` 없음)      |
 | shadcn/ui  | `base-nova` 스타일, **Base UI**(`@base-ui/react`) 기반                              |
-| 백엔드     | Supabase (`@supabase/ssr`, `@supabase/supabase-js`), 쿠키 기반 인증                 |
+| 백엔드     | Supabase (`@supabase/ssr`, `@supabase/supabase-js`), 쿠키 기반 인증, 생성된 DB 타입 |
 | 유틸리티   | `clsx` + `tailwind-merge`(`cn`), `class-variance-authority`, `lucide-react`         |
 | 테마       | `next-themes` (`attribute="class"`), `tw-animate-css`                               |
+| 폰트       | `next/font/google`의 Noto Sans KR (`app/layout.tsx`)                                |
 | 린트·포맷  | ESLint 9 flat config, Prettier(+ tailwind 플러그인), Husky, lint-staged, commitlint |
-| 정적 분석  | knip (미사용 파일·export·의존성 검출)                                               |
+| 정적 분석  | knip (미사용 파일·export·의존성 검출, 설정은 `knip.jsonc`)                          |
 | 테스트     | Vitest 5 + Testing Library(jsdom), Playwright(chromium)                             |
 | 런타임     | Node `>=20.9` (`.nvmrc`는 24)                                                       |
 
-아직 없는 것(필요할 때 추가): DB 스키마·마이그레이션(`supabase/` 폴더 없음), 생성된 DB 타입, 폼 검증 라이브러리(`zod`, `react-hook-form`), `hooks/`, `public/`.
+아직 없는 것(필요할 때 추가): `react-hook-form`(`zod`는 설치됨), `hooks/`, `public/`. 공개 블로그 글은 `lib/queries/posts.ts`가 발행 글을, 관리자 글 목록·편집은 `lib/queries/admin-posts.ts`가 초안 포함 전체 글을 조회합니다.
 
 ## 전체 구조
 
@@ -29,27 +30,37 @@ hkoikoi-dev/
 ├── app/                    # Next.js App Router
 ├── components/
 │   ├── ui/                 # shadcn/ui 컴포넌트 (CLI로 추가)
-│   ├── tutorial/           # starter 안내용 (정리 대상)
-│   └── *.tsx               # 인증 폼, AuthButton, ThemeSwitcher 등
+│   ├── blog/               # 블로그 카드·배지
+│   ├── content/            # 이력·프로젝트·논문 등 콘텐츠 표시용
+│   ├── layout/             # 헤더·푸터·내비게이션
+│   └── *.tsx               # 로그인 폼, LogoutButton, ThemeSwitcher
+├── data/                   # 이력·프로젝트·논문 등 정적 콘텐츠 (TypeScript 데이터)
 ├── lib/
-│   ├── supabase/           # client.ts / server.ts / proxy.ts
-│   ├── utils.ts            # cn(), hasEnvVars
-│   └── utils.test.ts       # 단위 테스트는 대상 파일 옆에 둔다
+│   ├── auth/               # is-admin.ts(역할 판별), require-admin.ts(서버 가드)
+│   ├── supabase/           # client.ts / server.ts / proxy.ts / database.types.ts
+│   ├── types/              # 도메인 타입 (post, profile, resume)
+│   ├── schemas/            # post.ts(zod 입력 스키마, POST_LIMITS, parseTags) + 테스트
+│   ├── queries/            # posts.ts(공개 글 조회), admin-posts.ts(관리자 조회), 서버 전용 + 테스트
+│   ├── posts/ projects/ publications/   # slugify·form-data·published-at·정렬 등 순수 함수와 옆의 테스트
+│   ├── site-config.ts      # 사이트 이름, 내비게이션 항목
+│   ├── format-date.ts / is-active-path.ts / utils.ts   # 공용 유틸 (+ *.test.ts)
+├── supabase/migrations/    # DB 마이그레이션 SQL (원격 version과 파일명 일치)
 ├── e2e/                    # Playwright 테스트 (*.spec.ts)
-├── docs/guides/            # 개발 가이드
-├── proxy.ts                # 요청 전처리: Supabase 세션 갱신 + 비로그인 리다이렉트
+├── docs/                   # PRD.md, ROADMAP.md, guides/ (개발 가이드)
+├── proxy.ts                # 요청 전처리: Supabase 세션 갱신 + /admin 보호
 ├── next.config.ts          # cacheComponents + bundle analyzer
 ├── components.json         # shadcn/ui 설정
 ├── eslint.config.mjs       # ESLint flat config
 ├── vitest.config.mts       # Vitest 설정 (+ vitest.setup.ts)
 ├── playwright.config.ts    # Playwright 설정
-├── knip.json               # knip 설정
+├── knip.jsonc              # knip 설정 (임시 예외에는 제거 조건 주석)
 ├── commitlint.config.mjs   # 커밋 메시지 규칙
 ├── .husky/                 # pre-commit, commit-msg, pre-push
 ├── .github/workflows/      # CI (ci.yml)
-├── .agents/skills/         # 에이전트 스킬 (shadcn, supabase 등)
-├── .claude/                # Claude Code 권한·훅·스킬 설정
-├── .mcp.json               # MCP 서버 (supabase)
+├── .agents/skills/         # 에이전트 스킬 사본 (shadcn, supabase 등)
+├── .claude/                # Claude Code 권한·훅·스킬·서브 에이전트 설정
+├── .mcp.json               # MCP 서버 (sequential-thinking, shrimp-task-manager, supabase)
+├── shrimp_data/            # shrimp 작업 데이터 (shrimp-rules.md와 함께 사용)
 ├── AGENTS.md               # 에이전트 지침 (Next.js 번들 문서 안내)
 └── .env / .env.example     # 환경 변수
 ```
@@ -58,78 +69,107 @@ hkoikoi-dev/
 - `middleware.ts`는 만들지 않습니다. 요청 전처리는 루트의 `proxy.ts`가 맡습니다.
 - `AGENTS.md`의 `next dev`가 관리하는 블록은 직접 지우지 말고 변경분을 함께 커밋합니다.
 - `.env`는 `.gitignore` 대상이며 에이전트가 읽지 못하도록 `.claude/settings.json`에서 막혀 있습니다. 키 이름은 `.env.example`로 공유합니다.
+- `lib/supabase/database.types.ts`는 `generate_typescript_types`로 만든 **생성 파일**입니다. 직접 편집하지 않고, 스키마가 바뀌면 다시 생성합니다.
 
 ## app/ — 라우트
 
 ```
 app/
-├── layout.tsx              # 루트 레이아웃 (ThemeProvider, Geist 폰트, 메타데이터)
-├── page.tsx                # / (starter 홈)
+├── layout.tsx              # 루트 레이아웃 (ThemeProvider, Noto Sans KR, 메타데이터)
 ├── globals.css             # Tailwind v4 + shadcn 테마 변수
+├── not-found.tsx
 ├── opengraph-image.png / twitter-image.png / favicon.ico
-├── auth/                   # 인증 흐름 (비로그인 접근 허용)
-│   ├── login/ sign-up/ sign-up-success/
-│   ├── forgot-password/ update-password/
-│   ├── confirm/route.ts    # 이메일 링크의 token_hash 검증 (Route Handler)
-│   └── error/
-└── protected/              # 로그인 필요. layout.tsx + page.tsx
+├── (site)/                 # 공개 사이트 (Route Group, URL에 나타나지 않음)
+│   ├── layout.tsx          # 헤더·푸터
+│   ├── page.tsx            # /
+│   ├── education/ career/ certifications/ languages/   # 이력
+│   ├── volunteer/ activities/ projects/ publications/
+│   └── blog/               # /blog, /blog/[slug], _components/ (필터·목록)
+├── admin/                  # 관리자 영역 (로그인 필요)
+│   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
+│   ├── actions.ts          # logout Server Action
+│   ├── _components/        # admin-guard.tsx
+│   └── posts/              # 글 목록 + edit/ (작성·수정), 각 _components/, actions.ts(savePost·deletePost Server Action)
+└── auth/
+    ├── login/              # 로그인 (actions.ts: login Server Action)
+    └── error/              # 인증 오류 안내
 ```
+
+회원가입·비밀번호 재설정·이메일 확인 라우트는 만들지 않았습니다(가입은 Supabase 설정에서도 막혀 있음). 관리자 계정은 대시보드에서 만들고 `app_metadata.role = 'admin'`을 부여합니다.
 
 파일 규칙:
 
 - `page.tsx` 라우트의 UI, `layout.tsx` 공유 레이아웃, `route.ts` Route Handler.
 - `loading.tsx`, `error.tsx`, `not-found.tsx`는 필요할 때만 추가합니다.
-- `params`, `searchParams`는 Promise이므로 `await` 하거나 `PageProps<'/경로'>` / `LayoutProps<'/경로'>` 헬퍼를 사용합니다. 타입은 `npx next typegen`으로 생성합니다 (기존 starter 코드는 `Readonly<{ children }>`나 `Promise<...>`를 직접 타이핑하지만, 새 코드는 헬퍼를 사용합니다).
+- `params`, `searchParams`는 Promise이므로 `await` 하거나 `PageProps<'/경로'>` / `LayoutProps<'/경로'>` 헬퍼를 사용합니다. 타입은 `npx next typegen`으로 생성합니다(`npm run typecheck`가 먼저 실행합니다).
 - Cache Components가 켜져 있으므로 요청 시점 데이터(쿠키, Supabase 세션 등)를 읽는 컴포넌트는 `<Suspense>`로 감쌉니다 (`nextjs-16.md`).
 - 라우트 세그먼트 설정 `dynamic`, `revalidate`, `fetchCache`, `runtime`은 사용하지 않습니다.
-- 한 라우트에서만 쓰는 컴포넌트는 그 폴더의 `_components/`에 둘 수 있습니다 (`_` 접두 폴더는 라우팅 제외).
-- URL에 영향 없이 레이아웃만 나누려면 Route Group `(group)`을 사용합니다.
+- 한 라우트에서만 쓰는 컴포넌트는 그 폴더의 `_components/`에 둡니다 (`_` 접두 폴더는 라우팅 제외).
+- URL에 영향 없이 레이아웃만 나누려면 Route Group `(group)`을 사용합니다. 공개 영역은 `(site)`가 이 역할입니다.
 
 ### 로그인 필요 여부는 `proxy.ts`가 정한다
 
-`lib/supabase/proxy.ts`의 `updateSession()`은 로그인하지 않은 사용자가 아래 경로 **외**를 요청하면 `/auth/login`으로 리다이렉트합니다.
+`lib/supabase/proxy.ts`의 `updateSession()`은 `getClaims()`로 세션을 갱신한 뒤, 로그인하지 않은 사용자가 **`/admin` 또는 `/admin/*`** 를 요청하면 `/auth/login`으로 리다이렉트합니다. `/administrator` 같은 경로는 보호 대상이 아닙니다.
 
-- 정확히 `/`
-- `/login`으로 시작하는 경로
-- `/auth`로 시작하는 경로
-
-따라서 **새 공개 페이지(`/about`, `/pricing` 등)를 만들면 비로그인 상태에서 로그인 화면으로 튕깁니다.** 공개 경로를 추가할 때는 `updateSession()`의 조건을 같이 고칩니다. 반대로 로그인이 필요한 페이지는 `app/protected/` 아래에 두거나, 새 보호 영역을 만들면 그 경로가 기본 보호 대상이 됩니다.
-
-proxy는 낙관적 검사일 뿐이므로 데이터 접근은 Supabase RLS와 서버 코드의 `getClaims()` 확인으로 한 번 더 막습니다.
+- **공개 페이지는 별도 설정 없이 `app/(site)/` 아래에 만들면 됩니다.** 기본이 공개입니다.
+- **관리자 페이지는 `app/admin/` 아래에 둡니다.** 이 밖의 새 경로를 보호하려면 `updateSession()`의 `isAdminPath` 조건을 함께 고칩니다.
+- 리다이렉트 응답에는 `getClaims()`가 갱신한 쿠키를 그대로 복사합니다. 이 흐름과 `createServerClient`~`getClaims()` 사이를 건드리지 않습니다.
+- proxy는 로그인 여부만 보는 낙관적 검사입니다. **관리자 권한(`app_metadata.role = 'admin'`) 검증은 서버 코드의 `requireAdmin()`(`lib/auth/require-admin.ts`)이 맡습니다.** 비로그인이면 `/auth/login`으로 보내고, 로그인했지만 관리자가 아니면 `notFound()`를 호출합니다. `app/admin/layout.tsx`가 `<Suspense>` 안의 `AdminGuard`(`app/admin/_components/admin-guard.tsx`)로 본문을 감싸고, `posts/page.tsx`·`posts/edit/page.tsx`도 `requireAdmin()`을 다시 호출합니다. 데이터 보호는 RLS가 함께 담당합니다. 푸터의 `AdminLink`(`components/layout/admin-link.tsx`)는 관리자일 때만 `관리` 링크를 그립니다.
 
 ## components/ — 컴포넌트
 
 ```
 components/
-├── ui/             # shadcn/ui: badge, button, card, checkbox, dropdown-menu, input, label
-├── tutorial/       # starter 안내 화면 전용
-└── *.tsx           # 현재는 평평하게 배치 (auth-button, login-form, theme-switcher …)
+├── ui/         # shadcn/ui: avatar, badge, button, card, checkbox, dialog, dropdown-menu,
+│               #            input, label, separator, tabs, textarea
+├── blog/       # category-badge, post-card, tag-badge
+├── content/    # empty-state, page-header, project-card, publication-item, resume-*, tech-badge
+├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link
+└── *.tsx       # login-form, logout-button, theme-switcher
 ```
 
 분류 규칙:
 
 1. **`ui/`**: shadcn/ui 기반 순수 UI 컴포넌트. 비즈니스 로직 없이 props로 동작을 제어합니다. 추가는 `npx shadcn@latest add <name>`.
-2. **`components/` 루트 또는 `components/<domain>/`**: 여러 페이지가 쓰는 컴포넌트. 현재 파일은 모두 루트에 있지만, 도메인 컴포넌트가 늘면 `components/<domain>/`(예: `components/auth/`)으로 묶습니다.
-3. **라우트 전용 컴포넌트**: 한 페이지에서만 쓰면 해당 라우트의 `_components/`.
-4. import 방향은 `components/ui` ← `components/*` ← `app/` 단방향입니다.
+2. **`components/<domain>/`**: 여러 페이지가 쓰는 도메인 컴포넌트(`blog`, `content`, `layout`). 새 도메인이 생기면 폴더를 추가합니다.
+3. **`components/` 루트**: 도메인이 없는 인증·테마 관련 컴포넌트만 둡니다. 늘어나면 `components/auth/`로 묶습니다.
+4. **라우트 전용 컴포넌트**: 한 페이지에서만 쓰면 해당 라우트의 `_components/`.
+5. import 방향은 `components/ui` ← `components/*` ← `app/` 단방향입니다.
 
-## lib/ — 유틸리티와 Supabase 클라이언트
+## lib/ — 유틸리티, 도메인 로직, Supabase 클라이언트
 
 ```
 lib/
 ├── supabase/
-│   ├── client.ts   # createBrowserClient — Client Component 전용
-│   ├── server.ts   # createServerClient + cookies() — Server Component / Action / Route Handler
-│   └── proxy.ts    # proxy.ts에서 호출하는 updateSession()
-├── utils.ts        # cn(), hasEnvVars
-└── utils.test.ts
+│   ├── client.ts          # createBrowserClient<Database> — Client Component 전용
+│   ├── server.ts          # createServerClient<Database> + cookies() — Server Component / Action / Route Handler
+│   ├── proxy.ts           # proxy.ts에서 호출하는 updateSession()
+│   └── database.types.ts  # 생성 파일 (직접 편집 금지)
+├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
+├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
+├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getPostBySlug, admin-posts.ts: getAdminPosts / getAdminPostById (+ 테스트)
+├── posts/                 # slugify.ts, form-data.ts, published-at.ts (+ 테스트)
+├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
+├── site-config.ts         # siteConfig, navItems
+├── format-date.ts / is-active-path.ts   # (+ 테스트)
+└── utils.ts               # cn(), hasEnvVars
 ```
 
 - `cn()`은 `clsx` + `tailwind-merge`로 `lib/utils.ts`에 직접 구현되어 있습니다. **모든 코드는 `import { cn } from "@/lib/utils"`를 사용**합니다 (`components/ui/*`도 동일).
-- `hasEnvVars`는 starter용 검사입니다. Supabase 환경 변수를 설정한 뒤에는 제거해도 됩니다 (홈, `app/protected/layout.tsx`, `lib/supabase/proxy.ts`에서 참조 중).
-- Supabase 클라이언트는 **요청마다 새로 만듭니다.** 모듈 전역 변수에 담지 않습니다 (`server.ts` 주석 참고).
+- `hasEnvVars`는 starter용 검사이며 지금은 `lib/supabase/proxy.ts`에서만 씁니다. Supabase 환경 변수가 없으면 세션 검사를 건너뜁니다.
+- Supabase 클라이언트는 **요청마다 새로 만듭니다.** 모듈 전역 변수에 담지 않습니다 (`server.ts` 주석 참고). 세 클라이언트 모두 `Database` 제네릭이 적용되어 있습니다.
 - `lib/supabase/server.ts`는 `next/headers`를 쓰는 서버 전용 모듈이므로 Client Component에서 import하지 않습니다. 필요하면 상단에 `import "server-only"`를 추가합니다 (패키지 설치 필요).
-- 스키마, 타입, 훅, 데이터 접근 코드가 생기면 `lib/schemas/`, `lib/types/`, `lib/queries/`, 루트 `hooks/`를 추가합니다 (`components.json`의 `hooks` 별칭은 `@/hooks`). DB 타입은 Supabase MCP의 `generate_typescript_types`로 생성해 `lib/supabase/database.types.ts`에 두는 구성을 권장합니다.
+- `lib/types/post.ts`의 `PostSummary`/`Post`/`PostInput`은 `Tables<'posts'>`에서 파생합니다. 컬럼을 바꾸면 마이그레이션 → 타입 재생성 순서로 진행합니다.
+- 검증 스키마(zod)는 `lib/schemas/`에, 관리자 조회는 `lib/queries/admin-posts.ts`에 둡니다. 훅이 생기면 루트 `hooks/`를 추가합니다 (`components.json`의 `hooks` 별칭은 `@/hooks`).
+- 순수 로직은 `lib/<도메인>/`에 함수로 분리하고 옆에 `*.test.ts`를 둡니다. 컴포넌트에는 화면 코드만 남깁니다.
+
+## supabase/ — 마이그레이션
+
+- `supabase/migrations/<version>_<name>.sql`. 파일명의 version은 원격에 적용된 `list_migrations`의 version과 **일치**시킵니다.
+- 적용은 Supabase MCP의 `apply_migration`으로 하고, 적용 후 `get_advisors`(security, performance)를 확인합니다.
+- 관리자 판별은 RLS에서 `(select auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin'`만 사용합니다. `user_metadata`는 사용자가 바꿀 수 있어 쓰지 않습니다.
+- 현재 마이그레이션: `create_posts`(테이블, check, 인덱스, `updated_at` 트리거, RLS), `create_blog_images_bucket`(public 버킷 `blog-images`, 5MB, 이미지 MIME 4종, 관리자 전용 insert/update/delete 정책).
+- 알려진 advisor 경고: `auth_leaked_password_protection` 1건은 Pro 플랜 미사용으로 예외 수용했습니다(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수).
 
 ## 파일/폴더 네이밍
 
@@ -143,7 +183,7 @@ sign-up-success/      # O
 signUpSuccess/        # X
 ```
 
-컴포넌트 이름은 PascalCase(`LoginForm`), 훅은 `use` 접두사 camelCase(`useToggle`)입니다.
+컴포넌트 이름은 PascalCase(`LoginForm`), 훅은 `use` 접두사 camelCase(`useToggle`)입니다. 라우트 그룹은 `(site)`처럼 괄호, 라우트 전용 폴더는 `_components`처럼 밑줄 접두입니다.
 
 ## 경로 별칭
 
@@ -174,7 +214,7 @@ import { cn } from "@/lib/utils";
 
 - `NEXT_PUBLIC_` 접두 변수는 브라우저 번들에 포함됩니다. **service role 키 등 비밀 값에는 절대 붙이지 않습니다.**
 - 새 키를 추가하면 `.env.example`에 키 이름(값 없이)도 추가합니다. CI의 `build` 단계에도 필요하면 `.github/workflows/ci.yml`의 `env`에 자리표시자 값을 넣습니다.
-- `.env.example`에는 이제 쓰지 않는 shrimp-task-manager 항목(`DATA_DIR`, `TEMPLATES_USE`, `ENABLE_GUI`)이 남아 있습니다 (`.mcp.json`에는 supabase만 등록됨). 정리 대상입니다.
+- `DATA_DIR`, `TEMPLATES_USE`, `ENABLE_GUI`는 앱이 아니라 shrimp-task-manager MCP용입니다 (`.mcp.json`에 등록됨).
 
 ## 품질 게이트
 
@@ -183,7 +223,7 @@ import { cn } from "@/lib/utils";
 | 명령                    | 내용                                                              |
 | ----------------------- | ----------------------------------------------------------------- |
 | `npm run dev` / `build` | 개발 서버 / 프로덕션 빌드 (Turbopack)                             |
-| `npm run typecheck`     | `tsc --noEmit`                                                    |
+| `npm run typecheck`     | `next typegen && tsc --noEmit`                                    |
 | `npm run lint`          | `eslint . --max-warnings=0` (경고도 실패)                         |
 | `npm run format:check`  | Prettier 검사 (`npm run format`으로 수정)                         |
 | `npm run test`          | Vitest 1회 실행 (`test:watch`, `test:coverage`도 있음)            |
@@ -194,34 +234,37 @@ import { cn } from "@/lib/utils";
 
 ### Git 훅과 CI
 
-- `pre-commit`: `lint-staged` — 스테이징된 `ts/tsx/js/mjs`에 ESLint + Prettier, `json/css/md/yml`에 Prettier.
+- `pre-commit`: `lint-staged` — 스테이징된 `js/jsx/mjs/ts/tsx`에 `eslint --fix --max-warnings=0` + Prettier, `json/css/md/yml/yaml`에 Prettier.
 - `commit-msg`: `commitlint` — `타입: 제목` 또는 `타입(scope): 제목`. 제목은 한국어 가능, 헤더 100자 이내.
 - `pre-push`: `typecheck` + `lint`.
-- CI(`.github/workflows/ci.yml`): `typecheck` → `lint` → `format:check` → `test` → `build`. **E2E는 CI에서 실행하지 않습니다.**
+- CI(`.github/workflows/ci.yml`): `typecheck` → `lint` → `format:check` → `test` → `build`. **E2E와 knip은 CI에서 실행하지 않습니다.** knip은 로컬에서 직접 돌립니다.
 - `.claude/settings.json`은 `--no-verify` 커밋과 force push를 막고, 파일을 Edit/Write 하면 포맷 훅을 실행합니다.
 
 ### 테스트 배치
 
-- 단위/컴포넌트 테스트: 대상 파일 옆의 `*.test.ts(x)` (예: `lib/utils.test.ts`). 환경은 jsdom이고 `vitest.setup.ts`가 `jest-dom` 매처와 `cleanup`을 설정합니다.
-- E2E: `e2e/*.spec.ts`. Vitest는 `e2e/`를 제외합니다.
+- 단위/컴포넌트 테스트: 대상 파일 옆의 `*.test.ts(x)` (예: `lib/format-date.test.ts`). 환경은 jsdom이고 `vitest.setup.ts`가 `jest-dom` 매처와 `cleanup`을 설정합니다.
+- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `visitor-flow`, `admin-flow`, `access-control`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
 - 커버리지는 `app/`, `components/`, `lib/`를 대상으로 하되 `components/ui/**`는 제외합니다.
 - Server Component(async)는 Vitest로 직접 렌더링하기 어렵습니다. 로직은 함수로 분리해 단위 테스트하고, 화면 흐름은 E2E로 검증합니다.
 
 ## 새 파일 추가 규칙
 
-| 대상                      | 위치                                                      |
-| ------------------------- | --------------------------------------------------------- |
-| 새 공개 페이지            | `app/<경로>/page.tsx` + `lib/supabase/proxy.ts` 예외 추가 |
-| 로그인 필요 페이지        | `app/protected/<경로>/page.tsx`                           |
-| Route Handler             | `app/<경로>/route.ts`                                     |
-| Server Action             | 기능 옆 `actions.ts` (파일 최상단에 `"use server"`)       |
-| 공통 UI                   | `components/ui/` (shadcn CLI)                             |
-| 한 페이지 전용 컴포넌트   | 해당 라우트 폴더의 `_components/`                         |
-| 여러 페이지 공용 컴포넌트 | `components/` (늘어나면 `components/<domain>/`)           |
-| 단위 테스트               | 대상 파일 옆 `*.test.ts(x)`                               |
-| E2E 테스트                | `e2e/<이름>.spec.ts`                                      |
-| 정적 파일                 | `public/` (폴더 없음, 필요 시 생성)                       |
-| 환경 변수                 | `.env` + `.env.example`에 키 이름 추가                    |
+| 대상                      | 위치                                                       |
+| ------------------------- | ---------------------------------------------------------- |
+| 새 공개 페이지            | `app/(site)/<경로>/page.tsx` (proxy 수정 불필요)           |
+| 관리자 페이지             | `app/admin/<경로>/page.tsx` (proxy가 자동 보호)            |
+| Route Handler             | `app/<경로>/route.ts`                                      |
+| Server Action             | 기능 옆 `actions.ts` (파일 최상단에 `"use server"`)        |
+| 공통 UI                   | `components/ui/` (shadcn CLI)                              |
+| 한 페이지 전용 컴포넌트   | 해당 라우트 폴더의 `_components/`                          |
+| 여러 페이지 공용 컴포넌트 | `components/<domain>/`                                     |
+| 정적 콘텐츠(이력 등)      | `data/<이름>.ts` + 타입은 `lib/types/`                     |
+| 순수 로직                 | `lib/<도메인>/<이름>.ts` + 옆에 `*.test.ts`                |
+| DB 스키마 변경            | `supabase/migrations/` → 적용 → `database.types.ts` 재생성 |
+| 단위 테스트               | 대상 파일 옆 `*.test.ts(x)`                                |
+| E2E 테스트                | `e2e/<이름>.spec.ts`                                       |
+| 정적 파일                 | `public/` (폴더 없음, 필요 시 생성)                        |
+| 환경 변수                 | `.env` + `.env.example`에 키 이름 추가                     |
 
 ## 코드 조직 원칙
 
@@ -246,21 +289,19 @@ ESLint가 `consistent-type-imports`를 강제하므로 타입은 `import { type 
 
 - `page.tsx`, `layout.tsx`, `route.ts`, `proxy.ts` 등 Next.js 파일 규칙은 지정된 export를 따릅니다.
 - 그 외 컴포넌트는 named export를 사용하고, 같은 컴포넌트를 default와 named로 동시에 내보내지 않습니다.
-- knip이 사용되지 않는 export를 잡습니다. 쓰지 않는 export는 만들지 않습니다.
+- knip이 사용되지 않는 export를 잡습니다. 쓰지 않는 export는 만들지 않습니다. 아직 쓰이지 않는 파일은 `knip.jsonc`의 임시 예외에 사유와 함께 둡니다.
 
 ### 크기와 책임
 
 - 한 파일은 하나의 주요 책임만 가집니다. 300줄을 넘으면 분리를 고려합니다.
 - 4단계 이상 깊은 중첩, `misc/`·`common/`·`shared/` 같은 모호한 폴더명은 피합니다.
 
-## starter 잔재 정리
+## starter 잔재
 
-아래는 Supabase starter가 만든 코드이며 실제 서비스에 맞게 바꾸거나 지울 대상입니다. **새 코드의 기준으로 삼지 않습니다.**
+Supabase starter에서 남은 것 중 실제 서비스에 맞게 바꾸거나 지울 대상입니다. **새 코드의 기준으로 삼지 않습니다.**
 
-- `components/tutorial/`, `components/deploy-button.tsx`, `components/hero.tsx`, `components/next-logo.tsx`, `components/supabase-logo.tsx`, `components/env-var-warning.tsx`
-- `app/page.tsx`, `app/protected/page.tsx`의 안내용 화면, `hasEnvVars` 검사
-- 영어 UI 문구와 `<html lang="en">`, 사이트 제목 "Next.js and Supabase Starter Kit"
-- 인증 폼의 `useState` 기반 구현 (새 폼은 `forms-react-hook-form.md`의 패턴을 따름)
+- `lib/utils.ts`의 `hasEnvVars`
+- `components/login-form.tsx`의 `useState` 기반 구현 (새 폼은 `forms-react-hook-form.md`의 패턴을 따름)
 
 ## 체크리스트
 
@@ -268,10 +309,12 @@ ESLint가 `consistent-type-imports`를 강제하므로 타입은 `import { type 
 - [ ] kebab-case 파일명, PascalCase 컴포넌트명
 - [ ] `@/` 별칭 사용, `src/` 경로 쓰지 않기
 - [ ] `cn`은 `@/lib/utils`에서 import
-- [ ] 새 공개 경로는 `lib/supabase/proxy.ts`의 리다이렉트 예외에 추가
+- [ ] 공개 페이지는 `app/(site)/`, 관리자 페이지는 `app/admin/`
+- [ ] 새 `app/admin/` 페이지·Server Action은 `requireAdmin()`을 직접 호출 (레이아웃은 클라이언트 전환 시 다시 렌더링되지 않을 수 있고, Server Action은 proxy를 거치지 않을 수 있음). 예외는 누구나 호출해야 하는 `logout`(`app/admin/actions.ts`)
 - [ ] Supabase 클라이언트는 요청마다 생성, 서버/브라우저 클라이언트 구분
 - [ ] 요청 시점 데이터를 읽는 컴포넌트에 `Suspense` 경계 설정
 - [ ] 비밀 값에 `NEXT_PUBLIC_` 접두를 붙이지 않았는지 확인
 - [ ] 새 환경 변수는 `.env.example`에도 반영
+- [ ] 스키마를 바꿨다면 마이그레이션 적용 후 `database.types.ts` 재생성, advisor 확인
 - [ ] 커밋 메시지는 `타입: 제목` 형식
 - [ ] `npm run check` 통과

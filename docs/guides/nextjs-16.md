@@ -27,14 +27,15 @@
 ### 2. Server Components 우선
 
 모든 컴포넌트는 기본적으로 Server Component입니다. 상태, 이벤트 핸들러, 브라우저 API가 필요한 말단 컴포넌트에만 `'use client'`를 붙입니다.
-이 프로젝트의 예: `components/auth-button.tsx`(서버)가 세션을 읽고, 클릭 처리가 필요한 `components/logout-button.tsx`(클라이언트)만 분리되어 있습니다.
+이 프로젝트의 예: `components/layout/site-header.tsx`(서버)가 메뉴를 그리고, 현재 경로(`usePathname`)가 필요한 `nav-link.tsx`·`nav-group-dropdown.tsx`·`mobile-nav.tsx`(클라이언트)만 분리되어 있습니다. 관리자 편집기(`app/admin/posts/edit/_components/post-editor.tsx`)도 입력 상태가 필요해 클라이언트이고, 그 `page.tsx`는 서버입니다.
 
 ```tsx
 // 서버 컴포넌트: 데이터는 서버에서 읽고 상호작용만 클라이언트로 분리
-export async function AuthButton() {
+// components/layout/admin-link.tsx (현재 코드를 줄인 것)
+export async function AdminLink() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  return data?.claims ? <LogoutButton /> : <SignInLinks />;
+  return isAdmin(data?.claims) ? <Link href="/admin/posts">관리</Link> : null;
 }
 ```
 
@@ -44,17 +45,25 @@ Next.js 16에서는 동기 접근이 완전히 제거되었습니다. `cookies()
 타입은 `npx next typegen`이 생성하는 전역 헬퍼(`PageProps`, `LayoutProps`, `RouteContext`)를 사용합니다.
 
 ```tsx
-// app/protected/notes/[id]/page.tsx
-export default async function Page(props: PageProps<"/protected/notes/[id]">) {
-  const { id } = await props.params;
-  const { q } = await props.searchParams;
+// app/(site)/blog/[slug]/page.tsx (현재 코드를 줄인 것)
+// page는 await 하지 않고 Promise를 Suspense 안쪽 컴포넌트에 넘긴다.
+async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
+  const { slug } = await params;
+  const post = findPublishedPost(decodeSlug(slug));
+  if (!post) notFound();
+  return <article>{post.title}</article>;
+}
+
+export default function BlogPostPage(props: PageProps<"/blog/[slug]">) {
   return (
-    <h1>
-      {id} / {q}
-    </h1>
+    <Suspense fallback={<p>불러오는 중…</p>}>
+      <BlogPost params={props.params} />
+    </Suspense>
   );
 }
 ```
+
+`params`는 퍼센트 인코딩된 채로 전달됩니다(한글 슬러그 등). 이 프로젝트는 `decodeSlug()`로 직접 디코딩하고, 잘못된 인코딩이면 원문을 그대로 씁니다. `/blog?category=&tag=`는 `searchParams`를 같은 방식으로 Suspense 안에서 읽습니다(`app/(site)/blog/page.tsx`).
 
 `opengraph-image`, `twitter-image`, `icon`, `apple-icon`의 `params`와 `id`, `sitemap`의 `id`도 Promise입니다.
 
@@ -74,7 +83,7 @@ export async function proxy(request: NextRequest) {
 
 - 모듈 전역 변수나 공유 모듈 상태에 의존하지 않습니다. 정보 전달은 헤더, 쿠키, rewrite, redirect, URL로 합니다.
 - Proxy는 느린 데이터 패칭이나 전체 인증·인가 용도가 아닙니다. **세션 쿠키 갱신과 낙관적 리다이렉트**만 맡깁니다 (`01-app/01-getting-started/16-proxy.md`).
-- `matcher`는 정적 자산(`_next/static`, `_next/image`, `favicon.ico`, 이미지 확장자)을 제외합니다. 새 정적 확장자(예: `.woff2`)를 `public/`에 둘 때는 제외 패턴에 추가합니다.
+- `matcher`는 `_next/static`, `_next/image`, `favicon.ico`, `robots.txt`, `sitemap.xml`, 이미지 확장자(svg·png·jpg·jpeg·gif·webp)를 제외합니다. 새 정적 확장자(예: `.woff2`)를 `public/`에 둘 때는 제외 패턴에 추가합니다.
 
 ## Supabase와 함께 쓰기
 
@@ -97,11 +106,13 @@ export async function proxy(request: NextRequest) {
 
 - `createServerClient()`와 `getClaims()` 사이에 다른 코드를 넣지 않습니다. 사용자가 무작위로 로그아웃되는 원인이 됩니다.
 - 반환하는 `supabaseResponse`를 그대로 반환합니다. 새 응답을 만들면 요청을 넘기고 쿠키를 복사해야 합니다.
-- 새 공개 경로를 만들면 이 파일의 리다이렉트 예외 조건을 같이 고칩니다 (`project-structure.md` 참고).
+- 보호 대상은 `/admin` 세그먼트(`/admin`, `/admin/*`)뿐이고 나머지는 공개입니다. 공개 페이지는 이 파일을 고칠 필요가 없고, 보호 경로를 늘릴 때만 `isAdminPath` 조건을 같이 고칩니다 (`project-structure.md` 참고).
+- 리다이렉트 응답을 만들 때는 `supabaseResponse`의 쿠키를 복사합니다 (현재 구현이 이미 그렇게 합니다).
+- 관리자 역할(`app_metadata.role`) 검사는 proxy가 아니라 서버 코드(`lib/auth/require-admin.ts`의 `requireAdmin()`)와 RLS가 맡습니다.
 
 ### 인증 UI는 Suspense 안에서
 
-세션 읽기는 요청 시점이라 정적 셸에 포함할 수 없습니다. 인증 UI는 `<Suspense>` 안에서 스트리밍합니다 (`app/page.tsx`의 `AuthButton`, `app/protected/page.tsx`의 `UserDetails`가 이 패턴).
+세션 읽기는 요청 시점이라 정적 셸에 포함할 수 없습니다. 인증 UI는 `<Suspense>` 안에서 스트리밍합니다. `app/(site)/layout.tsx`가 푸터 안의 `AdminLink`를 `<Suspense fallback={null}>`로 감싸 둔 것이 이 패턴입니다(`getClaims()`로 `app_metadata.role`을 확인해 관리자일 때만 `/admin/posts` 링크를 그립니다). 관리자 영역도 `app/admin/layout.tsx`가 `AdminGuard`(`app/admin/_components/admin-guard.tsx`)를 `<Suspense>` 안에 두고, 그 안에서 `requireAdmin()`을 호출합니다.
 
 ```tsx
 export default function Page() {
@@ -115,7 +126,7 @@ export default function Page() {
 
 - 페이지 본문에서 `await createClient()`를 직접 하면 Suspense 경계 밖의 동적 접근이 되어 에러가 납니다. **읽는 쪽을 별도 async 컴포넌트로 분리해 경계 안에 둡니다.**
 - 인증 구현 패턴은 `01-app/02-guides/authentication-with-cache-components.md`와 `data-security.md`를 먼저 읽습니다.
-- `app/protected/page.tsx`처럼 미인증이면 `redirect("/auth/login")`을 호출할 수 있습니다. `redirect()`는 예외를 던지므로 `try/catch` 안에서 호출하지 않습니다.
+- 미인증이면 `redirect("/auth/login")`, 로그인했지만 관리자가 아니면 `notFound()`를 호출합니다(`lib/auth/require-admin.ts`의 `requireAdmin()`). `redirect()`와 `notFound()`는 예외를 던지므로 `try/catch` 안에서 호출하지 않습니다.
 
 ### 로그인 이후 캐시
 
@@ -124,7 +135,7 @@ Supabase 세션이 필요한 데이터는 **공유 캐시(`use cache`)에 넣지
 공개 데이터(모든 방문자가 같은 값을 보는 것)만 쿠키 없는 클라이언트로 읽어 캐시합니다. 이때 테이블은 RLS로 `anon`/`authenticated`에 공개 조회가 허용되어 있어야 합니다.
 
 ```ts
-// lib/queries/posts.ts (예시: 현재 없음)
+// lib/queries/posts.ts (예시: 아직 없음. Task 012에서 조회 함수, Task 019에서 캐시 적용)
 import { createClient } from "@supabase/supabase-js";
 import { cacheLife, cacheTag } from "next/cache";
 
@@ -245,7 +256,7 @@ useEffect(() => {
 
 ### Streaming
 
-느린 영역만 `Suspense`로 감싸고, 빠른 영역은 바로 렌더링합니다. 레이아웃의 내비게이션처럼 모든 페이지에 붙는 인증 UI도 개별 `Suspense`로 감싸 본문 스트리밍을 막지 않습니다 (`app/protected/layout.tsx`).
+느린 영역만 `Suspense`로 감싸고, 빠른 영역은 바로 렌더링합니다. 레이아웃의 내비게이션처럼 모든 페이지에 붙는 인증 UI도 개별 `Suspense`로 감싸 본문 스트리밍을 막지 않습니다. `usePathname`을 쓰는 헤더 메뉴(`site-header.tsx`)와 푸터의 `AdminLink`(`app/(site)/layout.tsx`)가 그 예입니다.
 
 ### `after()`로 비블로킹 작업
 
@@ -265,7 +276,7 @@ export async function POST(request: Request) {
 
 ### 인증 실패 응답
 
-`unauthorized()` / `forbidden()`은 `next/navigation`에서 import하며 `next.config.ts`에 `authInterrupts: true`가 필요합니다 (현재 꺼져 있음). 지금은 `redirect("/auth/login")`을 사용합니다. 켜기 전에 `01-app/03-api-reference/04-functions/unauthorized.md`를 확인하세요.
+`unauthorized()` / `forbidden()`은 `next/navigation`에서 import하며 `next.config.ts`에 `authInterrupts: true`가 필요합니다 (현재 꺼져 있음). 지금은 `redirect("/auth/login")`(비로그인)과 `notFound()`(비관리자)를 사용합니다. 켜기 전에 `01-app/03-api-reference/04-functions/unauthorized.md`를 확인하세요.
 
 ### Typed Routes
 
@@ -273,10 +284,10 @@ export async function POST(request: Request) {
 
 ### 메타데이터, 이미지, 폰트
 
-- 메타데이터는 `metadata` / `generateMetadata`를 사용합니다. `app/layout.tsx`의 `metadataBase`는 `VERCEL_URL`이 없으면 `http://localhost:3000`입니다. 배포 도메인이 정해지면 고정 URL 환경 변수로 바꿉니다.
+- 메타데이터는 `metadata` / `generateMetadata`를 사용합니다. `app/layout.tsx`의 `metadataBase`는 `VERCEL_URL`이 없으면 `http://localhost:3000`입니다. Task 018에서 고정 환경 변수 `NEXT_PUBLIC_SITE_URL` 기준으로 바꿉니다. 페이지별 `metadata`는 정적 페이지에 이미 지정되어 있고, 블로그 상세는 `generateMetadata`를 씁니다(`app/(site)/blog/[slug]/page.tsx`).
 - `app/opengraph-image.png`, `app/twitter-image.png`는 파일 규칙으로 자동 연결됩니다.
 - `next/image` 기본값이 바뀌었습니다 (`minimumCacheTTL` 4시간, `imageSizes`에서 16 제거, 쿼리 스트링이 있는 로컬 이미지는 `images.localPatterns` 필요). 상세는 `01-app/02-guides/upgrading/version-16.md`를 참고하세요. Supabase Storage 이미지를 쓰면 `images.remotePatterns`에 프로젝트 도메인을 추가합니다.
-- 폰트는 `next/font/google`을 씁니다. `app/layout.tsx`는 Geist를 로드해 `<body className={geistSans.className}>`로 적용합니다.
+- 폰트는 `next/font/google`을 씁니다. `app/layout.tsx`는 Noto Sans KR을 `variable: "--font-noto-sans-kr"`로 로드하고, `app/globals.css`의 `--font-sans`가 이를 참조합니다 (`styling-guide.md`).
 
 ## 빌드와 설정
 
@@ -318,7 +329,7 @@ export default function Title({ title }: { title: string }) {
 ## 점검 명령
 
 ```bash
-npm run typecheck            # 타입 체크
+npm run typecheck            # next typegen + tsc --noEmit
 npm run lint                 # ESLint (경고도 실패)
 npm run test                 # Vitest
 npx next typegen             # PageProps/LayoutProps/RouteContext 타입 생성

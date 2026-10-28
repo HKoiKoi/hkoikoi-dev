@@ -230,6 +230,8 @@
 
 비로그인 사용자는 발행된 글만 읽을 수 있고, 쓰기는 관리자 역할만 가능하다. 발행(`published`)된 글은 발행 시각(`published_at`)이 반드시 있어야 한다. (F012)
 
+구현 상태: `public.posts` 테이블, check 제약, 인덱스, `updated_at` 트리거, RLS가 마이그레이션(`supabase/migrations/`)으로 원격에 적용되어 있고, 타입은 `lib/supabase/database.types.ts`(생성 파일)에서 `lib/types/post.ts`가 파생한다. 공개 블로그 화면은 `lib/queries/posts.ts`로 발행 글만 조회한다.
+
 ### 이미지 파일 (스토리지 버킷 `blog-images`, F009)
 
 | 필드     | 설명                             | 관계                                |
@@ -240,12 +242,12 @@
 
 ### 정적 데이터 (코드 내 `data/*.ts`, DB 아님 — F001~F004)
 
-| 모델        | 핵심 필드                                             | 사용 기능 |
-| ----------- | ----------------------------------------------------- | --------- |
-| Profile     | 이름, 한 줄 소개, 소개문, 이메일, GitHub              | F001      |
-| ResumeEntry | title, subtitle?, period?, description?, tags?, link? | F002      |
-| Project     | name, summary, period, role, stack[], links           | F003      |
-| Publication | title, authors, venue, year, link                     | F004      |
+| 모델        | 핵심 필드                                              | 사용 기능 |
+| ----------- | ------------------------------------------------------ | --------- |
+| Profile     | 이름, 한 줄 소개, 소개문, 이메일, GitHub, 아바타?      | F001      |
+| ResumeEntry | title, subtitle?, period?, description?, tags?, link?  | F002      |
+| Project     | name, summary, period, role, stack[], links, featured? | F003      |
+| Publication | title, authors, venue, year, link                      | F004      |
 
 관리자 계정은 Supabase 인증 사용자이며 `app_metadata.role = admin`으로 식별한다. 역할 변경은 토큰 갱신 후 반영되므로 설정 뒤 재로그인이 필요하다. (F012)
 
@@ -261,7 +263,7 @@
 
 ### 백엔드 · DB (기존 스타터킷)
 
-- **Supabase** (`@supabase/ssr 0.12.7`, `@supabase/supabase-js 2.118.0`) - 인증, `posts` 테이블, 이미지 스토리지. 이유: 이미 스타터에 연결되어 있고 별도 서버가 필요 없음
+- **Supabase** (`@supabase/ssr 0.12.7`, `@supabase/supabase-js 2.118.0`) - 인증, `posts` 테이블, 이미지 스토리지(`blog-images` 버킷). 이유: 이미 스타터에 연결되어 있고 별도 서버가 필요 없음. 테이블·버킷·RLS는 `supabase/migrations/`로 관리하고 타입은 `generate_typescript_types`로 생성한다(`lib/supabase/database.types.ts`)
 
 ### 마크다운 (신규, npm 레지스트리 최신 버전 확인 완료)
 
@@ -277,7 +279,7 @@
 
 - 정적 8개 섹션의 실제 이력은 아직 제공되지 않았다. 샘플 문구로 채우고 `// TODO`로 표기하며, 사용자가 실제 내용으로 교체한다. 실제 이력은 PRD에 작성하지 않는다.
 - 블로그 글 주소는 사용자 확정 결정에 따라 `/blog/{slug}` 형식(블로그 하위 + 슬러그)이다(요구사항의 최상위 제목 경로는 고정 페이지와 충돌 가능해 변경). 슬러그는 한글 허용·수정 가능.
-- 인증은 관리자 1인 로그인 용도로만 포함한다. 방문자 계정·회원가입·프로필은 없다. 관리자 계정 생성과 Supabase "신규 가입 허용" 해제는 사용자가 대시보드에서 직접 수행한다.
+- 인증은 관리자 1인 로그인 용도로만 포함한다. 방문자 계정·회원가입·프로필은 없다. 관리자 계정 생성과 Supabase "신규 가입 허용" 해제는 사용자가 대시보드에서 직접 수행한다(2026-10-26 수행 완료: 계정 생성, `app_metadata.role = admin` 부여, 가입 해제, 최소 비밀번호 12자·대소문자·숫자·기호 필수. 가입 해제는 2026-10-27 대시보드에서 해제 상태를 다시 확인).
 - 글 편집기는 작성/수정을 하나의 페이지로 처리한다.
 - 카테고리는 글에 문자열로 저장하며 별도 카테고리 모델은 두지 않는다.
 - 모바일 폭과 라이트/다크 모두 지원한다.
@@ -290,9 +292,10 @@
 - **없는 글 응답 코드**: 스트리밍 이후 `notFound()`라 HTTP 200 + noindex로 응답한다(soft 404). MVP에서는 수용한다.
 - **역할 회수 지연**: 관리자 role을 회수해도 이미 발급된 JWT는 만료 전까지 유효하다(RLS도 동일).
 - 스토리지 고아 파일은 정리하지 않는다(삭제·교체된 이미지가 남음).
+- **유출 비밀번호 보호 미적용**: Supabase의 유출 비밀번호 보호(`auth_leaked_password_protection`)는 Pro 플랜 전용이라 쓰지 않는다. 회원가입 차단과 강한 비밀번호 정책(12자 이상, 대소문자·숫자·기호 필수)으로 완화하고, advisor 경고 1건은 예외로 수용한다.
 
-### 열린 질문
+### 열린 질문 (ROADMAP의 기본 결정으로 진행 중)
 
-- 메인 "대표 프로젝트 3개"의 선정 기준(데이터에 featured 표시 vs 앞 3개)
-- 블로그 기본 카테고리명 "일반" 유지 여부
-- 로그인 후 관리자 영역 진입 시 "관리" 링크 외에 푸터 등 보조 진입 경로가 필요한지
+- 메인 "대표 프로젝트 3개"의 선정 기준: `Project.featured`를 우선하고 3개 미만이면 목록 앞에서 채운다(구현됨).
+- 블로그 기본 카테고리명 "일반" 유지 여부: 유지한다(DB default 적용됨).
+- 로그인 후 관리자 영역 진입 시 "관리" 링크 외 보조 진입 경로: MVP는 "관리" 링크와 `/auth/login` 직접 진입만 제공한다. 링크의 위치(헤더 또는 푸터)는 Task 011 구현 시 확정한다(현재 `AdminLink` placeholder는 공개 레이아웃의 푸터 슬롯에 있다).
