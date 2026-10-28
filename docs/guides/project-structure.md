@@ -245,7 +245,7 @@ import { cn } from "@/lib/utils";
 - `pre-commit`: `lint-staged` — 스테이징된 `js/jsx/mjs/ts/tsx`에 `eslint --fix --max-warnings=0` + Prettier, `json/css/md/yml/yaml`에 Prettier.
 - `commit-msg`: `commitlint` — `타입: 제목` 또는 `타입(scope): 제목`. 제목은 한국어 가능, 헤더 100자 이내.
 - `pre-push`: `typecheck` + `lint`.
-- CI(`.github/workflows/ci.yml`): `typecheck` → `lint` → `format:check` → `test` → `build`. **E2E와 knip은 CI에서 실행하지 않습니다.** knip은 로컬에서 직접 돌립니다.
+- CI(`.github/workflows/ci.yml`): `typecheck` → `lint` → `format:check` → `test` → `build`. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`(권한 회귀)만 실행합니다. **나머지 E2E와 knip은 CI에서 실행하지 않습니다.** 둘은 로컬에서 직접 돌립니다.
 - `.claude/settings.json`은 `--no-verify` 커밋과 force push를 막고, 파일을 Edit/Write 하면 포맷 훅을 실행합니다.
 
 ### 테스트 배치
