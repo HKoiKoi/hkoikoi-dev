@@ -69,10 +69,10 @@ export function ThumbnailField({
         <img
           src={value}
           alt="썸네일 미리보기"
-          className="aspect-video w-full max-w-sm rounded-lg border object-cover"
+          className="aspect-video w-full rounded-lg border object-cover"
         />
       ) : (
-        <div className="flex aspect-video w-full max-w-sm items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+        <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
           썸네일 없음
         </div>
       )}
