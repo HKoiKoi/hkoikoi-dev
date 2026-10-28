@@ -333,7 +333,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 
 - **Task 013: 글 저장·발행·삭제 Server Action 구현** ✅
   - 관련 기능: F008, F010, F011, F012
-  - 관련 파일: `lib/schemas/post.ts`, `app/admin/posts/actions.ts`, `app/admin/posts/page.tsx`, `app/admin/posts/edit/page.tsx`, `app/admin/posts/edit/_components/post-editor.tsx`, `lib/queries/admin-posts.ts`
+  - 관련 파일: `lib/schemas/post.ts`, `app/admin/posts/actions.ts`, `app/admin/posts/page.tsx`, `app/admin/posts/new/page.tsx`, `app/admin/posts/[id]/edit/page.tsx`, `app/admin/posts/_components/post-editor.tsx`, `lib/queries/admin-posts.ts`
   - 수락 기준: 관리자가 새 글·수정을 초안/발행으로 저장하면 `/admin/posts`로 이동하고 공개 영역 노출 여부가 상태와 일치. 검증 실패·슬러그 중복은 해당 필드 옆에 오류로 표시되고 입력값 유지. 삭제는 확인 후 목록과 공개 목록에 즉시 반영
   - [x] `zod` 설치 및 `lib/schemas/post.ts`: title 1~200, slug(NFC 정규화·`slugify` 규칙 일치·비어 있지 않음), category(기본 "일반"), tags(trim·중복 제거·최대 10), excerpt ≤150, content 최대 길이(Task 005 값), thumbnail_url은 `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/blog-images/` 접두만 허용 + 단위 테스트
   - [x] `savePost`(create/update 공용) Server Action: `requireAdmin()` → 스키마 검증 → upsert → unique 위반(23505)을 slug 필드 오류로 변환 → 성공 시 `redirect('/admin/posts')`
@@ -357,6 +357,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 통과: 비로그인 상태 Server Action 재전송(curl, 쿠키 없음). 서버 참조 매니페스트에서 `savePost`·`deletePost` action ID를 찾아 `/admin/posts`(deletePost)·`/admin/posts/edit`(savePost 신규·수정)로 POST하면 모두 307 `/auth/login`. 관리자 경로가 아닌 `/blog`·`/auth/login`으로 보내면 409 'Server Action unavailable'. 요청 후 확인용 글(`e2e-curl-probe`)은 삭제·수정되지 않았고 `e2e-curl-hack` 글도 생기지 않았다(확인 후 확인용 글은 삭제).
     - 통과: `lib/schemas/post.test.ts`의 외부 도메인·`javascript:` 썸네일 거부, 버킷 URL 통과, NFD 한글 슬러그의 NFC 정규화. `npm run check`(Vitest 76개)·`npm run knip` 통과.
     - 제한 사항: 체크리스트의 'Playwright MCP' 항목은 MCP 브라우저가 아니라 위 Playwright e2e 스펙으로 같은 시나리오를 확인했다(관리자 자격 증명이 `.env`에만 있고 에이전트가 읽지 못해 MCP 브라우저로는 로그인하지 않음). `published_at` 불변은 e2e에서 상세 페이지의 발행일 표시(일 단위)가 수정 전후 같은지만 확인했고, 초 단위 값은 `lib/posts/published-at.test.ts` 단위 테스트가 보장한다. 비관리자(로그인했지만 admin이 아닌) 계정의 Server Action 호출은 미수행(`requireAdmin()`이 `notFound()`로 처리하는 경로는 코드 리뷰와 단위 테스트 범위).
+  - 후속 개선(2026-10-28, 편집기 UX): 사용자 피드백 3건 반영.
+    - [x] 편집기 라우트 분리: `/admin/posts/edit(?id=)` → 새 글 `/admin/posts/new`, 수정 `/admin/posts/[id]/edit`. 공용 `post-editor.tsx`는 `app/admin/posts/_components/`로 이동하고 수정 페이지는 `key={id}`로 렌더링(같은 페이지를 재사용하며 이전 입력 상태가 남아 수정 화면이 비던 문제의 유력 원인 제거). 목록·헤더 링크와 e2e 경로 갱신
+    - [x] 하단 고정 바: 왼쪽 `←` 나가기(`/admin/posts`), 오른쪽 "임시 저장"과 "저장하기"(수정 모드는 "수정하기"). 발행 체크박스는 제거하고 발행 버튼이 `published=on`을 보내 상태를 결정(임시 저장은 값 없음 → 초안)
+    - [x] 임시 저장은 목록으로 이동하지 않고 편집 화면에 머문다. 수정 모드는 `{ ok: true, message }`를 반환해 바에 "임시 저장했습니다."를 표시하고, 새 글은 insert한 id의 `/admin/posts/{id}/edit`으로 redirect(이후 저장이 중복 생성이 되지 않게 함). 발행 저장은 기존처럼 `/admin/posts`로 redirect
+    - 테스트 결과: 2026-10-28 `npm run check`(Vitest 123개)·`npm run knip` 통과. `npx playwright test e2e/admin-posts.spec.ts e2e/admin-flow.spec.ts` 10개 통과(skip 0): 새 글 임시 저장→수정 화면 이동·재저장해도 1건·초안 배지 / 수정 화면 임시 저장→URL·입력값 유지·초안 전환·공개 상세 not-found / 수정 화면에 기존 제목 표시. e2e 헬퍼 `createPost`는 임시 저장 시 수정 화면 도착을 확인한 뒤 목록으로 이동하도록 변경, `savePost` 단위 테스트(임시 저장 redirect·ok 반환) 갱신. 하단 바는 Playwright 스크린샷으로 1280px·390px, 라이트·다크에서 스크롤 끝까지 바가 하단에 고정되고 내용이 가려지지 않음을 확인했다.
+    - 제한 사항: Playwright MCP 브라우저가 아니라 e2e 스펙과 임시 스펙(삭제함)으로 확인했다(관리자 자격 증명을 에이전트가 읽지 못함). 발행된 글을 수정 화면에서 "임시 저장"하면 초안으로 되돌아가 공개에서 내려가는 동작은 의도 확인이 필요하다. 개발 서버의 Next 인디케이터가 모바일에서 "나가기"를 일부 가리지만 프로덕션에는 없다.
 
 - **Task 014: 핵심 기능 통합 테스트** ✅
   - 관련 기능: F001~F006, F008, F010~F013
@@ -402,7 +408,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 
 - **Task 016: 편집기 실시간 미리보기 및 스타일 격리 구현**
   - 관련 기능: F007, F008
-  - 관련 파일: `app/admin/posts/edit/_components/{post-editor,markdown-preview}.tsx`, `components/markdown/markdown-content.tsx`
+  - 관련 파일: `app/admin/posts/_components/{post-editor,markdown-preview}.tsx`, `components/markdown/markdown-content.tsx`
   - 수락 기준: 본문 입력이 미리보기에 실시간 반영되고(입력 지연 체감 없음), 본문의 `<style>`이 편집기 UI(헤더·입력란·버튼)에 영향을 주지 않음. 미리보기 렌더링은 상세 페이지와 동일 결과
   - [ ] 격리 방식 결정 및 구현: Shadow DOM(권장, `MarkdownContent`를 portal로 shadow root에 렌더링 + KaTeX·typography·hljs CSS 주입) 또는 `iframe srcdoc`. 선택 근거를 이 항목에 기록
   - [ ] `useDeferredValue`로 입력과 렌더링 분리, 미완성 마크다운에서도 예외 없이 표시
