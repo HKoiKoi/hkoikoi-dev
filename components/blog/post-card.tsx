@@ -26,7 +26,12 @@ export function PostCard({ post, className }: PostCardProps) {
   const href = `/blog/${encodeURIComponent(slug)}`;
 
   return (
-    <Card className={cn("h-full pt-0", className)}>
+    <Card
+      className={cn(
+        "relative h-full pt-0 transition-shadow hover:shadow-md hover:ring-foreground/25",
+        className,
+      )}
+    >
       {thumbnail_url ? (
         // 외부 URL이 임의 도메인일 수 있어 next/image 대신 img 사용
         // eslint-disable-next-line @next/next/no-img-element
@@ -46,13 +51,17 @@ export function PostCard({ post, className }: PostCardProps) {
       )}
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
-          <CategoryBadge category={category} />
+          <CategoryBadge category={category} className="relative z-30" />
           <time dateTime={date} className="text-xs text-muted-foreground">
             {formatDate(date)}
           </time>
         </div>
         <CardTitle className="text-lg break-words">
-          <Link href={href} className="hover:underline">
+          {/* stretched link: after 가상 요소로 카드 전체를 클릭 영역으로 확장 */}
+          <Link
+            href={href}
+            className="outline-none after:absolute after:inset-0 after:rounded-xl after:content-[''] hover:underline focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
+          >
             {title}
           </Link>
         </CardTitle>
