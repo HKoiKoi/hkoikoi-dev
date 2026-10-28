@@ -110,7 +110,7 @@
 - 레이아웃 간격은 `space-x-*`/`space-y-*` 대신 `flex`/`grid` + `gap-*`, 정사각형은 `w-* h-*` 대신 `size-*`를 씁니다.
 - 커스텀 CSS 클래스와 CSS Modules는 만들지 않습니다. 반복되면 컴포넌트로 추출합니다.
 - `!important`(`p-4!`)는 서드파티 스타일을 덮어쓸 때만 씁니다.
-- 오류 문구는 `text-destructive`를 씁니다 (`components/login-form.tsx`, 편집기의 글자 수 초과 표시). `text-red-500` 같은 하드코딩 색은 쓰지 않습니다.
+- 오류 문구는 `text-destructive`를 씁니다 (`app/auth/login/_components/login-form.tsx`, 편집기의 글자 수 초과 표시). `text-red-500` 같은 하드코딩 색은 쓰지 않습니다.
 
 ### 반응형
 

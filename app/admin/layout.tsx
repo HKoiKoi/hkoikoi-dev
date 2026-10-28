@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AdminGuard } from "@/app/admin/_components/admin-guard";
 import { ScrollToTop } from "@/components/layout/scroll-to-top";
-import { LogoutButton } from "@/components/logout-button";
+import { LogoutButton } from "@/app/admin/_components/logout-button";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site-config";
 

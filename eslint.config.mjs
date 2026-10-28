@@ -20,6 +20,24 @@ export default defineConfig([
       eqeqeq: ["error", "always", { null: "ignore" }],
     },
   },
+  {
+    // import 방향: ui <- 도메인 <- app 단방향, components는 app을 참조하지 않는다
+    files: ["components/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/app", "@/app/*"],
+              message:
+                "components는 app을 import할 수 없습니다. 라우트 전용 컴포넌트는 app/**/_components/로 옮기세요.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // 반드시 마지막: 포매팅과 충돌하는 규칙 비활성화
   prettier,
   globalIgnores([
