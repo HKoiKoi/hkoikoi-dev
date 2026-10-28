@@ -37,6 +37,18 @@ function contentBox(page: Page) {
   return page.getByLabel("본문");
 }
 
+// 하이드레이션 전에 setInputFiles를 호출하면 change 이벤트가 유실돼 본문이 비어 있는 채로 남는다.
+// input에 React props가 붙을 때까지(이벤트 핸들러 연결) 기다린다.
+async function waitForEditorHydrated(page: Page) {
+  await page.waitForFunction(() => {
+    const input = document.querySelector('[data-testid="image-upload-input"]');
+    return (
+      input !== null &&
+      Object.keys(input).some((key) => key.startsWith("__reactProps$"))
+    );
+  });
+}
+
 test.describe("관리자 이미지 업로드", () => {
   test.skip(!hasAdmin, "관리자 자격 증명 없음");
   // 같은 DB와 스토리지를 공유하므로 순서대로 실행한다.
@@ -45,6 +57,7 @@ test.describe("관리자 이미지 업로드", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
     await page.goto("/admin/posts/new");
+    await waitForEditorHydrated(page);
   });
 
   test.afterAll(async ({ browser }) => {
