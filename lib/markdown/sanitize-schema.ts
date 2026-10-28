@@ -26,5 +26,10 @@ export const sanitizeSchema: typeof defaultSchema = {
     ...defaultAttributes,
     "*": [...(defaultAttributes["*"] ?? []), allowedClassNames],
     img: [...(defaultAttributes.img ?? []), "loading", "width", "height"],
+    // span의 style은 `color: #hex` 한 가지 형태만 통과한다. 값이 패턴과 다르면 속성 전체가 제거된다.
+    span: [
+      ...(defaultAttributes.span ?? []),
+      ["style", /^\s*color:\s*#[0-9a-fA-F]{3,8}\s*;?\s*$/],
+    ],
   },
 };

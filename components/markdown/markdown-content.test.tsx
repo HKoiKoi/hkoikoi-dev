@@ -29,6 +29,26 @@ describe("MarkdownContent 렌더링", () => {
     expect(c.querySelector('[class*="hljs-"]')).not.toBeNull();
   });
 
+  it("span의 color hex style은 유지한다", () => {
+    const span = renderMd(
+      '<span style="color: #A78BFA">x</span>',
+    ).querySelector("span");
+    expect(span).toHaveStyle({ color: "#A78BFA" });
+  });
+
+  it("span의 color 외 style은 제거한다", () => {
+    const c = renderMd(
+      '<span style="color: red; position: fixed">x</span><span style="background: url(x)">y</span>',
+    );
+    expect(c.querySelectorAll("span[style]")).toHaveLength(0);
+  });
+
+  it("span 외 요소의 style은 제거한다", () => {
+    expect(
+      renderMd('<div style="color: #fff">x</div>').querySelector("[style]"),
+    ).toBeNull();
+  });
+
   it("취소선을 del로 렌더링한다", () => {
     expect(renderMd("~~x~~").querySelector("del")).not.toBeNull();
   });
