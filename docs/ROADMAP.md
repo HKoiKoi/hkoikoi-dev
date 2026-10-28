@@ -51,7 +51,7 @@ hkoikoi.dev는 채용 담당자·동료 개발자(방문자)와 관리자 본인
 - Next.js 관련 코드는 작성 전에 `node_modules/next/dist/docs/`와 `docs/guides/nextjs-16.md`를 확인한다(Cache Components: 요청 시점 데이터를 읽는 컴포넌트는 `<Suspense>`로 감싸고, `dynamic`/`revalidate` 세그먼트 설정은 쓰지 않는다).
 - shadcn 컴포넌트는 `npx shadcn@latest add <name>`로만 추가한다(`components/ui/`는 직접 작성하지 않음). import 방향은 `components/ui` ← `components/<domain>` ← `app/` 단방향.
 - 테스트 시나리오의 "Playwright MCP"는 `mcp__playwright__*` 도구(사용자 설정으로 제공)를 뜻한다. 구현 시점에 도구를 쓸 수 없으면 같은 시나리오를 **수동 확인**(브라우저 직접 조작)으로 대체하고 `테스트 결과`에 그 사실을 적는다. 반복 실행이 필요한 시나리오는 `e2e/*.spec.ts`(Playwright Test)로도 고정한다.
-- 관리자 E2E에는 테스트용 관리자 계정이 필요하다. 자격 증명은 `.env.local`의 `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`(접두 `NEXT_PUBLIC_` 금지)로 두고, 키 이름만 `.env.example`에 추가한다. E2E는 CI에서 실행하지 않는다.
+- 관리자 E2E에는 테스트용 관리자 계정이 필요하다. 자격 증명은 `.env.local`의 `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`(접두 `NEXT_PUBLIC_` 금지)로 두고, 키 이름만 `.env.example`에 추가한다. CI에서는 시크릿 없는 `e2e/access-control.spec.ts`만 `e2e-smoke` job으로 실행하고, 관리자 자격 증명이 필요한 나머지 E2E는 로컬에서만 돌린다(2026-10-28 결정: placeholder Supabase 값으로 7개+로그인 실패 1개가 통과, 실제 Supabase 시크릿·관리자 계정을 CI에 두지 않으며 DB 쓰기·업로드가 없어 blog-images 고아 파일이 생기지 않음. 한계: 로그인 실패 시나리오는 placeholder URL에서도 같은 오류 문구가 떠서 실제 인증 거부는 검증하지 않음).
 
 ### 라우트 맵 (Task 003에서 확정)
 

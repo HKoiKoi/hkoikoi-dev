@@ -29,7 +29,7 @@ npx playwright test e2e/routes.spec.ts    # 단일 e2e 파일
 - 단위 테스트는 대상 파일 옆에 `*.test.ts(x)`로 두고, e2e는 `e2e/*.spec.ts`(`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`), 공용 헬퍼는 `e2e/fixtures/admin.ts`. Vitest는 `e2e`, `.agents`를 제외한다.
 - Git 훅(Husky): `pre-commit`은 lint-staged(eslint --fix --max-warnings=0 + prettier), `commit-msg`는 commitlint, `pre-push`는 `typecheck && lint`. `--no-verify`는 settings에서 deny되어 있다.
 - 커밋 메시지는 컨벤셔널 형식 `타입: 제목` / `타입(scope): 제목`, 제목은 한국어 허용, 헤더 100자 이내.
-- CI(`.github/workflows/ci.yml`)는 typecheck → lint → format:check → test → build 순서로 실행하며 빌드에는 placeholder Supabase 환경변수를 주입한다. E2E와 knip은 CI에서 실행하지 않으므로 로컬에서 돌린다.
+- CI(`.github/workflows/ci.yml`)는 typecheck → lint → format:check → test → build 순서로 실행하며 빌드에는 placeholder Supabase 환경변수를 주입한다. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`만 돌린다. 나머지 E2E(관리자 계정·DB 쓰기 필요)와 knip은 CI에서 실행하지 않으므로 로컬에서 돌린다.
 
 ## 환경 변수
 
