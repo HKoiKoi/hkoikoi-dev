@@ -384,12 +384,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 기능: F007, F006
   - 관련 파일: `components/markdown/markdown-content.tsx`, `lib/markdown/sanitize-schema.ts`, `lib/markdown/plugins.ts`, `lib/markdown/*.test.ts(x)`, `app/globals.css`, `app/(site)/blog/[slug]/page.tsx`
   - 수락 기준: 상세 본문이 GFM(표·체크리스트·취소선), LaTeX(인라인·블록), 코드 하이라이트(라이트/다크 색), raw HTML(`<style>`, `figure/figcaption`, `details/summary`)을 렌더링하고, 위험 요소가 제거됨. 같은 컴포넌트가 서버(상세)와 클라이언트(편집기 미리보기) 양쪽에서 동작. sanitize 동작이 단위 테스트로 고정됨
-  - [ ] 설치: `react-markdown`, `remark-gfm`, `remark-math`, `rehype-raw`, `rehype-sanitize`, `rehype-katex`, `katex`, `rehype-highlight`, `@tailwindcss/typography`(`highlight.js` 직접 설치·`rehype-slug` 미사용)
-  - [ ] 플러그인 순서 고정: remark-gfm/remark-math → rehype-raw → rehype-sanitize(확장 스키마) → rehype-katex → rehype-highlight. KaTeX `trust` 비활성, `throwOnError: false`
-  - [ ] `sanitize-schema.ts`: 기본 스키마 확장 — `style` 태그, `figure/figcaption`, `post-` 접두 class(+ `math-inline`/`math-display`/`language-*`), `img`의 `loading/width/height` 허용. `script`·`on*`·`javascript:` 제거, id는 `user-content-` 접두 유지
-  - [ ] `MarkdownContent`: `.post-content prose dark:prose-invert` 래퍼, 본문 `img`는 `loading="lazy"`, 외부 링크 `rel="noreferrer"`. `<style>` 영향 범위(페이지 전체)를 컴포넌트 주석과 작성 안내에 명시
-  - [ ] `katex/dist/katex.min.css` 로드, 코드 토큰 색을 `app/globals.css`의 CSS 변수(`--hljs-*`)로 라이트/다크 정의
-  - [ ] 상세 페이지 임시 텍스트 본문을 `MarkdownContent`로 교체
+  - [x] 설치: `react-markdown`, `remark-gfm`, `remark-math`, `rehype-raw`, `rehype-sanitize`, `rehype-katex`, `katex`, `rehype-highlight`, `@tailwindcss/typography`(`highlight.js` 직접 설치·`rehype-slug` 미사용)
+  - [x] 플러그인 순서 고정: remark-gfm/remark-math → rehype-raw → rehype-sanitize(확장 스키마) → rehype-katex → rehype-highlight. KaTeX `trust` 비활성, `throwOnError: false`
+  - [x] `sanitize-schema.ts`: 기본 스키마 확장 — `style` 태그, `figure/figcaption`, `post-` 접두 class(+ `math-inline`/`math-display`/`language-*`), `img`의 `loading/width/height` 허용. `script`·`on*`·`javascript:` 제거, id는 `user-content-` 접두 유지
+  - [x] `MarkdownContent`: `.post-content prose dark:prose-invert` 래퍼, 본문 `img`는 `loading="lazy"`, 외부 링크 `rel="noreferrer"`. `<style>` 영향 범위(페이지 전체)를 컴포넌트 주석과 작성 안내에 명시
+  - [x] `katex/dist/katex.min.css` 로드, 코드 토큰 색을 `app/globals.css`의 CSS 변수(`--hljs-*`)로 라이트/다크 정의
+  - [x] 상세 페이지 임시 텍스트 본문을 `MarkdownContent`로 교체
   - 테스트 체크리스트:
     - 정상: `markdown-content.test.tsx` → 표 마크다운 → `<table>` 렌더링, `$a^2$` → `.katex` 요소, ` ```ts ` → `hljs` 클래스 토큰
     - 정상: `markdown-content.test.tsx` → `<style>.post-box{color:red}</style><div class="post-box">x</div>` → `style` 요소 유지, div에 `post-box` class 유지(규칙 매칭 가능)
@@ -397,7 +397,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: `markdown-content.test.tsx` → `class="evil post-ok"` → `post-ok`만 남음, `id="intro"` → `id="user-content-intro"`
     - 엣지: `markdown-content.test.tsx` → 미완성 수식 `$\frac{1}{` / 미지원 언어 ` ```foobar ` → 예외 없이 렌더링
     - 엣지: Playwright MCP → 수식·코드·표·이미지가 포함된 발행 글 상세 → 라이트/다크 모두 가독성 확인, 이미지 `loading="lazy"`
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-28 `npm run check`(Vitest 16 파일 / 123개, `lib/markdown` 7개·`components/markdown` 19개 포함)·`npm run knip`(katex 오탐 없음)·`npm run build` 통과(공개 페이지 Partial Prerender ◐ 유지). 사전 검증(소스·임시 테스트로 확인, 임시 파일 삭제): class에 RegExp 허용·class 배열 토큰별 검사, 기본 `clobberPrefix` `user-content-`, vitest(jsdom)와 `renderToString`에서 ESM unified 계열 import 가능, 동기 `Markdown`은 훅 없음(훅은 `MarkdownHooks`뿐). 미지원 언어는 `rehype-highlight`가 경고만 남기고 건너뛰어 별도 옵션 불필요. Playwright MCP 확인: 관리자 자격 증명을 읽을 수 없어 Supabase MCP로 원격 프로젝트(`.mcp.json` 고정 ref와 일치 확인)에 `e2e-md-seed` 발행 글을 시드하고 dev 서버(`/blog/e2e-md-seed`)에서 확인한 뒤 SQL로 삭제해 `e2e-` 행 0건을 확인했다(제한 사항: 실제 관리자 UI 작성 경로가 아니라 SQL 시드 경로). 표·인라인/블록 수식·ts 코드 하이라이트·체크리스트·취소선·이미지·`<style>` `post-box`·details를 라이트/다크 모두 가독성 있게 렌더링, `img loading="lazy"`·외부 링크 `rel="noreferrer"`·체크박스 disabled 확인, 본문의 `<script>`는 DOM에 없음. 라이트에서 미체크 체크박스가 어둡게 보이는 점은 기본 `accent-color` 때문이며 이번 범위에서는 손대지 않았다. 모바일 폭은 확인하지 않았다
 
 - **Task 016: 편집기 실시간 미리보기 및 스타일 격리 구현**
   - 관련 기능: F007, F008

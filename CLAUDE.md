@@ -47,7 +47,7 @@ Next.js App Router + Supabase. `src/` 없이 루트에 `app/`, `components/`, `l
 - **스타일**: Tailwind v4 (`tailwind.config.ts` 없음, `@tailwindcss/postcss` + `app/globals.css`), 클래스 병합은 `lib/utils.ts`의 `cn()`, 테마는 `next-themes`(`attribute="class"`), 폰트는 Noto Sans KR(`app/layout.tsx`).
 - **Next 설정**: `cacheComponents: true`. 요청 시점 데이터(`cookies()`, `params`, `searchParams`, Supabase 세션)를 읽는 컴포넌트는 `<Suspense>`로 감싸고, `dynamic`/`revalidate` 세그먼트 설정은 쓰지 않는다.
 
-아직 없는 것: `react-hook-form`(`zod`는 설치됨), 마크다운 렌더링 의존성, `hooks/`, `public/`. 이미지 업로드, SEO는 ROADMAP Task 017~019에서 구현한다.
+아직 없는 것: `react-hook-form`(`zod`는 설치됨), `hooks/`, `public/`. 마크다운 렌더링은 `components/markdown/markdown-content.tsx`와 `lib/markdown/`(sanitize 스키마·플러그인 순서)에 있다. 이미지 업로드, SEO는 ROADMAP Task 017~019에서 구현한다.
 
 ## 알려진 예외
 

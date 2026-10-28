@@ -32,6 +32,7 @@ hkoikoi-dev/
 │   ├── ui/                 # shadcn/ui 컴포넌트 (CLI로 추가)
 │   ├── blog/               # 블로그 카드·배지
 │   ├── content/            # 이력·프로젝트·논문 등 콘텐츠 표시용
+│   ├── markdown/           # MarkdownContent (글 본문 렌더링, 서버·클라이언트 공용)
 │   ├── layout/             # 헤더·푸터·내비게이션
 │   └── *.tsx               # 로그인 폼, LogoutButton, ThemeSwitcher
 ├── data/                   # 이력·프로젝트·논문 등 정적 콘텐츠 (TypeScript 데이터)
@@ -124,6 +125,7 @@ components/
 │               #            input, label, separator, tabs, textarea
 ├── blog/       # category-badge, post-card, tag-badge
 ├── content/    # empty-state, page-header, project-card, publication-item, resume-*, tech-badge
+├── markdown/   # markdown-content (+ 테스트): 동기 컴포넌트라 서버·클라이언트 양쪽에서 쓴다
 ├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link
 └── *.tsx       # login-form, logout-button, theme-switcher
 ```
@@ -131,7 +133,7 @@ components/
 분류 규칙:
 
 1. **`ui/`**: shadcn/ui 기반 순수 UI 컴포넌트. 비즈니스 로직 없이 props로 동작을 제어합니다. 추가는 `npx shadcn@latest add <name>`.
-2. **`components/<domain>/`**: 여러 페이지가 쓰는 도메인 컴포넌트(`blog`, `content`, `layout`). 새 도메인이 생기면 폴더를 추가합니다.
+2. **`components/<domain>/`**: 여러 페이지가 쓰는 도메인 컴포넌트(`blog`, `content`, `layout`, `markdown`). 새 도메인이 생기면 폴더를 추가합니다.
 3. **`components/` 루트**: 도메인이 없는 인증·테마 관련 컴포넌트만 둡니다. 늘어나면 `components/auth/`로 묶습니다.
 4. **라우트 전용 컴포넌트**: 한 페이지에서만 쓰면 해당 라우트의 `_components/`.
 5. import 방향은 `components/ui` ← `components/*` ← `app/` 단방향입니다.
@@ -148,6 +150,7 @@ lib/
 ├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
 ├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
 ├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getPostBySlug, admin-posts.ts: getAdminPosts / getAdminPostById (+ 테스트)
+├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), plugins.ts(remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
 ├── posts/                 # slugify.ts, form-data.ts, published-at.ts (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
 ├── site-config.ts         # siteConfig, navItems
