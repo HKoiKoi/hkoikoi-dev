@@ -310,6 +310,7 @@ Supabase starter에서 남은 것 중 실제 서비스에 맞게 바꾸거나 �
 - [ ] `@/` 별칭 사용, `src/` 경로 쓰지 않기
 - [ ] `cn`은 `@/lib/utils`에서 import
 - [ ] 공개 페이지는 `app/(site)/`, 관리자 페이지는 `app/admin/`
+- [ ] 새 `app/admin/` 페이지·Server Action은 `requireAdmin()`을 직접 호출 (레이아웃은 클라이언트 전환 시 다시 렌더링되지 않을 수 있고, Server Action은 proxy를 거치지 않을 수 있음). 예외는 누구나 호출해야 하는 `logout`(`app/admin/actions.ts`)
 - [ ] Supabase 클라이언트는 요청마다 생성, 서버/브라우저 클라이언트 구분
 - [ ] 요청 시점 데이터를 읽는 컴포넌트에 `Suspense` 경계 설정
 - [ ] 비밀 값에 `NEXT_PUBLIC_` 접두를 붙이지 않았는지 확인

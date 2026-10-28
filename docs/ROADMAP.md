@@ -107,7 +107,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] 회원가입 제거: `app/auth/sign-up/`, `app/auth/sign-up-success/`, `components/sign-up-form.tsx` 삭제, `login-form.tsx`의 가입 링크 제거
   - [x] 비밀번호 재설정 흐름(`forgot-password`, `update-password`, 관련 폼)과 이메일 확인용 `app/auth/confirm/route.ts`는 PRD 범위 밖이므로 삭제한다(관리자 비밀번호 재설정은 Supabase 대시보드에서 수행). 유지하기로 결정하면 이 항목에 사유를 적는다
   - [x] `app/layout.tsx`: `lang="ko"`, Geist → `next/font/google`의 Noto Sans KR, 메타데이터(title 템플릿 `%s | hkoikoi.dev`, description) 교체. `metadataBase`는 Task 018에서 `NEXT_PUBLIC_SITE_URL` 기준으로 교체
-  - [x] `hasEnvVars` 검사 제거 여부 결정: 홈·`app/protected/layout.tsx` 참조는 제거하고, `lib/supabase/proxy.ts`의 검사는 로컬 환경 변수 미설정 시 개발 편의를 위해 유지(Task 011에서 재검토해 유지로 결정)
+  - [x] `hasEnvVars` 검사 제거 여부 결정: 홈·`app/protected/layout.tsx` 참조는 제거하고, `lib/supabase/proxy.ts`의 검사는 env 미설정 시 공개 페이지 500을 막는 안전장치라 유지(Task 011에서 재검토해 유지로 결정, 근거는 `lib/supabase/proxy.ts` 주석)
   - [x] `e2e/home.spec.ts`를 스타터 문구 의존 없이 새 홈 기준으로 갱신(임시: 페이지 로드·`lang="ko"` 확인)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → `/` 접속 → 스타터 안내 문구("Next steps", "Deploy") 없음, `html[lang=ko]`
@@ -443,6 +443,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [ ] `generateMetadata`: `getPostBySlug` 재사용(같은 요청 내 중복 조회 방지를 위해 `React.cache` 또는 캐시 함수 사용), 없으면 `robots: { index: false }`
   - [ ] `app/sitemap.ts`: `lib/site-config.ts` 메뉴 + 발행 글(슬러그 인코딩)
   - [ ] `app/robots.ts`: `disallow: ['/admin', '/auth']`, sitemap 절대 URL
+  - [ ] `/admin`·`/auth/login`·`/auth/error` 페이지 단위 noindex: `app/admin/layout.tsx`와 `app/auth/*/page.tsx`(또는 `app/auth/layout.tsx` 신설)에 정적 `export const metadata = { robots: { index: false, follow: false } }` 추가(robots.txt disallow는 색인 차단을 보장하지 않음). `robots`는 얕은 병합이라 하위 page에서 `robots`를 다시 지정하면 layout 값이 사라지므로 하위에서는 지정하지 않는다. 출력 태그(`noindex, nofollow`)는 번들 문서에 명시가 없어 빌드 후 HTML로 확인한다
   - [ ] 트레이드오프 기록: 없는 글은 스트리밍 이후 `notFound()`라 HTTP 200 + noindex(soft 404) 수용
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 발행 글 상세 → `<title>`에 글 제목, `meta[name=description]`=소개글, `meta[property="og:image"]`=썸네일 절대 URL
