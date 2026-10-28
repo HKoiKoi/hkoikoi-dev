@@ -1,6 +1,6 @@
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
-import { POST_COLUMNS, SUMMARY_COLUMNS } from "@/lib/queries/posts";
+import { POST_COLUMNS, SUMMARY_COLUMNS } from "@/lib/queries/columns";
 import { createClient } from "@/lib/supabase/server";
 import type { Post, PostSummary } from "@/lib/types/post";
 

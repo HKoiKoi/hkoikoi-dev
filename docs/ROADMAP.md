@@ -51,28 +51,29 @@ hkoikoi.dev는 채용 담당자·동료 개발자(방문자)와 관리자 본인
 - Next.js 관련 코드는 작성 전에 `node_modules/next/dist/docs/`와 `docs/guides/nextjs-16.md`를 확인한다(Cache Components: 요청 시점 데이터를 읽는 컴포넌트는 `<Suspense>`로 감싸고, `dynamic`/`revalidate` 세그먼트 설정은 쓰지 않는다).
 - shadcn 컴포넌트는 `npx shadcn@latest add <name>`로만 추가한다(`components/ui/`는 직접 작성하지 않음). import 방향은 `components/ui` ← `components/<domain>` ← `app/` 단방향.
 - 테스트 시나리오의 "Playwright MCP"는 `mcp__playwright__*` 도구(사용자 설정으로 제공)를 뜻한다. 구현 시점에 도구를 쓸 수 없으면 같은 시나리오를 **수동 확인**(브라우저 직접 조작)으로 대체하고 `테스트 결과`에 그 사실을 적는다. 반복 실행이 필요한 시나리오는 `e2e/*.spec.ts`(Playwright Test)로도 고정한다.
-- 관리자 E2E에는 테스트용 관리자 계정이 필요하다. 자격 증명은 `.env.local`의 `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`(접두 `NEXT_PUBLIC_` 금지)로 두고, 키 이름만 `.env.example`에 추가한다. E2E는 CI에서 실행하지 않는다.
+- 관리자 E2E에는 테스트용 관리자 계정이 필요하다. 자격 증명은 `.env.local`의 `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`(접두 `NEXT_PUBLIC_` 금지)로 두고, 키 이름만 `.env.example`에 추가한다. CI에서는 시크릿 없는 `e2e/access-control.spec.ts`만 `e2e-smoke` job으로 실행하고, 관리자 자격 증명이 필요한 나머지 E2E는 로컬에서만 돌린다(2026-10-28 결정: placeholder Supabase 값으로 7개+로그인 실패 1개가 통과, 실제 Supabase 시크릿·관리자 계정을 CI에 두지 않으며 DB 쓰기·업로드가 없어 blog-images 고아 파일이 생기지 않음. 한계: 로그인 실패 시나리오는 placeholder URL에서도 같은 오류 문구가 떠서 실제 인증 거부는 검증하지 않음).
 
 ### 라우트 맵 (Task 003에서 확정)
 
 PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는 아래 안으로 진행하고, 바꾸면 이 표와 헤더 메뉴 설정(`lib/site-config.ts`)을 함께 고친다.
 
-| 페이지         | 경로                                     | 파일 (예정)                               | 인증        | 기능 ID                |
-| -------------- | ---------------------------------------- | ----------------------------------------- | ----------- | ---------------------- |
-| 메인           | `/`                                      | `app/(site)/page.tsx`                     | 불필요      | F001, F003, F005, F013 |
-| 학력           | `/education`                             | `app/(site)/education/page.tsx`           | 불필요      | F002                   |
-| 경력           | `/career`                                | `app/(site)/career/page.tsx`              | 불필요      | F002                   |
-| 자격증         | `/certifications`                        | `app/(site)/certifications/page.tsx`      | 불필요      | F002                   |
-| 사회봉사       | `/volunteer`                             | `app/(site)/volunteer/page.tsx`           | 불필요      | F002                   |
-| 어학           | `/languages`                             | `app/(site)/languages/page.tsx`           | 불필요      | F002                   |
-| 사회활동       | `/activities`                            | `app/(site)/activities/page.tsx`          | 불필요      | F002                   |
-| 프로젝트       | `/projects`                              | `app/(site)/projects/page.tsx`            | 불필요      | F003                   |
-| 논문           | `/publications`                          | `app/(site)/publications/page.tsx`        | 불필요      | F004                   |
-| 블로그 목록    | `/blog?category=&tag=`                   | `app/(site)/blog/page.tsx`                | 불필요      | F005                   |
-| 블로그 상세    | `/blog/{slug}` (한글 슬러그 허용)        | `app/(site)/blog/[slug]/page.tsx`         | 불필요      | F006, F007, F014       |
-| 로그인         | `/auth/login`                            | `app/auth/login/page.tsx` (스타터 재사용) | 불필요      | F012                   |
-| 관리자 글 목록 | `/admin/posts`                           | `app/admin/posts/page.tsx`                | 관리자 역할 | F010, F011, F012       |
-| 글 편집기      | `/admin/posts/edit` (`?id=` 있으면 수정) | `app/admin/posts/edit/page.tsx`           | 관리자 역할 | F007~F010, F012        |
+| 페이지         | 경로                              | 파일 (예정)                               | 인증        | 기능 ID                |
+| -------------- | --------------------------------- | ----------------------------------------- | ----------- | ---------------------- |
+| 메인           | `/`                               | `app/(site)/page.tsx`                     | 불필요      | F001, F003, F005, F013 |
+| 학력           | `/education`                      | `app/(site)/education/page.tsx`           | 불필요      | F002                   |
+| 경력           | `/career`                         | `app/(site)/career/page.tsx`              | 불필요      | F002                   |
+| 자격증         | `/certifications`                 | `app/(site)/certifications/page.tsx`      | 불필요      | F002                   |
+| 사회봉사       | `/volunteer`                      | `app/(site)/volunteer/page.tsx`           | 불필요      | F002                   |
+| 어학           | `/languages`                      | `app/(site)/languages/page.tsx`           | 불필요      | F002                   |
+| 사회활동       | `/activities`                     | `app/(site)/activities/page.tsx`          | 불필요      | F002                   |
+| 프로젝트       | `/projects`                       | `app/(site)/projects/page.tsx`            | 불필요      | F003                   |
+| 논문           | `/publications`                   | `app/(site)/publications/page.tsx`        | 불필요      | F004                   |
+| 블로그 목록    | `/blog?category=&tag=`            | `app/(site)/blog/page.tsx`                | 불필요      | F005                   |
+| 블로그 상세    | `/blog/{slug}` (한글 슬러그 허용) | `app/(site)/blog/[slug]/page.tsx`         | 불필요      | F006, F007, F014       |
+| 로그인         | `/auth/login`                     | `app/auth/login/page.tsx` (스타터 재사용) | 불필요      | F012                   |
+| 관리자 글 목록 | `/admin/posts`                    | `app/admin/posts/page.tsx`                | 관리자 역할 | F010, F011, F012       |
+| 새 글 작성     | `/admin/posts/new`                | `app/admin/posts/new/page.tsx`            | 관리자 역할 | F007~F010, F012        |
+| 글 수정        | `/admin/posts/[id]/edit`          | `app/admin/posts/[id]/edit/page.tsx`      | 관리자 역할 | F007~F010, F012        |
 
 - 공개 페이지는 Route Group `app/(site)/`의 `layout.tsx`가 공통 헤더·푸터를 제공한다. 관리자 영역(`app/admin/`)과 로그인(`app/auth/`)은 별도 레이아웃을 쓴다.
 - 접근 정책: `proxy.ts`(`lib/supabase/proxy.ts`)는 **`/admin` 경로만** 비로그인 시 `/auth/login`으로 리다이렉트하고, 나머지는 공개한다. 관리자 역할 검사는 proxy가 아니라 서버 코드(`requireAdmin()`)와 RLS가 담당하며, 로그인했지만 관리자가 아니면 `notFound()`로 처리한다.
@@ -282,7 +283,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Supabase MCP `execute_sql` → `anon` 역할로 초안 select → 0행, insert → RLS 거부
     - 엣지: Supabase MCP `execute_sql` → tags 11개 / excerpt 151자 / title 0자·201자 insert → 각 check 위반
     - 엣지: 브라우저 클라이언트(수동 확인) → 비관리자 세션으로 `blog-images`에 업로드 → 정책 거부, SVG 업로드 → MIME 거부
-  - 테스트 결과: 2026-10-26 마이그레이션 2건 원격 적용(version `20261026105752` create_posts, `20261026105803` create_blog_images_bucket, 로컬 파일명과 일치). 롤백 트랜잭션으로 체크리스트의 정상·오류·엣지 SQL 케이스 11건을 실행해 모두 기대 결과를 확인했고 잔존 행 0. `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, 브라우저·서버·proxy 클라이언트에 `Database` 제네릭 적용, `lib/types/post.ts`를 `Tables<'posts'>`에서 파생(`PostSummary`/`Post`/`PostInput` 이름·필드 형태 유지, 더미 데이터 수정 없이 typecheck 통과). `npm run check` 통과(Vitest 25개), `npm run knip`은 `knip.jsonc` ignore에 `database.types.ts` 추가 후 통과. advisor 보안 경고 1건(`auth_leaked_password_protection`)은 Pro 플랜 미사용이라 예외 수용(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수 적용)이라 수락 기준 "경고 0건"은 이 1건을 예외로 둔 상태에서 충족(경고 자체는 남아 있음). 성능 advisor INFO `unused_index` 3건은 빈 테이블이라 정상. 관리자 계정은 `app_metadata.role = 'admin'` 부여 완료. 실제 관리자 JWT 기반 posts CRUD는 Task 013 e2e로 검증됨. 미확인(Task 017 이월): 비관리자 세션의 `blog-images` 업로드 거부, SVG 업로드 MIME 거부, 5MB 제한
+  - 테스트 결과: 2026-10-26 마이그레이션 2건 원격 적용(version `20261026105752` create_posts, `20261026105803` create_blog_images_bucket, 로컬 파일명과 일치). 롤백 트랜잭션으로 체크리스트의 정상·오류·엣지 SQL 케이스 11건을 실행해 모두 기대 결과를 확인했고 잔존 행 0. `generate_typescript_types`로 `lib/supabase/database.types.ts` 생성, 브라우저·서버·proxy 클라이언트에 `Database` 제네릭 적용, `lib/types/post.ts`를 `Tables<'posts'>`에서 파생(`PostSummary`/`Post`/`PostInput` 이름·필드 형태 유지, 더미 데이터 수정 없이 typecheck 통과). `npm run check` 통과(Vitest 25개), `npm run knip`은 `knip.jsonc` ignore에 `database.types.ts` 추가 후 통과. advisor 보안 경고 1건(`auth_leaked_password_protection`)은 Pro 플랜 미사용이라 예외 수용(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수 적용)이라 수락 기준 "경고 0건"은 이 1건을 예외로 둔 상태에서 충족(경고 자체는 남아 있음). 성능 advisor INFO `unused_index` 3건은 빈 테이블이라 정상. 관리자 계정은 `app_metadata.role = 'admin'` 부여 완료. 실제 관리자 JWT 기반 posts CRUD는 Task 013 e2e로 검증됨. 미확인(Task 017 이월, 2026-10-28 Task 017에서 확인 완료): 비관리자 세션의 `blog-images` 업로드 거부, SVG 업로드 MIME 거부, 5MB 제한
 
 - **Task 011: 관리자 인증·권한 시스템 구축** ✅
   - 관련 기능: F012, F013("관리" 링크)
@@ -332,7 +333,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 
 - **Task 013: 글 저장·발행·삭제 Server Action 구현** ✅
   - 관련 기능: F008, F010, F011, F012
-  - 관련 파일: `lib/schemas/post.ts`, `app/admin/posts/actions.ts`, `app/admin/posts/page.tsx`, `app/admin/posts/edit/page.tsx`, `app/admin/posts/edit/_components/post-editor.tsx`, `lib/queries/admin-posts.ts`
+  - 관련 파일: `lib/schemas/post.ts`, `app/admin/posts/actions.ts`, `app/admin/posts/page.tsx`, `app/admin/posts/new/page.tsx`, `app/admin/posts/[id]/edit/page.tsx`, `app/admin/posts/_components/post-editor.tsx`, `lib/queries/admin-posts.ts`
   - 수락 기준: 관리자가 새 글·수정을 초안/발행으로 저장하면 `/admin/posts`로 이동하고 공개 영역 노출 여부가 상태와 일치. 검증 실패·슬러그 중복은 해당 필드 옆에 오류로 표시되고 입력값 유지. 삭제는 확인 후 목록과 공개 목록에 즉시 반영
   - [x] `zod` 설치 및 `lib/schemas/post.ts`: title 1~200, slug(NFC 정규화·`slugify` 규칙 일치·비어 있지 않음), category(기본 "일반"), tags(trim·중복 제거·최대 10), excerpt ≤150, content 최대 길이(Task 005 값), thumbnail_url은 `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/blog-images/` 접두만 허용 + 단위 테스트
   - [x] `savePost`(create/update 공용) Server Action: `requireAdmin()` → 스키마 검증 → upsert → unique 위반(23505)을 slug 필드 오류로 변환 → 성공 시 `redirect('/admin/posts')`
@@ -356,6 +357,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 통과: 비로그인 상태 Server Action 재전송(curl, 쿠키 없음). 서버 참조 매니페스트에서 `savePost`·`deletePost` action ID를 찾아 `/admin/posts`(deletePost)·`/admin/posts/edit`(savePost 신규·수정)로 POST하면 모두 307 `/auth/login`. 관리자 경로가 아닌 `/blog`·`/auth/login`으로 보내면 409 'Server Action unavailable'. 요청 후 확인용 글(`e2e-curl-probe`)은 삭제·수정되지 않았고 `e2e-curl-hack` 글도 생기지 않았다(확인 후 확인용 글은 삭제).
     - 통과: `lib/schemas/post.test.ts`의 외부 도메인·`javascript:` 썸네일 거부, 버킷 URL 통과, NFD 한글 슬러그의 NFC 정규화. `npm run check`(Vitest 76개)·`npm run knip` 통과.
     - 제한 사항: 체크리스트의 'Playwright MCP' 항목은 MCP 브라우저가 아니라 위 Playwright e2e 스펙으로 같은 시나리오를 확인했다(관리자 자격 증명이 `.env`에만 있고 에이전트가 읽지 못해 MCP 브라우저로는 로그인하지 않음). `published_at` 불변은 e2e에서 상세 페이지의 발행일 표시(일 단위)가 수정 전후 같은지만 확인했고, 초 단위 값은 `lib/posts/published-at.test.ts` 단위 테스트가 보장한다. 비관리자(로그인했지만 admin이 아닌) 계정의 Server Action 호출은 미수행(`requireAdmin()`이 `notFound()`로 처리하는 경로는 코드 리뷰와 단위 테스트 범위).
+  - 후속 개선(2026-10-28, 편집기 UX): 사용자 피드백 3건 반영.
+    - [x] 편집기 라우트 분리: `/admin/posts/edit(?id=)` → 새 글 `/admin/posts/new`, 수정 `/admin/posts/[id]/edit`. 공용 `post-editor.tsx`는 `app/admin/posts/_components/`로 이동하고 수정 페이지는 `key={id}`로 렌더링(같은 페이지를 재사용하며 이전 입력 상태가 남아 수정 화면이 비던 문제의 유력 원인 제거). 목록·헤더 링크와 e2e 경로 갱신
+    - [x] 하단 고정 바: 왼쪽 `←` 나가기(`/admin/posts`), 오른쪽 "임시 저장"과 "발행하기"(수정 모드는 "수정하기"). 발행 체크박스는 제거하고 발행 버튼이 `published=on`을 보내 상태를 결정(임시 저장은 값 없음 → 초안)
+    - [x] 임시 저장은 목록으로 이동하지 않고 편집 화면에 머문다. 수정 모드는 `{ ok: true, message }`를 반환해 바에 "임시 저장했습니다."를 표시하고, 새 글은 insert한 id의 `/admin/posts/{id}/edit`으로 redirect(이후 저장이 중복 생성이 되지 않게 함). 발행 저장은 기존처럼 `/admin/posts`로 redirect
+    - 테스트 결과: 2026-10-28 `npm run check`(Vitest 123개)·`npm run knip` 통과. `npx playwright test e2e/admin-posts.spec.ts e2e/admin-flow.spec.ts` 10개 통과(skip 0): 새 글 임시 저장→수정 화면 이동·재저장해도 1건·초안 배지 / 수정 화면 임시 저장→URL·입력값 유지·초안 전환·공개 상세 not-found / 수정 화면에 기존 제목 표시. e2e 헬퍼 `createPost`는 임시 저장 시 수정 화면 도착을 확인한 뒤 목록으로 이동하도록 변경, `savePost` 단위 테스트(임시 저장 redirect·ok 반환) 갱신. 하단 바는 Playwright 스크린샷으로 1280px·390px, 라이트·다크에서 스크롤 끝까지 바가 하단에 고정되고 내용이 가려지지 않음을 확인했다.
+    - 제한 사항: Playwright MCP 브라우저가 아니라 e2e 스펙과 임시 스펙(삭제함)으로 확인했다(관리자 자격 증명을 에이전트가 읽지 못함). 발행된 글을 수정 화면에서 "임시 저장"하면 초안으로 되돌아가 공개에서 내려가는 동작은 의도 확인이 필요하다. 개발 서버의 Next 인디케이터가 모바일에서 "나가기"를 일부 가리지만 프로덕션에는 없다.
 
 - **Task 014: 핵심 기능 통합 테스트** ✅
   - 관련 기능: F001~F006, F008, F010~F013
@@ -376,20 +383,20 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: 터미널 → `npm run test:e2e` → 전체 통과(관리자 자격 증명 미설정 시 관리자 스펙만 skip)
   - 테스트 결과: 2026-10-27 `npm run check`(Vitest 76개)·`npm run knip` 통과. `npm run test:e2e`는 관리자 자격 증명 설정 상태에서 42개 모두 통과(skip 0)를 3회 연속 확인했고, 자격 증명을 비운 상태에서는 28개 통과·14개 skip(관리자 스펙만)·실패 0. 통과한 시나리오: 방문자 여정(정적 구간, 태그 필터·상세·뒤로 가기 필터 유지, 카테고리·로고), 관리자 여정(초안→발행→삭제→로그아웃, 단계별 배지·공개 노출), 비로그인의 `/admin/posts`·`/admin/posts/edit` 리다이렉트, 임의 계정 로그인 실패 3회 반복 시 매번 오류 표시. 종료 후 DB에 `e2e-` 접두 글 0건. 삭제 직후 `/blog`에 글이 간헐적으로 남는 현상(약 10~30%)이 발견됐으나 캐시·앱 결함이 아니라 `confirmDelete`가 Server Action 완료 전에 반환하는 e2e 헬퍼 레이스였다(삭제 모달이 열린 동안 뒤쪽 표가 `aria-hidden`이라 row 단언이 먼저 통과). 모달이 닫힐 때까지 기다리도록 `e2e/fixtures/admin.ts`를 수정했고 수정 전 임시 스펙으로 dev 40회·프로덕션 30회 반복에서 stale 0건을 확인했다. 수행 대상 제외: 비관리자 계정 시나리오(관리자 1명만 두는 방침, `requireAdmin()`의 `notFound()` 코드와 `isAdmin` 단위 테스트로 보장), Server Action 직접 호출 검증(`savePost`·`deletePost` 첫 줄의 `requireAdmin()` 호출은 코드로 확인). Playwright MCP 수동 재확인은 하지 않고 e2e로 대체. 2026-10-28 리뷰 후속 재검증: `npm run check`(Vitest 13 파일 / 81개)·`npm run knip`·`npm run build` 통과(빌드에서 공개 페이지는 Partial Prerender ◐ 유지), 관리자 자격 증명 설정 상태에서 `npm run test:e2e` 45개 모두 통과(실패 0). Supabase advisor는 security `auth_leaked_password_protection` 1건(기존 예외)뿐이고 performance는 INFO `unused_index`(`posts_tags_idx`, `posts` 0행이라 정상)만 남았다. 원격 마이그레이션 3건의 version이 로컬 파일명과 일치하고 `posts_category_length_check`는 validated 상태다. 같은 날 후속 처리(인코딩 경로 e2e 단언 고정, `savePost`·`deletePost` 단위 테스트 추가) 뒤 재검증: `npm run check`(Vitest 14 파일 / 97개)·`npm run knip`·`npm run build` 통과, `npm run test:e2e` 47개 모두 통과(실패 0), advisor 결과는 위와 동일(새 경고 없음)
 
-### Phase 4: 마크다운 렌더링 및 편집기 고도화
+### Phase 4: 마크다운 렌더링 및 편집기 고도화 ✅
 
 > Task 015는 DB와 무관하므로 Phase 2 이후 언제든 병렬로 진행할 수 있다.
 
-- **Task 015: 마크다운 렌더링 파이프라인 구축** - 우선순위
+- **Task 015: 마크다운 렌더링 파이프라인 구축** ✅ - 우선순위
   - 관련 기능: F007, F006
   - 관련 파일: `components/markdown/markdown-content.tsx`, `lib/markdown/sanitize-schema.ts`, `lib/markdown/plugins.ts`, `lib/markdown/*.test.ts(x)`, `app/globals.css`, `app/(site)/blog/[slug]/page.tsx`
   - 수락 기준: 상세 본문이 GFM(표·체크리스트·취소선), LaTeX(인라인·블록), 코드 하이라이트(라이트/다크 색), raw HTML(`<style>`, `figure/figcaption`, `details/summary`)을 렌더링하고, 위험 요소가 제거됨. 같은 컴포넌트가 서버(상세)와 클라이언트(편집기 미리보기) 양쪽에서 동작. sanitize 동작이 단위 테스트로 고정됨
-  - [ ] 설치: `react-markdown`, `remark-gfm`, `remark-math`, `rehype-raw`, `rehype-sanitize`, `rehype-katex`, `katex`, `rehype-highlight`, `@tailwindcss/typography`(`highlight.js` 직접 설치·`rehype-slug` 미사용)
-  - [ ] 플러그인 순서 고정: remark-gfm/remark-math → rehype-raw → rehype-sanitize(확장 스키마) → rehype-katex → rehype-highlight. KaTeX `trust` 비활성, `throwOnError: false`
-  - [ ] `sanitize-schema.ts`: 기본 스키마 확장 — `style` 태그, `figure/figcaption`, `post-` 접두 class(+ `math-inline`/`math-display`/`language-*`), `img`의 `loading/width/height` 허용. `script`·`on*`·`javascript:` 제거, id는 `user-content-` 접두 유지
-  - [ ] `MarkdownContent`: `.post-content prose dark:prose-invert` 래퍼, 본문 `img`는 `loading="lazy"`, 외부 링크 `rel="noreferrer"`. `<style>` 영향 범위(페이지 전체)를 컴포넌트 주석과 작성 안내에 명시
-  - [ ] `katex/dist/katex.min.css` 로드, 코드 토큰 색을 `app/globals.css`의 CSS 변수(`--hljs-*`)로 라이트/다크 정의
-  - [ ] 상세 페이지 임시 텍스트 본문을 `MarkdownContent`로 교체
+  - [x] 설치: `react-markdown`, `remark-gfm`, `remark-math`, `rehype-raw`, `rehype-sanitize`, `rehype-katex`, `katex`, `rehype-highlight`, `@tailwindcss/typography`(`highlight.js` 직접 설치·`rehype-slug` 미사용)
+  - [x] 플러그인 순서 고정: remark-gfm/remark-math → rehype-raw → rehype-sanitize(확장 스키마) → rehype-sanitize-style → rehype-katex → rehype-highlight. KaTeX `trust` 비활성, `throwOnError: false`
+  - [x] `sanitize-schema.ts`: 기본 스키마 확장 — `style` 태그, `figure/figcaption`, `post-` 접두 class(+ `math-inline`/`math-display`/`language-*`), `img`의 `loading/width/height` 허용. `script`·`on*`·`javascript:` 제거, id는 `user-content-` 접두 유지
+  - [x] `MarkdownContent`: `.post-content prose dark:prose-invert` 래퍼, 본문 `img`는 `loading="lazy"`, 외부 링크 `rel="noreferrer"`. `<style>` 영향 범위(페이지 전체)를 컴포넌트 주석과 작성 안내에 명시
+  - [x] `katex/dist/katex.min.css` 로드, 코드 토큰 색을 `app/globals.css`의 CSS 변수(`--hljs-*`)로 라이트/다크 정의
+  - [x] 상세 페이지 임시 텍스트 본문을 `MarkdownContent`로 교체
   - 테스트 체크리스트:
     - 정상: `markdown-content.test.tsx` → 표 마크다운 → `<table>` 렌더링, `$a^2$` → `.katex` 요소, ` ```ts ` → `hljs` 클래스 토큰
     - 정상: `markdown-content.test.tsx` → `<style>.post-box{color:red}</style><div class="post-box">x</div>` → `style` 요소 유지, div에 `post-box` class 유지(규칙 매칭 가능)
@@ -397,33 +404,34 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: `markdown-content.test.tsx` → `class="evil post-ok"` → `post-ok`만 남음, `id="intro"` → `id="user-content-intro"`
     - 엣지: `markdown-content.test.tsx` → 미완성 수식 `$\frac{1}{` / 미지원 언어 ` ```foobar ` → 예외 없이 렌더링
     - 엣지: Playwright MCP → 수식·코드·표·이미지가 포함된 발행 글 상세 → 라이트/다크 모두 가독성 확인, 이미지 `loading="lazy"`
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-28 `npm run check`(Vitest 16 파일 / 123개, `lib/markdown` 7개·`components/markdown` 19개 포함)·`npm run knip`(katex 오탐 없음)·`npm run build` 통과(공개 페이지 Partial Prerender ◐ 유지). 사전 검증(소스·임시 테스트로 확인, 임시 파일 삭제): class에 RegExp 허용·class 배열 토큰별 검사, 기본 `clobberPrefix` `user-content-`, vitest(jsdom)와 `renderToString`에서 ESM unified 계열 import 가능, 동기 `Markdown`은 훅 없음(훅은 `MarkdownHooks`뿐). 미지원 언어는 `rehype-highlight`가 경고만 남기고 건너뛰어 별도 옵션 불필요. Playwright MCP 확인: 관리자 자격 증명을 읽을 수 없어 Supabase MCP로 원격 프로젝트(`.mcp.json` 고정 ref와 일치 확인)에 `e2e-md-seed` 발행 글을 시드하고 dev 서버(`/blog/e2e-md-seed`)에서 확인한 뒤 SQL로 삭제해 `e2e-` 행 0건을 확인했다(제한 사항: 실제 관리자 UI 작성 경로가 아니라 SQL 시드 경로). 표·인라인/블록 수식·ts 코드 하이라이트·체크리스트·취소선·이미지·`<style>` `post-box`·details를 라이트/다크 모두 가독성 있게 렌더링, `img loading="lazy"`·외부 링크 `rel="noreferrer"`·체크박스 disabled 확인, 본문의 `<script>`는 DOM에 없음. 라이트에서 미체크 체크박스가 어둡게 보이는 점은 기본 `accent-color` 때문이며 이번 범위에서는 손대지 않았다. 모바일 폭은 확인하지 않았다
 
-- **Task 016: 편집기 실시간 미리보기 및 스타일 격리 구현**
+- **Task 016: 편집기 실시간 미리보기 및 스타일 격리 구현** ✅
   - 관련 기능: F007, F008
-  - 관련 파일: `app/admin/posts/edit/_components/{post-editor,markdown-preview}.tsx`, `components/markdown/markdown-content.tsx`
+  - 관련 파일: `app/admin/posts/_components/{post-editor,markdown-preview}.tsx`, `components/markdown/markdown-content.tsx`
   - 수락 기준: 본문 입력이 미리보기에 실시간 반영되고(입력 지연 체감 없음), 본문의 `<style>`이 편집기 UI(헤더·입력란·버튼)에 영향을 주지 않음. 미리보기 렌더링은 상세 페이지와 동일 결과
-  - [ ] 격리 방식 결정 및 구현: Shadow DOM(권장, `MarkdownContent`를 portal로 shadow root에 렌더링 + KaTeX·typography·hljs CSS 주입) 또는 `iframe srcdoc`. 선택 근거를 이 항목에 기록
-  - [ ] `useDeferredValue`로 입력과 렌더링 분리, 미완성 마크다운에서도 예외 없이 표시
-  - [ ] 데스크톱 좌우 분할 스크롤, 모바일 탭 전환 시 입력값 유지
+  - [x] 격리 방식 결정 및 구현: Shadow DOM(권장, `MarkdownContent`를 portal로 shadow root에 렌더링 + KaTeX·typography·hljs CSS 주입) 또는 `iframe srcdoc`. 선택 근거를 이 항목에 기록
+    - 선택 근거(Shadow DOM 채택): 같은 React 트리에서 portal로 렌더링하므로 `MarkdownContent`를 그대로 재사용해 상세 페이지와 결과가 같고, 입력 상태·테마(`next-themes`)를 props/context로 바로 전달할 수 있다. iframe `srcdoc`은 격리는 가장 강하지만 문서·스크립트가 분리돼 스타일시트 주입·높이 동기화·테마 전달·`postMessage` 같은 별도 연동이 필요하고, 입력마다 문서를 다시 쓰면 깜빡임·스크롤 초기화 위험이 있다. Shadow DOM의 대가로 문서 스타일시트를 복제해 주입해야 한다(`:root`→`:host` 치환, `.dark`는 shadow 안 래퍼에 직접 부여, 마운트 시 1회 복제라 HMR 변경은 새로고침 필요, cross-origin 시트는 건너뜀).
+  - [x] `useDeferredValue`로 입력과 렌더링 분리, 미완성 마크다운에서도 예외 없이 표시
+  - [x] 데스크톱 좌우 분할 스크롤, 모바일 탭 전환 시 입력값 유지
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 편집기 본문에 `# 제목` 입력 → 미리보기에 `h1` 즉시 표시
     - 정상: Playwright MCP → 본문에 수식·코드 블록 입력 → 미리보기에 KaTeX·하이라이트 표시
     - 오류: Playwright MCP → 본문에 `<style>button{display:none} body{background:red}</style>` 입력 → 편집기의 저장 버튼 표시 유지, 편집기 배경 변화 없음
     - 엣지: Playwright MCP → `$$` 하나만 입력한 상태 → 미리보기 오류 화면 없음
     - 엣지: Playwright MCP → 375px에서 작성 탭 입력 → 미리보기 탭 → 작성 탭 복귀 시 입력 유지
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-28 `npm run check`(typecheck·lint·prettier 통과, Vitest 17 파일 / 135개, `markdown-preview.test.tsx` 포함)·`npm run knip`(종료 코드 0)·`npm run build`(placeholder Supabase 환경변수, `/admin/posts/new`·`/admin/posts/[id]/edit` Partial Prerender ◐ 유지) 통과. `e2e/admin-preview.spec.ts` 5개 시나리오(h1·수식/코드·`<style>` 격리·`$` 단독·375px 탭 유지) 5/5 통과. 관리자 자격 증명이 없어 Supabase MCP로 원격 프로젝트(`.mcp.json` 고정 ref와 일치 확인)에 `app_metadata.role='admin'` 임시 사용자를 만들어 e2e와 Playwright MCP 확인에 쓰고, 끝난 뒤 삭제해 `e2e-` 사용자·글 0건을 확인했다(제한 사항: 실제 관리자 계정이 아니라 임시 계정 경로). Playwright MCP(dev 서버): 데스크톱 1280px 라이트/다크에서 h1·표·인라인/블록 수식·ts 하이라이트·체크리스트·본문 `<style>`(`.post-box` 적색)이 shadow 안에서만 적용되고 body 배경·버튼 `display`는 그대로, 다크에서는 shadow 래퍼에 `dark` 클래스가 붙어 h1·본문이 가독성 있게 표시됨. 미리보기 영역은 `scrollHeight` 2027 > `clientHeight` 536으로 독립 세로 스크롤. 375px에서 작성→미리보기→작성 전환 후 본문 203자 유지, 가로 넘침 없음, 다크 미리보기 가독성 확인. 미확인: 라이트 모드 375px 시각 확인(다크만 확인), Safari·Firefox(Chromium만 확인), 개발 중 HMR로 바뀐 CSS의 미리보기 반영(알려진 한계로 새로고침 필요)
 
-- **Task 017: 이미지 업로드 및 썸네일 지정 구현**
+- **Task 017: 이미지 업로드 및 썸네일 지정 구현** ✅
   - 관련 기능: F009, F008
-  - 관련 파일: `lib/storage/upload-image.ts`, `lib/storage/validate-image.ts`, `lib/editor/insert-at-cursor.ts`, `app/admin/posts/edit/_components/{image-upload-button,thumbnail-field}.tsx`, `next.config.ts`
+  - 관련 파일: `lib/storage/upload-image.ts`, `lib/storage/validate-image.ts`, `lib/editor/insert-at-cursor.ts`, `app/admin/posts/_components/{image-upload-button,thumbnail-field,post-editor}.tsx`, `next.config.ts`
   - 수락 기준: 파일 선택·붙여넣기·드래그앤드롭으로 이미지를 올리면 `blog-images/YYYY/MM/<uuid>.<ext>`에 저장되고 커서 위치에 `![파일명](공개 URL)`이 삽입됨. 썸네일 업로드·제거가 가능하고 저장 시 서버 검증 통과. jpeg/png/webp/gif 외 형식과 5MB 초과는 업로드 전에 거부
-  - [ ] `validate-image.ts`(MIME·확장자·크기) + 단위 테스트, 업로드 경로 생성(`crypto.randomUUID`)
-  - [ ] 업로드는 브라우저 Supabase 클라이언트로 스토리지에 직접 전송(Server Action 본문 크기 제한 회피, 스토리지 RLS가 관리자만 허용)
-  - [ ] `insert-at-cursor.ts`: textarea 선택 영역 기준 삽입 순수 함수 + 단위 테스트, 업로드 중 자리표시(`![업로드 중…]()`) 후 URL로 치환
-  - [ ] `paste`/`drop` 이벤트 처리(여러 파일 순차 업로드), 실패 시 자리표시 제거 및 오류 표시
-  - [ ] 썸네일 필드: 업로드·미리보기·제거, 값은 공개 URL(Task 013 스키마로 검증). 공개 페이지 썸네일을 `next/image`로 쓰면 `next.config.ts`의 `images.remotePatterns`에 Supabase 호스트 추가
-  - [ ] 고아 파일 정리는 MVP 범위 밖임을 주석으로 명시
+  - [x] `validate-image.ts`(MIME·확장자·크기) + 단위 테스트, 업로드 경로 생성(`crypto.randomUUID`)
+  - [x] 업로드는 브라우저 Supabase 클라이언트로 스토리지에 직접 전송(Server Action 본문 크기 제한 회피, 스토리지 RLS가 관리자만 허용)
+  - [x] `insert-at-cursor.ts`: textarea 선택 영역 기준 삽입 순수 함수 + 단위 테스트, 업로드 중 자리표시(구현은 동시 업로드 구분을 위해 `![업로드 중…](#upload-<id>)`) 후 URL로 치환, 치환 뒤 캐럿 보정(`replaceWithCaret`)
+  - [x] `paste`/`drop` 이벤트 처리(여러 파일 순차 업로드), 실패 시 자리표시 제거 및 오류 표시
+  - [x] 썸네일 필드: 업로드·미리보기·제거, 값은 공개 URL(Task 013 스키마로 검증). 공개 카드는 기존 `<img>`를 유지해 `next/image`·`remotePatterns`는 도입하지 않음(임의 업로드 URL이라 `<img>` 유지, `next.config.ts` 변경 없음)
+  - [x] 고아 파일 정리는 MVP 범위 밖임을 주석으로 명시
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 편집기 이미지 버튼으로 PNG 선택 → 커서 위치에 `![이름](https://…/blog-images/2026/10/<uuid>.png)` 삽입, 미리보기에 이미지 표시
     - 정상: Playwright MCP → 썸네일 업로드 후 발행 저장 → `/blog` 카드에 썸네일 표시
@@ -431,7 +439,11 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → 6MB 이미지 선택 → 크기 초과 오류, 본문 변화 없음
     - 엣지: Playwright MCP(수동 확인 가능) → 클립보드 이미지 붙여넣기·파일 드래그앤드롭 → 각각 삽입
     - 엣지: `insert-at-cursor.test.ts` → 선택 영역이 있을 때 → 선택 텍스트를 대체, 커서가 삽입 끝으로 이동
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-28 `npm run check`(typecheck·lint·prettier 통과, Vitest 21 파일 / 174개)·`npm run build`(21 페이지 생성, `/admin/posts/new`·`[id]/edit` Partial Prerender ◐ 유지)·`npm run knip`(종료 코드 0, `knip.jsonc`의 `lib/supabase/client.ts` 임시 예외 제거 후) 통과. 관리자 자격 증명(`.env`의 `E2E_ADMIN_*`)이 있어 임시 사용자는 만들지 않았다. `e2e/admin-image-upload.spec.ts` 12개 시나리오: PNG 선택→커서 위치(`앞|뒤` 사이)에 `![sample](…/blog-images/YYYY/MM/<uuid>.png)` 삽입·미리보기 이미지, 썸네일 업로드→발행 저장→`/blog` 카드 썸네일, 썸네일 제거, SVG·PDF 선택→형식 오류·업로드 요청 0건·본문 불변, 6MB→크기 오류·업로드 요청 0건·본문 불변, 여러 파일 순차 삽입, 업로드 요청 실패(`route.abort`)→자리표시 제거·오류 표시·본문 불변, 붙여넣기(이미지는 가로채고 텍스트는 가로채지 않음)·드롭 삽입, 업로드 요청을 붙잡아 둔 동안 임시 저장·발행 버튼 비활성화와 종료 후 복구, 375px 폭에서 가로 넘침 없음·이미지 버튼/썸네일 UI 표시·작성↔미리보기 탭 전환 후 유지. 전체 e2e `npm run test:e2e` 66/66 통과(skip 0).
+    - 구현 중 발견·수정한 결함: 여러 파일을 올리면 두 번째 이미지가 첫 번째 URL 중간에 삽입됨(자리표시를 URL로 치환한 뒤 textarea 캐럿이 옛 위치에 남음. 단일 파일에서도 캐럿이 URL 중간에 남아 이어 입력 시 URL이 깨짐). `lib/editor/insert-at-cursor.ts`에 `replaceWithCaret`을 추가하고(단위 테스트 5개) 에디터가 치환 후 캐럿을 보정하며 다음 파일에는 보정된 캐럿을 넘기도록 수정. 수정 직후 전체 실행에서 1회 이 시나리오가 실패했으나 원인은 확정하지 못했고(이후 전체 3회·단독 3회 통과), 같은 결함이 남은 것인지 일시적 문제인지는 구분하지 못했다.
+    - 이월 항목(실제 Supabase 원격, `.mcp.json` 고정 ref `gfrewivdclcitgysgsbi` 확인): 관리자 세션에서 클라이언트 검증을 우회해 Storage API 직접 호출 시 `image/svg+xml`·`application/pdf`는 415 `invalid_mime_type`, 6MB PNG는 413 `EntityTooLarge`로 서버가 거부. 로그인하지 않고 publishable key만으로 업로드하면 403 RLS 위반. 비관리자 INSERT 거부는 롤백되는 DO 블록으로 확인(anon과 `app_metadata.role='user'`(`user_metadata.role='admin'` 위조 포함) 모두 RLS 위반, `app_metadata.role='admin'` 대조군은 허용). 실제 비관리자 계정으로 로그인한 세션은 만들지 않았다(관리자 1명만 두는 방침).
+    - 잔존 데이터: `posts` e2e 글 0건, `auth.users` e2e 사용자 0건(총 1건), 프로브 객체 0건. 단 `blog-images`에는 테스트가 올린 1x1 PNG(70바이트)가 71건 남아 있다. 버킷에 select 정책이 없어 관리자 세션의 Storage API 삭제가 403이고, SQL 삭제는 `storage.protect_delete()` 트리거가 막는다. 사용자 결정으로 고아 파일을 수용했고(스키마 변경 없음), e2e를 실행할 때마다 객체가 늘어난다. 수락 기준의 "스토리지 잔존 0건"은 충족하지 못했다.
+    - 제한 사항·미확인: 자동 테스트의 붙여넣기·드롭은 `ClipboardEvent`/`DragEvent`를 합성한 것이다. Playwright MCP 수동 시나리오는 Playwright Test e2e로 대체했고 MCP는 사용하지 않음. Chromium만 확인했으며(375px 폭은 Chromium 뷰포트 크기 조정) Safari·Firefox·실제 휴대폰은 확인하지 않음(사용자가 Chrome만 쓰므로 범위에서 제외). 2026-10-28 사용자가 로컬 Chrome에서 실제 OS 클립보드 붙여넣기와 실제 파일 드래그앤드롭으로 삽입·미리보기 표시를 직접 확인함. Supabase 스키마 변경이 없어 `get_advisors`는 다시 실행하지 않음.
 
 ### Phase 5: SEO·최적화·마무리
 
@@ -527,6 +539,8 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
 ## 알려진 트레이드오프 (PRD 반영)
 
 - `<style>` 허용으로 글 CSS가 해당 페이지 전체에 영향 가능(작성자 1인이라 수용, 스코프 변환은 MVP 밖). 편집기 미리보기만 격리(Task 016).
+  - 2026-10-28 보완: `lib/markdown/rehype-sanitize-style.ts`가 sanitize 뒤 `<style>` 내용을 검사해 `.post-`·`#user-content-` 접두가 아닌 규칙, `@` 규칙(@import 포함), 중첩 규칙, 범위 이탈 선택자(`~`, `+`, `:has` 등), `url()`·`image-set()` 선언을 제거한다(단위 테스트 13개). `.post-` 요소 자체의 `position:fixed` 같은 속성은 막지 않으며 작성자 1인이라 수용한다.
+- 보안 헤더(2026-10-28 결정): `next.config.ts`에 `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, CSP(`object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`)를 둔다. nonce 기반 CSP는 전 페이지 동적 렌더링이 필요해 `cacheComponents`와 맞지 않고 `script-src 'unsafe-inline'`은 이득이 작으며, 본문이 임의 외부 이미지를 쓰므로 `script-src`·`style-src`·`img-src`는 두지 않는다. dev 서버 응답 헤더와 visitor-flow·admin-preview e2e 통과로 확인했다(KaTeX·next-themes 동작은 admin-preview 수식 렌더링 e2e로만 확인).
 - 스타일 변조(`position:fixed` 오버레이, `url()` 외부 요청) 가능성은 관리자 계정 보호(강한 비밀번호·MFA)로 완화(Task 011).
 - 없는 글은 soft 404(HTTP 200 + noindex)로 응답(Task 018).
 - 관리자 role 회수 후에도 기존 JWT는 만료 전까지 유효(RLS 동일). 역할 변경 후 재로그인 필요(Task 011).
@@ -534,6 +548,14 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
 - 로그인 시도 횟수 제한은 Supabase Auth 기본 레이트 리밋(`/auth/v1/token`, IP당 5분 150회·burst 30, 공식 문서 기준)에 의존하고 앱 코드의 제한·CAPTCHA는 없다(관리자 1인, 최소 비밀번호 12자·가입 차단으로 완화, 2026-10-28 사용자 결정으로 수용). 이 프로젝트의 실제 설정값은 2026-10-28 사용자가 대시보드 Authentication > Rate Limits에서 확인했다(가입·로그인 30, 토큰 150, 기본값에서 변경 없음). 서버에서 호출할 때 Supabase가 보는 IP도 미확인이다. Turnstile CAPTCHA는 `login` 액션에 `captchaToken` 전달이 필요하고 Password Verification Attempt hook은 Teams 이상 플랜 전용이라 도입하지 않았다.
 - 관리자 레이아웃 헤더는 `AdminGuard` 바깥(정적 셸)에 둔다. 로그인한 비관리자에게 `notFound()` 전환 전 잠깐 보일 수 있으나 노출되는 것은 공개 상수와 링크뿐이고, 가드 안으로 옮기면 모든 `/admin` 진입에서 빈 화면이 생겨 현상 유지로 결정(2026-10-28 사용자 결정).
 - Supabase advisor 보안 경고 `auth_leaked_password_protection`(유출 비밀번호 보호)은 Pro 플랜 전용이라 예외로 수용. 완화책: 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수(Task 010, 011).
+- `hasEnvVars`(2026-10-28 결정): `lib/utils.ts`에서 `lib/supabase/proxy.ts`로 옮겨 그 파일의 지역 상수로 둔다(사용처가 proxy 하나뿐). `lib/env.ts` 통합은 하지 않는다. 브라우저 번들에서 쓰는 `process.env.NEXT_PUBLIC_*`는 리터럴로 읽어야 인라인되는데(`node_modules/next/dist/docs/01-app/02-guides/environment-variables.md`), 검증 함수가 `process.env`를 인자·객체로 받으면 클라이언트에서 `undefined`가 되고 사용처 3곳 대비 이득이 작다. 가드가 막는 것은 env 미설정 시 proxy 단계의 전 요청 500이며, 공개 글 쿼리는 자체 try/catch로 빈 목록을 반환한다.
+- `savePost` 단일 쿼리화(2026-10-28 결정): 하지 않는다. 관리자 1인이라 동시 저장 경합의 최악 결과는 최초 발행일 수 ms~수 초 오차이고 check 제약은 깨지지 않으며 삭제 경합은 0행 검사가 `NOT_FOUND`로 처리한다. 트리거·RPC로 옮기면 발행일 규칙이 TS(`resolvePublishedAt`과 단위 테스트)와 SQL 두 곳으로 갈라지고, CI는 DB 쓰기 e2e를 돌리지 않으며, 절약되는 것은 select 1회뿐이다. 실제 문제가 관측되면 재검토한다.
+- 2차 후속 브랜치 1(`refactor/env-and-query-cleanup`) 검증(2026-10-28): `lib/queries/columns.ts`로 `SUMMARY_COLUMNS`·`POST_COLUMNS` 분리(`admin-posts.ts`가 `posts.ts`를 더는 import하지 않음). `npm run check`(Vitest 24 파일 / 198개)·`npm run knip`·`npm run build`(placeholder env) 통과, `npm run test:e2e` 66개 모두 통과(실패 0). 마이그레이션·DB 변경 없음.
+- 2차 후속 브랜치 2(`test/coverage-gaps`) 검증(2026-10-28): `data/data.test.ts`(정적 데이터 필수 필드·중복·URL 형식), `lib/site-config.test.ts`(내비게이션 href 중복·`app/(site)` 라우트 대응·`isActivePath` 정합성), `app/admin/actions.test.ts`(로그아웃 `signOut` 후 `/` 리다이렉트) 추가. 정적 데이터에는 `id` 필드가 없어 중복 검사는 `title`·`name` 기준이다. `publications`는 데이터를 정렬해 두지 않고 `sortPublications`가 연도 내림차순으로 정렬하므로(`lib/publications/sort.test.ts`) 데이터 순서는 검사하지 않는다. `lib/types`(`post`·`profile`·`resume`)는 타입 선언뿐이라 런타임 로직이 없어 테스트를 추가하지 않고 `npm run typecheck`로 충분하다고 판단했다. `npm run check`(Vitest 27 파일 / 230개)·`npm run knip` 통과, 프로덕션 코드 변경 없음, `npm run build`는 이 브랜치에서 실행하지 않았다.
+- 2차 후속 브랜치 3(`test/rls-verification`) 결정(2026-10-28): RLS 회귀 검증은 (a) Supabase MCP `execute_sql` 읽기 전용 절차 문서화(`docs/guides/rls-verification.md`)로 정했다. (b) e2e 추가는 일반 로그인 계정(회원가입 차단)·service role 키(`user_metadata` 케이스)가 필요하고 CI `e2e-smoke`가 placeholder 값이라 RLS를 검증하지 못해 도입하지 않았고, (c)는 원격 GRANT가 마이그레이션 의도와 어긋나 있던 사례가 있어 택하지 않았다. 원격 프로젝트(`gfrewivdclcitgysgsbi`)가 `.mcp.json`과 일치함을 확인하고 `begin read only` + `rollback`으로만 점검했다(운영 DB 쓰기 없음, service role 키 미사용). 결과: anon 조회 pub 1 / drafts 0, `user_metadata.role='admin'` 위조 authenticated 조회 drafts 0 / blog-images objs 0, `pg_policies` 정책 7개에 `user_metadata` 참조 0 / storage SELECT 정책 0. 초안·객체가 DB에 없어 A, B는 보조 증거이고 쓰기 거부는 읽기 전용으로 증명하지 못한다. 원격 `posts`의 anon·authenticated에 `TRUNCATE`·`REFERENCES`·`TRIGGER`가 남아 있는 GRANT 불일치는 정리하지 않고 가이드에 기록했다. 문서만 변경해 e2e는 실행하지 않았다.
+- RLS 검증 후속(2026-10-28, 계획: `shrimp_data/branch-review-followup-3.md`): 아래 두 건은 아직 하지 않았다.
+  - [x] `test/admin-post-actions`: 이미 `app/admin/posts/actions.test.ts`(커밋 `bd3d647`)가 `savePost`·`deletePost` 모두 `requireAdmin` 거부 시 예외가 전파되고 `createClient`가 호출되지 않음을 단언한다(`vi.mock`으로 `requireAdmin`·`createClient`를 분리). 후속 항목을 만들 때 이 테스트 파일을 확인하지 못하고 "없음"으로 적은 오류였고, 추가 코드 변경 없이 닫는다(2026-10-28 확인, `npx vitest run app/admin/posts/actions.test.ts` 통과).
+  - [x] `fix/posts-grants`(2026-10-28): 원격 `posts`의 과잉 GRANT를 `20261028133002_revoke_excess_posts_grants.sql`로 회수했다. 적용 전 사용자 확인을 받았고 원격 프로젝트(`gfrewivdclcitgysgsbi`)를 확인했다. 회수 전에는 anon이 `INSERT·UPDATE·DELETE·TRUNCATE·REFERENCES·TRIGGER`, authenticated가 `TRUNCATE·REFERENCES·TRIGGER`를 추가로 갖고 있었는데(`public` 스키마 default privileges가 원인), 회수 후 anon은 `SELECT`, authenticated는 `SELECT·INSERT·UPDATE·DELETE`만 남았다(`service_role`·`postgres`는 기본값 유지). `get_advisors`(security)는 기존 예외 `auth_leaked_password_protection` 1건뿐이고, 점검 A(anon 조회 pub 1 / drafts 0)와 C(정책 7개, `user_metadata` 참조 0, storage SELECT 0)를 다시 돌려 같은 결과를 확인했다. default privileges는 바꾸지 않아 새 테이블은 같은 과잉 권한을 받으므로 가이드에 기록했다. `npm run check`·`npm run knip`·`npm run build`(placeholder env) 통과. `npm run test:e2e`는 66개 중 61개 통과, `e2e/admin-image-upload.spec.ts`의 '여러 파일 선택' 1개 실패(전체 실행 2회 모두 실패, 같은 파일 단독 실행은 7회 중 6회 통과), 그 뒤 같은 파일의 4개는 미실행이다. 실패 시점에 본문이 빈 문자열이고 오류 알림도 없어 업로드 입력 핸들러가 붙기 전에 `setInputFiles`가 실행된(하이드레이션 경합) 것으로 보이며, 이 페이지는 `posts`를 조회하지 않아 GRANT와 무관해 보이지만 원인은 확정하지 못했다(GRANT를 되돌려 비교하지 않음). 이후 `test/stabilize-image-upload-e2e`에서 `beforeEach`에 하이드레이션 대기(`image-upload-input`에 `__reactProps$` 부착 확인)를 추가했고, 실행 사이를 6분 이상 둔 전체 e2e 4회가 모두 66개 통과했다(수정 전 전체 실행은 2회 모두 실패). 연속 실행에서는 `login()`이 `/auth/login`에 머물러 실패했고 간격을 두자 사라져 Supabase Auth 로그인 횟수 제한으로 추정하나 오류 문구는 확인하지 못했다. e2e는 한 번에 로그인이 약 45번이라 5분 이상 간격을 두고 돌린다. 관리자 글 CRUD e2e(`admin-posts`·`admin-flow` 등)는 통과했다.
 
 ## MVP 이후 (범위 밖)
 

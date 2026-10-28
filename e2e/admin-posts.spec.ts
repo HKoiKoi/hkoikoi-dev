@@ -64,10 +64,10 @@ test.describe("관리자 글 관리", () => {
 
     await page.goto("/admin/posts");
     await rowOf(page, title).getByRole("link", { name: "수정" }).click();
-    await expect(page).toHaveURL(/\/admin\/posts\/edit\?id=/);
+    await expect(page).toHaveURL(/\/admin\/posts\/[0-9a-f-]+\/edit$/);
     await expect(page.getByLabel("제목")).toHaveValue(title);
     await page.getByLabel("제목").fill(renamed);
-    await page.getByRole("button", { name: "저장", exact: true }).click();
+    await page.getByRole("button", { name: "수정하기", exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/posts$/);
 
     await expect(rowOf(page, renamed)).toBeVisible();
@@ -77,6 +77,50 @@ test.describe("관리자 글 관리", () => {
       page.getByRole("heading", { name: renamed }).first(),
     ).toBeVisible();
     await expect(page.locator("time").first()).toHaveText(dateBefore);
+  });
+
+  test("새 글 임시 저장 → 목록으로 가지 않고 방금 만든 글의 수정 화면에 머문다", async ({
+    page,
+  }) => {
+    const title = uniqueName(PREFIX, "draft-new");
+    await page.goto("/admin/posts/new");
+    await fillEditor(page, { title, slug: title, content: "임시 본문" });
+    await page.getByRole("button", { name: "임시 저장", exact: true }).click();
+
+    await expect(page).toHaveURL(/\/admin\/posts\/[0-9a-f-]+\/edit$/);
+    await expect(page.getByLabel("제목")).toHaveValue(title);
+    await expect(page.getByLabel("본문")).toHaveValue("임시 본문");
+    // 같은 글을 다시 저장해도 새 글이 또 생기지 않고 수정으로 처리된다.
+    await page.getByRole("button", { name: "임시 저장", exact: true }).click();
+    await expect(page.getByRole("status")).toHaveText("임시 저장했습니다.");
+
+    await page.goto("/admin/posts");
+    await expect(rowOf(page, title)).toHaveCount(1);
+    await expect(rowOf(page, title).getByText("초안")).toBeVisible();
+  });
+
+  test("수정 화면 임시 저장 → 그 자리에 머물고 입력값이 유지되며 초안이 된다", async ({
+    page,
+  }) => {
+    const title = uniqueName(PREFIX, "draft-edit");
+    await createPost(page, { title, slug: title, published: true });
+
+    await page.goto("/admin/posts");
+    await rowOf(page, title).getByRole("link", { name: "수정" }).click();
+    await expect(page).toHaveURL(/\/admin\/posts\/[0-9a-f-]+\/edit$/);
+    const editUrl = page.url();
+
+    await page.getByLabel("본문").fill("수정한 임시 본문");
+    await page.getByRole("button", { name: "임시 저장", exact: true }).click();
+
+    await expect(page.getByRole("status")).toHaveText("임시 저장했습니다.");
+    await expect(page).toHaveURL(editUrl);
+    await expect(page.getByLabel("본문")).toHaveValue("수정한 임시 본문");
+
+    await page.goto("/admin/posts");
+    await expect(rowOf(page, title).getByText("초안")).toBeVisible();
+    await page.goto(`/blog/${title}`);
+    await expect(page.getByText("페이지를 찾을 수 없습니다")).toBeVisible();
   });
 
   test("삭제 확인 → 목록과 /blog에서 사라진다", async ({ page }) => {
@@ -110,21 +154,21 @@ test.describe("관리자 글 관리", () => {
     const title = uniqueName(PREFIX, "dup");
     await createPost(page, { title, slug: title, published: false });
 
-    await page.goto("/admin/posts/edit");
+    await page.goto("/admin/posts/new");
     await fillEditor(page, {
       title: `${title}-second`,
       slug: title,
       excerpt: "유지되어야 하는 소개글",
       content: "유지되어야 하는 본문",
     });
-    await page.getByRole("button", { name: "저장", exact: true }).click();
+    await page.getByRole("button", { name: "발행하기", exact: true }).click();
 
     await expect(
       page
         .getByRole("alert")
         .filter({ hasText: "이미 사용 중인 슬러그입니다" }),
     ).toBeVisible();
-    await expect(page).toHaveURL(/\/admin\/posts\/edit$/);
+    await expect(page).toHaveURL(/\/admin\/posts\/new$/);
     await expect(page.getByLabel("제목")).toHaveValue(`${title}-second`);
     await expect(page.getByLabel("소개글")).toHaveValue(
       "유지되어야 하는 소개글",
@@ -133,15 +177,15 @@ test.describe("관리자 글 관리", () => {
   });
 
   test("제목 비움·소개글 151자 → 필드별 서버 검증 오류", async ({ page }) => {
-    await page.goto("/admin/posts/edit");
+    await page.goto("/admin/posts/new");
     await fillEditor(page, {
       title: "",
       slug: uniqueName(PREFIX, "invalid"),
       excerpt: "가".repeat(151),
     });
-    await page.getByRole("button", { name: "저장", exact: true }).click();
+    await page.getByRole("button", { name: "발행하기", exact: true }).click();
 
-    await expect(page).toHaveURL(/\/admin\/posts\/edit$/);
+    await expect(page).toHaveURL(/\/admin\/posts\/new$/);
     await expect(page.getByLabel("제목")).toHaveAttribute(
       "aria-invalid",
       "true",

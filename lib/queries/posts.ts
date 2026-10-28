@@ -1,12 +1,8 @@
 import { unstable_rethrow } from "next/navigation";
 import { cache } from "react";
+import { POST_COLUMNS, SUMMARY_COLUMNS } from "@/lib/queries/columns";
 import { createClient } from "@/lib/supabase/server";
 import type { Post, PostSummary } from "@/lib/types/post";
-
-// 목록·상세가 같은 컬럼 이름을 쓰도록 한 곳에서 관리한다. 목록은 content를 뺀다.
-export const SUMMARY_COLUMNS =
-  "id, slug, title, excerpt, thumbnail_url, category, tags, published, published_at, created_at, updated_at";
-export const POST_COLUMNS = `${SUMMARY_COLUMNS}, content`;
 
 type PostFilter = { category?: string; tag?: string };
 

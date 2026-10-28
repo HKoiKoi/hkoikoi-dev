@@ -8,8 +8,8 @@
 - 설치된 폼 관련 UI: `input`, `label`, `checkbox`, `textarea`, `button`, `card`, `dialog`, `tabs`. **`field`는 아직 없습니다.**
 - `zod`(v4)는 **설치됨**(`lib/schemas/post.ts`), `react-hook-form`, `@hookform/resolvers`는 **미설치**입니다.
 - 현재 폼은 두 개입니다.
-  - `components/login-form.tsx`: Server Action `login`(`app/auth/login/actions.ts`)을 `useActionState`로 연결한 로그인 폼입니다. 오류 시 이메일 입력값을 state로 돌려받아 `defaultValue`에 쓰고, 오류는 `role="alert"` + `text-destructive`로 표시하며, 서버 원문 메시지 대신 고정 문구만 보여 줍니다. 성공하면 Action이 `redirect("/admin/posts")` 합니다. 배치는 아직 `Label` + `div.grid`이고 `field` 컴포넌트가 없어 `FieldGroup`/`Field`로 옮기지 못했습니다. 새 폼은 아래 `Field` 규칙을 따릅니다.
-  - `app/admin/posts/edit/_components/post-editor.tsx`: 관리자 편집기입니다. `useActionState(savePost)`로 `app/admin/posts/actions.ts`의 Server Action에 연결되어 있고, 입력은 `useState`로 관리하며 각 입력에 `name`을 둡니다. 서버 검증은 `lib/schemas/post.ts`의 `postSchema`, 필드별 오류는 `state.fieldErrors`로 받아 `role="alert"`로 표시합니다. 슬러그 자동 제안은 `lib/posts/slugify.ts`, 소개글·태그 제한값은 `POST_LIMITS`를 씁니다. 글 삭제는 `app/admin/posts/_components/delete-post-dialog.tsx`가 `deletePost`를 호출합니다.
+  - `app/auth/login/_components/login-form.tsx`: Server Action `login`(`app/auth/login/actions.ts`)을 `useActionState`로 연결한 로그인 폼입니다. 오류 시 이메일 입력값을 state로 돌려받아 `defaultValue`에 쓰고, 오류는 `role="alert"` + `text-destructive`로 표시하며, 서버 원문 메시지 대신 고정 문구만 보여 줍니다. 성공하면 Action이 `redirect("/admin/posts")` 합니다. 배치는 아직 `Label` + `div.grid`이고 `field` 컴포넌트가 없어 `FieldGroup`/`Field`로 옮기지 못했습니다. 새 폼은 아래 `Field` 규칙을 따릅니다.
+  - `app/admin/posts/_components/post-editor.tsx`: 관리자 편집기입니다. `useActionState(savePost)`로 `app/admin/posts/actions.ts`의 Server Action에 연결되어 있고, 입력은 `useState`로 관리하며 각 입력에 `name`을 둡니다. 서버 검증은 `lib/schemas/post.ts`의 `postSchema`, 필드별 오류는 `state.fieldErrors`로 받아 `role="alert"`로 표시합니다. 슬러그 자동 제안은 `lib/posts/slugify.ts`, 소개글·태그 제한값은 `POST_LIMITS`를 씁니다. 글 삭제는 `app/admin/posts/_components/delete-post-dialog.tsx`가 `deletePost`를 호출합니다.
 - 가입·비밀번호 재설정 폼과 이메일 확인 Route Handler(`app/auth/confirm/route.ts`)는 삭제되었습니다.
 
 ```bash
@@ -181,7 +181,7 @@ export async function login(
 
 ### 글 저장 Action 설계 (Task 013 기준)
 
-아직 구현 전이며 ROADMAP의 설계를 요약한 것입니다. 구현 시 ROADMAP Task 013과 함께 확인합니다.
+`app/admin/posts/actions.ts`의 `savePost`·`deletePost`로 구현돼 있으며, 아래는 그 설계 요약입니다. 변경할 때는 ROADMAP Task 013과 함께 확인합니다.
 
 - 스키마는 `lib/schemas/post.ts`에서 서버와 편집기가 공유합니다. 제약은 DB check와 같은 값을 씁니다: title 1~200자, excerpt 150자 이하, tags 최대 10개(trim·중복 제거), content 최대 100,000자, slug는 NFC 정규화 후 `slugify` 규칙과 일치.
 - `thumbnail_url`은 `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/blog-images/` 접두의 주소만 허용합니다. 외부 도메인과 `javascript:` URL은 거부합니다.
@@ -256,7 +256,7 @@ export function NoteForm() {
 - React 19의 `<form action>`은 제출 후 비제어 입력을 초기화합니다. 오류 후에도 입력을 유지하려면 Action이 입력값을 `state`로 되돌려주어 `defaultValue`에 사용하거나, 아래처럼 RHF로 값을 직접 관리합니다.
 - 성공 시 이동이 필요하면 Action에서 `redirect()` 합니다 (`try/catch` 밖).
 - 아이콘이 버튼 안에 있을 때는 `data-icon="inline-start"` 같은 `Button` 규칙을 따릅니다 (`.agents/skills/shadcn/rules/icons.md`).
-- 이 컴포넌트 자체는 `Suspense`가 필요 없지만, 수정 모드처럼 초기값을 서버에서 읽어 `defaultValue`로 넘기는 부모 컴포넌트(예: `/admin/posts/edit?id=`의 `page.tsx`)는 `Suspense` 안에서 렌더링합니다.
+- 이 컴포넌트 자체는 `Suspense`가 필요 없지만, 수정 모드처럼 초기값을 서버에서 읽어 `defaultValue`로 넘기는 부모 컴포넌트(예: `/admin/posts/[id]/edit`의 `page.tsx`)는 `Suspense` 안에서 렌더링합니다.
 
 ## RHF를 얹는 경우 (선택)
 

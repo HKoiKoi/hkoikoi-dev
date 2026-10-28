@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AdminGuard } from "@/app/admin/_components/admin-guard";
-import { LogoutButton } from "@/components/logout-button";
+import { ScrollToTop } from "@/components/layout/scroll-to-top";
+import { LogoutButton } from "@/app/admin/_components/logout-button";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site-config";
 
@@ -28,7 +29,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
                 글 관리
               </Link>
               <Link
-                href="/admin/posts/edit"
+                href="/admin/posts/new"
                 className={buttonVariants({ variant: "ghost", size: "sm" })}
               >
                 새 글
@@ -43,6 +44,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
           <AdminGuard>{children}</AdminGuard>
         </Suspense>
       </div>
+      <ScrollToTop />
     </>
   );
 }

@@ -13,10 +13,10 @@
 | 영역                                                                  | 상태                                    |
 | --------------------------------------------------------------------- | --------------------------------------- |
 | 공개 페이지(메인, 이력 6종, 프로젝트, 논문), 공통 헤더·푸터·테마 전환 | 완료 (이력은 `data/*.ts`의 샘플 데이터) |
-| 블로그 목록·상세 UI, 관리자 글 목록·편집기 UI                         | 완료 (블로그 글은 더미 데이터)          |
+| 블로그 목록·상세, 관리자 글 목록·편집기                               | 완료 (블로그 글은 Supabase DB 연동)     |
 | DB(`posts` 테이블, RLS)와 이미지 스토리지(`blog-images`) 마이그레이션 | 완료, 원격 프로젝트에 적용됨            |
-| 관리자 인증·권한, 글 저장·발행·삭제, 블로그 DB 연동                   | 예정 (Task 011~013)                     |
-| 마크다운 렌더링, 편집기 미리보기, 이미지 업로드                       | 예정 (Task 015~017)                     |
+| 관리자 인증·권한, 글 저장·발행·삭제                                   | 완료 (Task 011, 013)                    |
+| 마크다운 렌더링, 편집기 실시간 미리보기, 이미지 업로드                | 완료 (Task 015~017)                     |
 | SEO(sitemap, robots, 메타데이터), 캐싱·성능, 배포                     | 예정 (Task 018~020)                     |
 
 ## 기술 스택
@@ -52,6 +52,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[publishable 또는 anon 키]
 
 1. `*_create_posts.sql`: `posts` 테이블, check 제약, 인덱스, `updated_at` 트리거, RLS
 2. `*_create_blog_images_bucket.sql`: 공개 버킷 `blog-images`(5MB, jpeg/png/webp/gif)와 관리자 전용 쓰기 정책
+3. `*_add_posts_category_tags_length_checks.sql`: `posts`의 category·tags 길이 check 제약
+4. `*_revoke_excess_posts_grants.sql`: `posts`에 과잉 부여된 GRANT 회수(anon은 SELECT, authenticated는 SELECT·INSERT·UPDATE·DELETE만 유지)
 
 적용은 Supabase 대시보드의 SQL Editor, Supabase CLI, 또는 Supabase MCP의 `apply_migration` 중 편한 방법을 씁니다. 적용 후 Supabase의 보안 advisor를 확인합니다. 스키마를 바꾸면 `lib/supabase/database.types.ts`를 다시 생성합니다(직접 편집하지 않습니다).
 
@@ -90,9 +92,9 @@ CI는 typecheck → lint → format:check → test → build를 실행합니다.
 
 ```
 app/              # 라우트: (site) 공개 사이트, admin 관리자, auth 로그인
-components/       # ui(shadcn), blog, content, layout, 인증·테마 컴포넌트
+components/       # ui(shadcn), blog, content, layout, markdown, theme-switcher
 data/             # 이력·프로젝트·논문 정적 데이터 (샘플 문구, 실제 내용으로 교체 예정)
-lib/              # supabase 클라이언트·DB 타입, 도메인 타입, 순수 로직, 더미 데이터
+lib/              # supabase 클라이언트·DB 타입, 도메인 타입, 쿼리, 스키마, 순수 로직
 supabase/         # DB 마이그레이션
 e2e/              # Playwright 테스트
 docs/             # PRD, ROADMAP, 개발 가이드
