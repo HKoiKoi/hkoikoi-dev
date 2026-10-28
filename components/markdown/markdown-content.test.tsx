@@ -1,5 +1,5 @@
-import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { MarkdownContent } from "./markdown-content";
 
@@ -143,5 +143,38 @@ describe("MarkdownContent 엣지", () => {
   it("미지원 언어 코드 블록도 예외 없이 렌더링한다", () => {
     const c = renderMd("```foobar\nx\n```");
     expect(c.querySelector("pre code")).not.toBeNull();
+  });
+});
+
+describe("MarkdownContent 코드 복사 버튼", () => {
+  it("코드 블록마다 복사 버튼을 렌더링한다", () => {
+    renderMd("```ts\nconst a = 1\n```");
+    expect(screen.getByRole("button", { name: "코드 복사" })).toBeVisible();
+  });
+
+  it("클릭하면 개행을 뺀 순수 텍스트를 클립보드에 쓰고 복사됨으로 바꾼다", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    renderMd("```ts\nconst a = 1\n```");
+    fireEvent.click(screen.getByRole("button", { name: "코드 복사" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "코드 복사됨" })).toBeVisible(),
+    );
+    expect(writeText).toHaveBeenCalledWith("const a = 1");
+  });
+
+  it("클립보드 쓰기가 실패해도 예외 없이 상태를 유지한다", async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error("denied"));
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    renderMd("```\nx\n```");
+    fireEvent.click(screen.getByRole("button", { name: "코드 복사" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "코드 복사" })).toBeVisible();
   });
 });

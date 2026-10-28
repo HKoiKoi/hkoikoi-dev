@@ -1,6 +1,7 @@
 import Markdown from "react-markdown";
 import "katex/dist/katex.min.css";
 
+import { CodeBlock } from "@/components/markdown/code-block";
 import { rehypePlugins, remarkPlugins } from "@/lib/markdown/plugins";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}
         components={{
+          pre: CodeBlock,
           // 본문 이미지는 임의 외부 URL이라 next/image를 쓸 수 없다.
           img: ({ node: _node, alt, ...props }) => (
             // eslint-disable-next-line @next/next/no-img-element
