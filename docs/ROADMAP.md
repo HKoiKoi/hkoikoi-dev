@@ -406,20 +406,21 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → 수식·코드·표·이미지가 포함된 발행 글 상세 → 라이트/다크 모두 가독성 확인, 이미지 `loading="lazy"`
   - 테스트 결과: 2026-10-28 `npm run check`(Vitest 16 파일 / 123개, `lib/markdown` 7개·`components/markdown` 19개 포함)·`npm run knip`(katex 오탐 없음)·`npm run build` 통과(공개 페이지 Partial Prerender ◐ 유지). 사전 검증(소스·임시 테스트로 확인, 임시 파일 삭제): class에 RegExp 허용·class 배열 토큰별 검사, 기본 `clobberPrefix` `user-content-`, vitest(jsdom)와 `renderToString`에서 ESM unified 계열 import 가능, 동기 `Markdown`은 훅 없음(훅은 `MarkdownHooks`뿐). 미지원 언어는 `rehype-highlight`가 경고만 남기고 건너뛰어 별도 옵션 불필요. Playwright MCP 확인: 관리자 자격 증명을 읽을 수 없어 Supabase MCP로 원격 프로젝트(`.mcp.json` 고정 ref와 일치 확인)에 `e2e-md-seed` 발행 글을 시드하고 dev 서버(`/blog/e2e-md-seed`)에서 확인한 뒤 SQL로 삭제해 `e2e-` 행 0건을 확인했다(제한 사항: 실제 관리자 UI 작성 경로가 아니라 SQL 시드 경로). 표·인라인/블록 수식·ts 코드 하이라이트·체크리스트·취소선·이미지·`<style>` `post-box`·details를 라이트/다크 모두 가독성 있게 렌더링, `img loading="lazy"`·외부 링크 `rel="noreferrer"`·체크박스 disabled 확인, 본문의 `<script>`는 DOM에 없음. 라이트에서 미체크 체크박스가 어둡게 보이는 점은 기본 `accent-color` 때문이며 이번 범위에서는 손대지 않았다. 모바일 폭은 확인하지 않았다
 
-- **Task 016: 편집기 실시간 미리보기 및 스타일 격리 구현**
+- **Task 016: 편집기 실시간 미리보기 및 스타일 격리 구현** ✅
   - 관련 기능: F007, F008
   - 관련 파일: `app/admin/posts/_components/{post-editor,markdown-preview}.tsx`, `components/markdown/markdown-content.tsx`
   - 수락 기준: 본문 입력이 미리보기에 실시간 반영되고(입력 지연 체감 없음), 본문의 `<style>`이 편집기 UI(헤더·입력란·버튼)에 영향을 주지 않음. 미리보기 렌더링은 상세 페이지와 동일 결과
-  - [ ] 격리 방식 결정 및 구현: Shadow DOM(권장, `MarkdownContent`를 portal로 shadow root에 렌더링 + KaTeX·typography·hljs CSS 주입) 또는 `iframe srcdoc`. 선택 근거를 이 항목에 기록
-  - [ ] `useDeferredValue`로 입력과 렌더링 분리, 미완성 마크다운에서도 예외 없이 표시
-  - [ ] 데스크톱 좌우 분할 스크롤, 모바일 탭 전환 시 입력값 유지
+  - [x] 격리 방식 결정 및 구현: Shadow DOM(권장, `MarkdownContent`를 portal로 shadow root에 렌더링 + KaTeX·typography·hljs CSS 주입) 또는 `iframe srcdoc`. 선택 근거를 이 항목에 기록
+    - 선택 근거(Shadow DOM 채택): 같은 React 트리에서 portal로 렌더링하므로 `MarkdownContent`를 그대로 재사용해 상세 페이지와 결과가 같고, 입력 상태·테마(`next-themes`)를 props/context로 바로 전달할 수 있다. iframe `srcdoc`은 격리는 가장 강하지만 문서·스크립트가 분리돼 스타일시트 주입·높이 동기화·테마 전달·`postMessage` 같은 별도 연동이 필요하고, 입력마다 문서를 다시 쓰면 깜빡임·스크롤 초기화 위험이 있다. Shadow DOM의 대가로 문서 스타일시트를 복제해 주입해야 한다(`:root`→`:host` 치환, `.dark`는 shadow 안 래퍼에 직접 부여, 마운트 시 1회 복제라 HMR 변경은 새로고침 필요, cross-origin 시트는 건너뜀).
+  - [x] `useDeferredValue`로 입력과 렌더링 분리, 미완성 마크다운에서도 예외 없이 표시
+  - [x] 데스크톱 좌우 분할 스크롤, 모바일 탭 전환 시 입력값 유지
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 편집기 본문에 `# 제목` 입력 → 미리보기에 `h1` 즉시 표시
     - 정상: Playwright MCP → 본문에 수식·코드 블록 입력 → 미리보기에 KaTeX·하이라이트 표시
     - 오류: Playwright MCP → 본문에 `<style>button{display:none} body{background:red}</style>` 입력 → 편집기의 저장 버튼 표시 유지, 편집기 배경 변화 없음
     - 엣지: Playwright MCP → `$$` 하나만 입력한 상태 → 미리보기 오류 화면 없음
     - 엣지: Playwright MCP → 375px에서 작성 탭 입력 → 미리보기 탭 → 작성 탭 복귀 시 입력 유지
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-28 `npm run check`(typecheck·lint·prettier 통과, Vitest 17 파일 / 135개, `markdown-preview.test.tsx` 포함)·`npm run knip`(종료 코드 0)·`npm run build`(placeholder Supabase 환경변수, `/admin/posts/new`·`/admin/posts/[id]/edit` Partial Prerender ◐ 유지) 통과. `e2e/admin-preview.spec.ts` 5개 시나리오(h1·수식/코드·`<style>` 격리·`$` 단독·375px 탭 유지) 5/5 통과. 관리자 자격 증명이 없어 Supabase MCP로 원격 프로젝트(`.mcp.json` 고정 ref와 일치 확인)에 `app_metadata.role='admin'` 임시 사용자를 만들어 e2e와 Playwright MCP 확인에 쓰고, 끝난 뒤 삭제해 `e2e-` 사용자·글 0건을 확인했다(제한 사항: 실제 관리자 계정이 아니라 임시 계정 경로). Playwright MCP(dev 서버): 데스크톱 1280px 라이트/다크에서 h1·표·인라인/블록 수식·ts 하이라이트·체크리스트·본문 `<style>`(`.post-box` 적색)이 shadow 안에서만 적용되고 body 배경·버튼 `display`는 그대로, 다크에서는 shadow 래퍼에 `dark` 클래스가 붙어 h1·본문이 가독성 있게 표시됨. 미리보기 영역은 `scrollHeight` 2027 > `clientHeight` 536으로 독립 세로 스크롤. 375px에서 작성→미리보기→작성 전환 후 본문 203자 유지, 가로 넘침 없음, 다크 미리보기 가독성 확인. 미확인: 라이트 모드 375px 시각 확인(다크만 확인), Safari·Firefox(Chromium만 확인), 개발 중 HMR로 바뀐 CSS의 미리보기 반영(알려진 한계로 새로고침 필요)
 
 - **Task 017: 이미지 업로드 및 썸네일 지정 구현**
   - 관련 기능: F009, F008
