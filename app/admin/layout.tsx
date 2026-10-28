@@ -5,6 +5,9 @@ import { LogoutButton } from "@/components/logout-button";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site-config";
 
+// 헤더는 일부러 AdminGuard 바깥(정적 셸)에 둔다. 헤더에는 공개 상수와 링크뿐이라
+// 로그인한 비관리자에게 잠깐 보여도 노출되는 정보가 없고, 가드 안으로 옮기면 모든
+// /admin 진입에서 세션 확인이 끝날 때까지 빈 화면이 생긴다. 인가는 requireAdmin()과 RLS가 맡는다.
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <>

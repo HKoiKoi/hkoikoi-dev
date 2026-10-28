@@ -2,11 +2,15 @@ import { z } from "zod";
 
 import { slugify } from "@/lib/posts/slugify";
 
+// zod `.max`는 UTF-16 코드 단위, DB `char_length`는 코드포인트 기준이다.
+// 이모지 등이 섞이면 zod가 더 엄격하므로 DB check보다 먼저 거부되는 안전한 방향이다.
 export const POST_LIMITS = {
   title: 200,
   excerpt: 150,
   content: 100000,
   tags: 10,
+  category: 50,
+  tag: 50,
 } as const;
 
 const DEFAULT_CATEGORY = "일반";
@@ -44,9 +48,19 @@ export const postSchema = z.object({
   category: z
     .string()
     .trim()
+    .max(POST_LIMITS.category, {
+      error: `카테고리는 ${POST_LIMITS.category}자 이하로 입력해 주세요.`,
+    })
     .transform((value) => value || DEFAULT_CATEGORY),
   tags: z
-    .array(z.string().trim())
+    .array(
+      z
+        .string()
+        .trim()
+        .max(POST_LIMITS.tag, {
+          error: `태그는 ${POST_LIMITS.tag}자 이하로 입력해 주세요.`,
+        }),
+    )
     .transform((tags) => [...new Set(tags.filter(Boolean))])
     .refine((tags) => tags.length <= POST_LIMITS.tags, {
       error: `태그는 최대 ${POST_LIMITS.tags}개까지 사용할 수 있습니다.`,
