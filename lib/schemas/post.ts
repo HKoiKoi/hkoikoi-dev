@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { slugify } from "@/lib/posts/slugify";
 
+// zod `.max`는 UTF-16 코드 단위, DB `char_length`는 코드포인트 기준이다.
+// 이모지 등이 섞이면 zod가 더 엄격하므로 DB check보다 먼저 거부되는 안전한 방향이다.
 export const POST_LIMITS = {
   title: 200,
   excerpt: 150,
