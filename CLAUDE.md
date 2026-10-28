@@ -57,7 +57,7 @@ Next.js App Router + Supabase. `src/` 없이 루트에 `app/`, `components/`, `l
 
 ## 문서와 에이전트 설정
 
-- `docs/PRD.md`(기능 명세), `docs/ROADMAP.md`(Task별 진행 상황·테스트 결과), `docs/guides/`에 `project-structure.md`(폴더 구조·네이밍·품질 게이트), `nextjs-16.md`, `component-patterns.md`, `styling-guide.md`, `forms-react-hook-form.md`가 있다. 구조나 컨벤션을 바꾸기 전에 해당 가이드를 먼저 읽고, 구조가 바뀌면 `project-structure.md`도 함께 갱신한다. Task를 마치면 ROADMAP의 체크박스와 테스트 결과를 실제 결과로 갱신하며, 확인하지 않은 항목은 완료로 체크하지 않는다.
+- `docs/PRD.md`(기능 명세), `docs/ROADMAP.md`(Task별 진행 상황·테스트 결과), `docs/guides/`에 `project-structure.md`(폴더 구조·네이밍·품질 게이트), `nextjs-16.md`, `component-patterns.md`, `styling-guide.md`, `forms-react-hook-form.md`, `rls-verification.md`(RLS 읽기 전용 점검 절차)가 있다. 구조나 컨벤션을 바꾸기 전에 해당 가이드를 먼저 읽고, 구조가 바뀌면 `project-structure.md`도 함께 갱신한다. Task를 마치면 ROADMAP의 체크박스와 테스트 결과를 실제 결과로 갱신하며, 확인하지 않은 항목은 완료로 체크하지 않는다.
 - `.claude/agents/{dev,docs}/`에 서브 에이전트(code-reviewer, development-planner, nextjs-app-router-expert, supabase-expert, ui-markup-specialist, prd-generator, prd-validator), `.claude/hooks/`에 포맷·알림·종료 훅, `.claude/skills/`에 git 작업(branch·commit·pr)·shadcn·supabase 스킬이 있다. `.agents/skills/`는 shadcn·supabase 스킬 사본이며 lint/test/knip 대상에서 제외된다.
 - `.mcp.json`에는 sequential-thinking, shrimp-task-manager, supabase(프로젝트 고정) MCP가 등록돼 있다. DB 변경은 Supabase MCP의 `apply_migration`으로 적용하되, 원격 프로젝트가 맞는지 먼저 확인한다.
 - 응답과 커밋 메시지는 한국어를 사용한다(`.claude/settings.json`의 `language: ko`).
