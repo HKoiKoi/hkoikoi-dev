@@ -34,7 +34,7 @@ hkoikoi-dev/
 │   ├── content/            # 이력·프로젝트·논문 등 콘텐츠 표시용
 │   ├── markdown/           # MarkdownContent (글 본문 렌더링, 서버·클라이언트 공용)
 │   ├── layout/             # 헤더·푸터·내비게이션
-│   └── *.tsx               # 로그인 폼, LogoutButton, ThemeSwitcher
+│   └── *.tsx               # ThemeSwitcher
 ├── data/                   # 이력·프로젝트·논문 등 정적 콘텐츠 (TypeScript 데이터)
 ├── lib/
 │   ├── auth/               # is-admin.ts(역할 판별), require-admin.ts(서버 가드)
@@ -117,7 +117,7 @@ app/
 - **공개 페이지는 별도 설정 없이 `app/(site)/` 아래에 만들면 됩니다.** 기본이 공개입니다.
 - **관리자 페이지는 `app/admin/` 아래에 둡니다.** 이 밖의 새 경로를 보호하려면 `updateSession()`의 `isAdminPath` 조건을 함께 고칩니다.
 - 리다이렉트 응답에는 `getClaims()`가 갱신한 쿠키를 그대로 복사합니다. 이 흐름과 `createServerClient`~`getClaims()` 사이를 건드리지 않습니다.
-- proxy는 로그인 여부만 보는 낙관적 검사입니다. **관리자 권한(`app_metadata.role = 'admin'`) 검증은 서버 코드의 `requireAdmin()`(`lib/auth/require-admin.ts`)이 맡습니다.** 비로그인이면 `/auth/login`으로 보내고, 로그인했지만 관리자가 아니면 `notFound()`를 호출합니다. `app/admin/layout.tsx`가 `<Suspense>` 안의 `AdminGuard`(`app/admin/_components/admin-guard.tsx`)로 본문을 감싸고, `posts/page.tsx`·`posts/edit/page.tsx`도 `requireAdmin()`을 다시 호출합니다. 데이터 보호는 RLS가 함께 담당합니다. 푸터의 `AdminLink`(`components/layout/admin-link.tsx`)는 관리자일 때만 `관리` 링크를 그립니다.
+- proxy는 로그인 여부만 보는 낙관적 검사입니다. **관리자 권한(`app_metadata.role = 'admin'`) 검증은 서버 코드의 `requireAdmin()`(`lib/auth/require-admin.ts`)이 맡습니다.** 비로그인이면 `/auth/login`으로 보내고, 로그인했지만 관리자가 아니면 `notFound()`를 호출합니다. `app/admin/layout.tsx`가 `<Suspense>` 안의 `AdminGuard`(`app/admin/_components/admin-guard.tsx`)로 본문을 감싸고, `posts/page.tsx`·`posts/new/page.tsx`·`app/admin/posts/[id]/edit/page.tsx`도 `requireAdmin()`을 다시 호출합니다. 데이터 보호는 RLS가 함께 담당합니다. 푸터의 `AdminLink`(`components/layout/admin-link.tsx`)는 관리자일 때만 `관리` 링크를 그립니다.
 
 ## components/ — 컴포넌트
 
@@ -136,7 +136,7 @@ components/
 
 1. **`ui/`**: shadcn/ui 기반 순수 UI 컴포넌트. 비즈니스 로직 없이 props로 동작을 제어합니다. 추가는 `npx shadcn@latest add <name>`.
 2. **`components/<domain>/`**: 여러 페이지가 쓰는 도메인 컴포넌트(`blog`, `content`, `layout`, `markdown`). 새 도메인이 생기면 폴더를 추가합니다.
-3. **`components/` 루트**: 도메인이 없는 인증·테마 관련 컴포넌트만 둡니다. 늘어나면 `components/auth/`로 묶습니다.
+3. **`components/` 루트**: 도메인이 없는 테마 컴포넌트(`theme-switcher`)만 둡니다. 로그인 폼·로그아웃 버튼은 각 라우트의 `_components/`에 있습니다.
 4. **라우트 전용 컴포넌트**: 한 페이지에서만 쓰면 해당 라우트의 `_components/`.
 5. import 방향은 `components/ui` ← `components/*` ← `app/` 단방향입니다. `components/**`에서 `@/app`을 import하면 eslint(`no-restricted-imports`)가 실패합니다.
 
@@ -251,7 +251,7 @@ import { cn } from "@/lib/utils";
 ### 테스트 배치
 
 - 단위/컴포넌트 테스트: 대상 파일 옆의 `*.test.ts(x)` (예: `lib/format-date.test.ts`). 환경은 jsdom이고 `vitest.setup.ts`가 `jest-dom` 매처와 `cleanup`을 설정합니다.
-- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `visitor-flow`, `admin-flow`, `access-control`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
+- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
 - 커버리지는 `app/`, `components/`, `lib/`를 대상으로 하되 `components/ui/**`는 제외합니다.
 - Server Component(async)는 Vitest로 직접 렌더링하기 어렵습니다. 로직은 함수로 분리해 단위 테스트하고, 화면 흐름은 E2E로 검증합니다.
 

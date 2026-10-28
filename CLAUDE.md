@@ -26,7 +26,7 @@ npx vitest run -t "테스트 이름"            # 이름으로 필터
 npx playwright test e2e/routes.spec.ts    # 단일 e2e 파일
 ```
 
-- 단위 테스트는 대상 파일 옆에 `*.test.ts(x)`로 두고, e2e는 `e2e/*.spec.ts`(`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `visitor-flow`, `admin-flow`, `access-control`), 공용 헬퍼는 `e2e/fixtures/admin.ts`. Vitest는 `e2e`, `.agents`를 제외한다.
+- 단위 테스트는 대상 파일 옆에 `*.test.ts(x)`로 두고, e2e는 `e2e/*.spec.ts`(`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`), 공용 헬퍼는 `e2e/fixtures/admin.ts`. Vitest는 `e2e`, `.agents`를 제외한다.
 - Git 훅(Husky): `pre-commit`은 lint-staged(eslint --fix --max-warnings=0 + prettier), `commit-msg`는 commitlint, `pre-push`는 `typecheck && lint`. `--no-verify`는 settings에서 deny되어 있다.
 - 커밋 메시지는 컨벤셔널 형식 `타입: 제목` / `타입(scope): 제목`, 제목은 한국어 허용, 헤더 100자 이내.
 - CI(`.github/workflows/ci.yml`)는 typecheck → lint → format:check → test → build 순서로 실행하며 빌드에는 placeholder Supabase 환경변수를 주입한다. E2E와 knip은 CI에서 실행하지 않으므로 로컬에서 돌린다.
@@ -43,7 +43,7 @@ Next.js App Router + Supabase. `src/` 없이 루트에 `app/`, `components/`, `l
 - **라우트**: `app/(site)/`(공개 10개 경로와 `blog/[slug]`, 공통 헤더·푸터), `app/admin/`(글 관리 `posts`, 새 글 `posts/new`, 수정 `posts/[id]/edit`, 공용 편집기는 `posts/_components/post-editor.tsx`), `app/auth/`(`login`, `error`만 존재). 회원가입·비밀번호 재설정·`app/protected/`는 삭제됐다. 한 라우트 전용 컴포넌트는 그 폴더의 `_components/`.
 - **Supabase**: 클라이언트는 `lib/supabase/`의 `client.ts`(브라우저), `server.ts`(서버 컴포넌트/액션/라우트 핸들러), `proxy.ts`(요청 전처리)이며 모두 `Database` 제네릭이 적용돼 있다. 서버 클라이언트는 전역 변수에 저장하지 말고 요청마다 새로 만든다. `lib/supabase/database.types.ts`는 `generate_typescript_types`로 만든 생성 파일이라 직접 편집하지 않는다. 스키마는 `supabase/migrations/`(파일명 version은 원격과 일치)에서 관리하고, 적용 후 advisor를 확인한다.
 - **데이터**: `posts` 테이블(RLS: 공개 조회는 `published = true`, 쓰기는 `app_metadata.role = 'admin'`만)과 `blog-images` 버킷이 원격에 적용돼 있다. 관리자 판별에 `user_metadata`는 쓰지 않는다. 이력·프로젝트·논문은 DB가 아니라 `data/*.ts` 정적 데이터이고, 공개 블로그 글은 `lib/queries/posts.ts`가 발행 글만(`published = true`를 쿼리에도 명시) 조회한다. `cookies()`를 읽는 요청 시점 데이터라 호출 컴포넌트는 `<Suspense>` 안에 두고, 쿼리 함수에 `'use cache'`를 붙이지 않는다. 오류는 `console.error` 후 빈 목록/`null`이며 catch에서는 `unstable_rethrow`를 먼저 호출한다. 관리자 글 목록·편집은 `lib/queries/admin-posts.ts`(초안 포함 조회, 호출 측이 `requireAdmin()` 이후에 사용)로 조회하고, 저장·삭제는 `app/admin/posts/actions.ts`의 Server Action(`savePost`, `deletePost`)이 맡는다. 입력 검증은 `lib/schemas/post.ts`(zod)다. 도메인 타입은 `lib/types/`(`post.ts`는 `Tables<'posts'>`에서 파생).
-- **`components/`**: `ui/`(shadcn/ui `base-nova`, **Radix가 아닌 Base UI**(`@base-ui/react`) 기반, CLI로 추가, knip·coverage 대상 제외), 도메인별 `blog/`, `content/`, `layout/`, 루트에는 인증·테마 컴포넌트(`login-form`, `logout-button`, `theme-switcher`). import 방향은 `ui` ← 도메인 ← `app/` 단방향.
+- **`components/`**: `ui/`(shadcn/ui `base-nova`, **Radix가 아닌 Base UI**(`@base-ui/react`) 기반, CLI로 추가, knip·coverage 대상 제외), 도메인별 `blog/`, `content/`, `layout/`, 루트에는 `theme-switcher`(로그인 폼·로그아웃 버튼은 각 라우트의 `_components/`). import 방향은 `ui` ← 도메인 ← `app/` 단방향.
 - **스타일**: Tailwind v4 (`tailwind.config.ts` 없음, `@tailwindcss/postcss` + `app/globals.css`), 클래스 병합은 `lib/utils.ts`의 `cn()`, 테마는 `next-themes`(`attribute="class"`), 폰트는 Noto Sans KR(`app/layout.tsx`).
 - **Next 설정**: `cacheComponents: true`. 요청 시점 데이터(`cookies()`, `params`, `searchParams`, Supabase 세션)를 읽는 컴포넌트는 `<Suspense>`로 감싸고, `dynamic`/`revalidate` 세그먼트 설정은 쓰지 않는다.
 
