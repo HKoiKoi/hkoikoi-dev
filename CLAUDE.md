@@ -47,12 +47,13 @@ Next.js App Router + Supabase. `src/` 없이 루트에 `app/`, `components/`, `l
 - **스타일**: Tailwind v4 (`tailwind.config.ts` 없음, `@tailwindcss/postcss` + `app/globals.css`), 클래스 병합은 `lib/utils.ts`의 `cn()`, 테마는 `next-themes`(`attribute="class"`), 폰트는 Noto Sans KR(`app/layout.tsx`).
 - **Next 설정**: `cacheComponents: true`. 요청 시점 데이터(`cookies()`, `params`, `searchParams`, Supabase 세션)를 읽는 컴포넌트는 `<Suspense>`로 감싸고, `dynamic`/`revalidate` 세그먼트 설정은 쓰지 않는다.
 
-아직 없는 것: `react-hook-form`(`zod`는 설치됨), `hooks/`, `public/`. 마크다운 렌더링은 `components/markdown/markdown-content.tsx`와 `lib/markdown/`(sanitize 스키마·플러그인 순서)에 있다. 이미지 업로드, SEO는 ROADMAP Task 017~019에서 구현한다.
+아직 없는 것: `react-hook-form`(`zod`는 설치됨), `hooks/`, `public/`. 마크다운 렌더링은 `components/markdown/markdown-content.tsx`와 `lib/markdown/`(sanitize 스키마·플러그인 순서)에 있다. 이미지 업로드는 `lib/storage/`(검증·경로·브라우저 직접 업로드), `lib/editor/`(커서 삽입·자리표시 치환)와 `app/admin/posts/_components/`의 편집기 UI에 구현돼 있다. SEO는 ROADMAP Task 018~019에서 구현한다.
 
 ## 알려진 예외
 
 - Supabase advisor 보안 경고 `auth_leaked_password_protection`은 Pro 플랜 미사용으로 예외 수용했다. 완화책으로 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수를 적용했다. 새 advisor 경고가 생기면 이 항목과 별개로 처리한다.
-- `knip.jsonc`의 임시 예외(`lib/supabase/client.ts`)는 사용처가 생기면 제거한다. 각 항목에 제거 조건이 주석으로 적혀 있다.
+- `knip.jsonc`에는 지금 영구 제외(생성·외부 파일)만 있고 임시 예외는 없다. 임시 예외를 추가하면 각 항목에 제거 조건을 주석으로 적는다.
+- `blog-images` 버킷에는 select 정책이 없어(list API 노출 방지) 업로드한 파일을 앱·e2e에서 삭제할 수 없고, SQL 삭제도 `storage.protect_delete()` 트리거가 막는다. 고아 파일은 정리하지 않는 것으로 수용했고, `npm run test:e2e`를 돌릴 때마다 테스트 이미지(70바이트)가 남는다.
 
 ## 문서와 에이전트 설정
 

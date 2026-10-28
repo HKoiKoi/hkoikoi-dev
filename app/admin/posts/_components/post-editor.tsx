@@ -2,8 +2,16 @@
 
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import {
+  useActionState,
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type DragEvent,
+} from "react";
 import { savePost } from "@/app/admin/posts/actions";
+import { ImageUploadButton } from "@/app/admin/posts/_components/image-upload-button";
+import { ThumbnailField } from "@/app/admin/posts/_components/thumbnail-field";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +19,19 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { MarkdownPreview } from "@/app/admin/posts/_components/markdown-preview";
+import {
+  createUploadPlaceholder,
+  insertAtCursor,
+  replaceWithCaret,
+} from "@/lib/editor/insert-at-cursor";
 import { slugify } from "@/lib/posts/slugify";
 import {
   parseTags,
   POST_LIMITS,
   type PostActionState,
 } from "@/lib/schemas/post";
+import { uploadImage } from "@/lib/storage/upload-image";
+import { validateImage } from "@/lib/storage/validate-image";
 import type { Post } from "@/lib/types/post";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +50,15 @@ interface PostEditorProps {
 interface FieldErrorProps {
   id: string;
   errors?: string[];
+}
+
+// 마크다운 이미지 alt: 확장자를 뺀 파일명, 대괄호는 제거한다.
+function toAltText(fileName: string): string {
+  return fileName.replace(/\.[^.]+$/, "").replace(/[[\]]/g, "");
+}
+
+function pickImageFiles(files: FileList): File[] {
+  return Array.from(files).filter((file) => file.type.startsWith("image/"));
 }
 
 // 필드별 서버 검증 오류 (입력의 aria-describedby와 id로 연결)
@@ -62,6 +86,14 @@ export function PostEditor({ initialPost }: PostEditorProps) {
   const [submitKind, setSubmitKind] = useState<"draft" | "publish">("draft");
   // 본문은 편집기가 보유한다. 미리보기(MarkdownPreview)가 같은 값을 사용한다.
   const [content, setContent] = useState(initialPost?.content ?? "");
+  const contentRef = useRef(content);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState(
+    initialPost?.thumbnail_url ?? "",
+  );
+  const [thumbnailBusy, setThumbnailBusy] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   // 모바일(lg 미만) 전용 탭 선택값. 두 패널은 항상 마운트되고 CSS로만 숨겨 입력값이 유지된다.
   const [mobileTab, setMobileTab] = useState<"write" | "preview">("write");
 
@@ -70,10 +102,107 @@ export function PostEditor({ initialPost }: PostEditorProps) {
   const tags = allTags.slice(0, TAGS_MAX);
   const tagsOverflow = allTags.length > TAGS_MAX;
   const excerptOver = excerpt.length > EXCERPT_MAX;
+  const isUploading = uploadingCount > 0 || thumbnailBusy;
 
   function handleTitleChange(value: string) {
     setTitle(value);
     if (!slugTouched) setSlug(slugify(value));
+  }
+
+  // 비동기 업로드 중에도 최신 본문을 기준으로 치환하기 위해 ref로 동기화한다.
+  function updateContent(update: (prev: string) => string) {
+    contentRef.current = update(contentRef.current);
+    setContent(contentRef.current);
+  }
+
+  // 값이 렌더에 반영된 다음 프레임에 캐럿을 옮긴다.
+  function moveCaret(position: number) {
+    requestAnimationFrame(() => {
+      textareaRef.current?.setSelectionRange(position, position);
+    });
+  }
+
+  function addUploadError(message: string) {
+    setUploadErrors((prev) => [...prev, message]);
+  }
+
+  // 파일을 순차 업로드한다. 각 파일은 시작 시점의 선택 영역에 자리표시를 넣고 결과로 치환한다.
+  async function uploadFiles(files: File[]) {
+    setUploadErrors([]);
+    // 직전 파일을 치환한 뒤의 캐럿. DOM 선택 영역은 다음 렌더 전까지 옛 위치라 다음 파일 삽입에는 이 값을 쓴다.
+    let nextCaret: number | null = null;
+    for (const file of files) {
+      const validationError = validateImage(file);
+      if (validationError) {
+        addUploadError(`${file.name}: ${validationError}`);
+        continue;
+      }
+
+      const textarea = textareaRef.current;
+      const start =
+        nextCaret ?? textarea?.selectionStart ?? contentRef.current.length;
+      const end =
+        nextCaret ?? textarea?.selectionEnd ?? contentRef.current.length;
+      const placeholder = createUploadPlaceholder(crypto.randomUUID());
+      const inserted = insertAtCursor(
+        contentRef.current,
+        start,
+        end,
+        placeholder,
+      );
+      updateContent(() => inserted.value);
+      moveCaret(inserted.cursor);
+
+      // 치환 후에도 캐럿이 같은 글자 옆에 남도록 보정한다(URL 한가운데에 남아 이어 입력이 깨지는 것을 방지).
+      const swapPlaceholder = (replacement: string) => {
+        const el = textareaRef.current;
+        const caret =
+          el && document.activeElement === el
+            ? el.selectionStart
+            : inserted.cursor;
+        const result = replaceWithCaret(
+          contentRef.current,
+          caret,
+          placeholder,
+          replacement,
+        );
+        updateContent(() => result.value);
+        moveCaret(result.cursor);
+        nextCaret = result.cursor;
+      };
+
+      setUploadingCount((count) => count + 1);
+      try {
+        const url = await uploadImage(file);
+        swapPlaceholder(`![${toAltText(file.name)}](${url})`);
+      } catch {
+        swapPlaceholder("");
+        addUploadError(`${file.name}: 이미지 업로드에 실패했습니다.`);
+      } finally {
+        setUploadingCount((count) => count - 1);
+      }
+    }
+  }
+
+  // 이미지 파일이 있을 때만 가로채고, 일반 텍스트 붙여넣기·드롭은 기본 동작을 유지한다.
+  function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const files = pickImageFiles(event.clipboardData.files);
+    if (files.length === 0) return;
+    event.preventDefault();
+    void uploadFiles(files);
+  }
+
+  function handleDrop(event: DragEvent<HTMLTextAreaElement>) {
+    const files = pickImageFiles(event.dataTransfer.files);
+    if (files.length === 0) return;
+    event.preventDefault();
+    void uploadFiles(files);
+  }
+
+  function handleDragOver(event: DragEvent<HTMLTextAreaElement>) {
+    if (Array.from(event.dataTransfer.types).includes("Files")) {
+      event.preventDefault();
+    }
   }
 
   return (
@@ -93,12 +222,6 @@ export function PostEditor({ initialPost }: PostEditorProps) {
         {initialPost && (
           <input type="hidden" name="id" value={initialPost.id} />
         )}
-        {/* 기존 썸네일 값을 유지한다. 업로드 UI는 Task 017에서 추가한다. */}
-        <input
-          type="hidden"
-          name="thumbnail_url"
-          value={initialPost?.thumbnail_url ?? ""}
-        />
         {/* 메타데이터 필드. 모바일에서는 미리보기 탭일 때만 숨긴다. */}
         <div
           className={cn(
@@ -229,13 +352,12 @@ export function PostEditor({ initialPost }: PostEditorProps) {
             <FieldError id="post-excerpt-error" errors={fieldErrors.excerpt} />
           </div>
 
-          <div className="grid gap-2">
-            <span className="text-sm font-medium">썸네일</span>
-            {/* TODO: Task 017에서 업로드·미리보기·제거 UI로 교체한다. */}
-            <div className="flex h-32 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-              썸네일 업로드는 준비 중입니다
-            </div>
-          </div>
+          <ThumbnailField
+            value={thumbnailUrl}
+            onChange={setThumbnailUrl}
+            error={fieldErrors.thumbnail_url?.[0]}
+            onBusyChange={setThumbnailBusy}
+          />
         </div>
 
         {/* 본문 입력과 미리보기를 나란히 둔다. 모바일에서는 탭으로 전환한다. */}
@@ -246,8 +368,12 @@ export function PostEditor({ initialPost }: PostEditorProps) {
               mobileTab === "write" ? "grid" : "hidden lg:grid",
             )}
           >
-            <Label htmlFor="post-content">본문</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="post-content">본문</Label>
+              <ImageUploadButton onFiles={uploadFiles} />
+            </div>
             <Textarea
+              ref={textareaRef}
               id="post-content"
               name="content"
               aria-invalid={!!fieldErrors.content}
@@ -255,10 +381,23 @@ export function PostEditor({ initialPost }: PostEditorProps) {
                 fieldErrors.content ? "post-content-error" : undefined
               }
               value={content}
-              onChange={(event) => setContent(event.target.value)}
+              onChange={(event) => updateContent(() => event.target.value)}
+              onPaste={handlePaste}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
               placeholder="마크다운으로 본문을 작성하세요"
               className="min-h-96 font-mono lg:h-full"
             />
+            <div aria-live="polite" className="text-xs text-muted-foreground">
+              {uploadingCount > 0 && `이미지 업로드 중… (${uploadingCount})`}
+            </div>
+            {uploadErrors.length > 0 && (
+              <ul role="alert" className="grid gap-1 text-sm text-destructive">
+                {uploadErrors.map((message, index) => (
+                  <li key={index}>{message}</li>
+                ))}
+              </ul>
+            )}
             <FieldError id="post-content-error" errors={fieldErrors.content} />
           </div>
 
@@ -305,7 +444,7 @@ export function PostEditor({ initialPost }: PostEditorProps) {
               <Button
                 type="submit"
                 variant="outline"
-                disabled={isPending}
+                disabled={isPending || isUploading}
                 onClick={() => setSubmitKind("draft")}
               >
                 {isPending && submitKind === "draft" ? "저장 중…" : "임시 저장"}
@@ -315,7 +454,7 @@ export function PostEditor({ initialPost }: PostEditorProps) {
                 type="submit"
                 name="published"
                 value="on"
-                disabled={isPending}
+                disabled={isPending || isUploading}
                 onClick={() => setSubmitKind("publish")}
               >
                 {isPending && submitKind === "publish"
