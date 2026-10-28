@@ -359,7 +359,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 제한 사항: 체크리스트의 'Playwright MCP' 항목은 MCP 브라우저가 아니라 위 Playwright e2e 스펙으로 같은 시나리오를 확인했다(관리자 자격 증명이 `.env`에만 있고 에이전트가 읽지 못해 MCP 브라우저로는 로그인하지 않음). `published_at` 불변은 e2e에서 상세 페이지의 발행일 표시(일 단위)가 수정 전후 같은지만 확인했고, 초 단위 값은 `lib/posts/published-at.test.ts` 단위 테스트가 보장한다. 비관리자(로그인했지만 admin이 아닌) 계정의 Server Action 호출은 미수행(`requireAdmin()`이 `notFound()`로 처리하는 경로는 코드 리뷰와 단위 테스트 범위).
   - 후속 개선(2026-10-28, 편집기 UX): 사용자 피드백 3건 반영.
     - [x] 편집기 라우트 분리: `/admin/posts/edit(?id=)` → 새 글 `/admin/posts/new`, 수정 `/admin/posts/[id]/edit`. 공용 `post-editor.tsx`는 `app/admin/posts/_components/`로 이동하고 수정 페이지는 `key={id}`로 렌더링(같은 페이지를 재사용하며 이전 입력 상태가 남아 수정 화면이 비던 문제의 유력 원인 제거). 목록·헤더 링크와 e2e 경로 갱신
-    - [x] 하단 고정 바: 왼쪽 `←` 나가기(`/admin/posts`), 오른쪽 "임시 저장"과 "저장하기"(수정 모드는 "수정하기"). 발행 체크박스는 제거하고 발행 버튼이 `published=on`을 보내 상태를 결정(임시 저장은 값 없음 → 초안)
+    - [x] 하단 고정 바: 왼쪽 `←` 나가기(`/admin/posts`), 오른쪽 "임시 저장"과 "발행하기"(수정 모드는 "수정하기"). 발행 체크박스는 제거하고 발행 버튼이 `published=on`을 보내 상태를 결정(임시 저장은 값 없음 → 초안)
     - [x] 임시 저장은 목록으로 이동하지 않고 편집 화면에 머문다. 수정 모드는 `{ ok: true, message }`를 반환해 바에 "임시 저장했습니다."를 표시하고, 새 글은 insert한 id의 `/admin/posts/{id}/edit`으로 redirect(이후 저장이 중복 생성이 되지 않게 함). 발행 저장은 기존처럼 `/admin/posts`로 redirect
     - 테스트 결과: 2026-10-28 `npm run check`(Vitest 123개)·`npm run knip` 통과. `npx playwright test e2e/admin-posts.spec.ts e2e/admin-flow.spec.ts` 10개 통과(skip 0): 새 글 임시 저장→수정 화면 이동·재저장해도 1건·초안 배지 / 수정 화면 임시 저장→URL·입력값 유지·초안 전환·공개 상세 not-found / 수정 화면에 기존 제목 표시. e2e 헬퍼 `createPost`는 임시 저장 시 수정 화면 도착을 확인한 뒤 목록으로 이동하도록 변경, `savePost` 단위 테스트(임시 저장 redirect·ok 반환) 갱신. 하단 바는 Playwright 스크린샷으로 1280px·390px, 라이트·다크에서 스크롤 끝까지 바가 하단에 고정되고 내용이 가려지지 않음을 확인했다.
     - 제한 사항: Playwright MCP 브라우저가 아니라 e2e 스펙과 임시 스펙(삭제함)으로 확인했다(관리자 자격 증명을 에이전트가 읽지 못함). 발행된 글을 수정 화면에서 "임시 저장"하면 초안으로 되돌아가 공개에서 내려가는 동작은 의도 확인이 필요하다. 개발 서버의 Next 인디케이터가 모바일에서 "나가기"를 일부 가리지만 프로덕션에는 없다.
@@ -406,20 +406,21 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → 수식·코드·표·이미지가 포함된 발행 글 상세 → 라이트/다크 모두 가독성 확인, 이미지 `loading="lazy"`
   - 테스트 결과: 2026-10-28 `npm run check`(Vitest 16 파일 / 123개, `lib/markdown` 7개·`components/markdown` 19개 포함)·`npm run knip`(katex 오탐 없음)·`npm run build` 통과(공개 페이지 Partial Prerender ◐ 유지). 사전 검증(소스·임시 테스트로 확인, 임시 파일 삭제): class에 RegExp 허용·class 배열 토큰별 검사, 기본 `clobberPrefix` `user-content-`, vitest(jsdom)와 `renderToString`에서 ESM unified 계열 import 가능, 동기 `Markdown`은 훅 없음(훅은 `MarkdownHooks`뿐). 미지원 언어는 `rehype-highlight`가 경고만 남기고 건너뛰어 별도 옵션 불필요. Playwright MCP 확인: 관리자 자격 증명을 읽을 수 없어 Supabase MCP로 원격 프로젝트(`.mcp.json` 고정 ref와 일치 확인)에 `e2e-md-seed` 발행 글을 시드하고 dev 서버(`/blog/e2e-md-seed`)에서 확인한 뒤 SQL로 삭제해 `e2e-` 행 0건을 확인했다(제한 사항: 실제 관리자 UI 작성 경로가 아니라 SQL 시드 경로). 표·인라인/블록 수식·ts 코드 하이라이트·체크리스트·취소선·이미지·`<style>` `post-box`·details를 라이트/다크 모두 가독성 있게 렌더링, `img loading="lazy"`·외부 링크 `rel="noreferrer"`·체크박스 disabled 확인, 본문의 `<script>`는 DOM에 없음. 라이트에서 미체크 체크박스가 어둡게 보이는 점은 기본 `accent-color` 때문이며 이번 범위에서는 손대지 않았다. 모바일 폭은 확인하지 않았다
 
-- **Task 016: 편집기 실시간 미리보기 및 스타일 격리 구현**
+- **Task 016: 편집기 실시간 미리보기 및 스타일 격리 구현** ✅
   - 관련 기능: F007, F008
   - 관련 파일: `app/admin/posts/_components/{post-editor,markdown-preview}.tsx`, `components/markdown/markdown-content.tsx`
   - 수락 기준: 본문 입력이 미리보기에 실시간 반영되고(입력 지연 체감 없음), 본문의 `<style>`이 편집기 UI(헤더·입력란·버튼)에 영향을 주지 않음. 미리보기 렌더링은 상세 페이지와 동일 결과
-  - [ ] 격리 방식 결정 및 구현: Shadow DOM(권장, `MarkdownContent`를 portal로 shadow root에 렌더링 + KaTeX·typography·hljs CSS 주입) 또는 `iframe srcdoc`. 선택 근거를 이 항목에 기록
-  - [ ] `useDeferredValue`로 입력과 렌더링 분리, 미완성 마크다운에서도 예외 없이 표시
-  - [ ] 데스크톱 좌우 분할 스크롤, 모바일 탭 전환 시 입력값 유지
+  - [x] 격리 방식 결정 및 구현: Shadow DOM(권장, `MarkdownContent`를 portal로 shadow root에 렌더링 + KaTeX·typography·hljs CSS 주입) 또는 `iframe srcdoc`. 선택 근거를 이 항목에 기록
+    - 선택 근거(Shadow DOM 채택): 같은 React 트리에서 portal로 렌더링하므로 `MarkdownContent`를 그대로 재사용해 상세 페이지와 결과가 같고, 입력 상태·테마(`next-themes`)를 props/context로 바로 전달할 수 있다. iframe `srcdoc`은 격리는 가장 강하지만 문서·스크립트가 분리돼 스타일시트 주입·높이 동기화·테마 전달·`postMessage` 같은 별도 연동이 필요하고, 입력마다 문서를 다시 쓰면 깜빡임·스크롤 초기화 위험이 있다. Shadow DOM의 대가로 문서 스타일시트를 복제해 주입해야 한다(`:root`→`:host` 치환, `.dark`는 shadow 안 래퍼에 직접 부여, 마운트 시 1회 복제라 HMR 변경은 새로고침 필요, cross-origin 시트는 건너뜀).
+  - [x] `useDeferredValue`로 입력과 렌더링 분리, 미완성 마크다운에서도 예외 없이 표시
+  - [x] 데스크톱 좌우 분할 스크롤, 모바일 탭 전환 시 입력값 유지
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 편집기 본문에 `# 제목` 입력 → 미리보기에 `h1` 즉시 표시
     - 정상: Playwright MCP → 본문에 수식·코드 블록 입력 → 미리보기에 KaTeX·하이라이트 표시
     - 오류: Playwright MCP → 본문에 `<style>button{display:none} body{background:red}</style>` 입력 → 편집기의 저장 버튼 표시 유지, 편집기 배경 변화 없음
     - 엣지: Playwright MCP → `$$` 하나만 입력한 상태 → 미리보기 오류 화면 없음
     - 엣지: Playwright MCP → 375px에서 작성 탭 입력 → 미리보기 탭 → 작성 탭 복귀 시 입력 유지
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-28 `npm run check`(typecheck·lint·prettier 통과, Vitest 17 파일 / 135개, `markdown-preview.test.tsx` 포함)·`npm run knip`(종료 코드 0)·`npm run build`(placeholder Supabase 환경변수, `/admin/posts/new`·`/admin/posts/[id]/edit` Partial Prerender ◐ 유지) 통과. `e2e/admin-preview.spec.ts` 5개 시나리오(h1·수식/코드·`<style>` 격리·`$` 단독·375px 탭 유지) 5/5 통과. 관리자 자격 증명이 없어 Supabase MCP로 원격 프로젝트(`.mcp.json` 고정 ref와 일치 확인)에 `app_metadata.role='admin'` 임시 사용자를 만들어 e2e와 Playwright MCP 확인에 쓰고, 끝난 뒤 삭제해 `e2e-` 사용자·글 0건을 확인했다(제한 사항: 실제 관리자 계정이 아니라 임시 계정 경로). Playwright MCP(dev 서버): 데스크톱 1280px 라이트/다크에서 h1·표·인라인/블록 수식·ts 하이라이트·체크리스트·본문 `<style>`(`.post-box` 적색)이 shadow 안에서만 적용되고 body 배경·버튼 `display`는 그대로, 다크에서는 shadow 래퍼에 `dark` 클래스가 붙어 h1·본문이 가독성 있게 표시됨. 미리보기 영역은 `scrollHeight` 2027 > `clientHeight` 536으로 독립 세로 스크롤. 375px에서 작성→미리보기→작성 전환 후 본문 203자 유지, 가로 넘침 없음, 다크 미리보기 가독성 확인. 미확인: 라이트 모드 375px 시각 확인(다크만 확인), Safari·Firefox(Chromium만 확인), 개발 중 HMR로 바뀐 CSS의 미리보기 반영(알려진 한계로 새로고침 필요)
 
 - **Task 017: 이미지 업로드 및 썸네일 지정 구현**
   - 관련 기능: F009, F008

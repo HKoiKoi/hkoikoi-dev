@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { MarkdownPreview } from "@/app/admin/posts/_components/markdown-preview";
 import { slugify } from "@/lib/posts/slugify";
 import {
   parseTags,
@@ -59,7 +60,7 @@ export function PostEditor({ initialPost }: PostEditorProps) {
   const [excerpt, setExcerpt] = useState(initialPost?.excerpt ?? "");
   // 어느 버튼으로 제출했는지 저장 중 문구에만 사용한다. 발행 여부는 제출 버튼의 name/value로 전송된다.
   const [submitKind, setSubmitKind] = useState<"draft" | "publish">("draft");
-  // 본문은 편집기가 보유한다. Task 009-c 미리보기가 같은 값을 사용한다.
+  // 본문은 편집기가 보유한다. 미리보기(MarkdownPreview)가 같은 값을 사용한다.
   const [content, setContent] = useState(initialPost?.content ?? "");
   // 모바일(lg 미만) 전용 탭 선택값. 두 패널은 항상 마운트되고 CSS로만 숨겨 입력값이 유지된다.
   const [mobileTab, setMobileTab] = useState<"write" | "preview">("write");
@@ -238,10 +239,10 @@ export function PostEditor({ initialPost }: PostEditorProps) {
         </div>
 
         {/* 본문 입력과 미리보기를 나란히 둔다. 모바일에서는 탭으로 전환한다. */}
-        <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch lg:gap-8">
+        <div className="grid gap-4 lg:h-[70vh] lg:grid-cols-2 lg:items-stretch lg:gap-8">
           <div
             className={cn(
-              "gap-2",
+              "gap-2 lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]",
               mobileTab === "write" ? "grid" : "hidden lg:grid",
             )}
           >
@@ -261,26 +262,19 @@ export function PostEditor({ initialPost }: PostEditorProps) {
             <FieldError id="post-content-error" errors={fieldErrors.content} />
           </div>
 
-          {/* TODO: Task 015·016에서 MarkdownContent로 교체한다. 지금은 본문 원문을 그대로 표시한다. */}
+          {/* 본문은 Shadow DOM으로 격리해 렌더링하므로 본문 <style>이 편집기 UI에 영향을 주지 않는다. */}
           <section
             aria-label="미리보기"
             className={cn(
-              "min-w-0 gap-2 lg:grid lg:grid-rows-[auto_1fr]",
+              "min-w-0 gap-2 lg:grid lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]",
               mobileTab === "preview" ? "grid grid-rows-[auto_1fr]" : "hidden",
             )}
           >
             {/* 본문 Label과 같은 높이로 맞춰 두 입력 영역의 상단선을 정렬한다. */}
             <h2 className="text-sm leading-none font-medium">미리보기</h2>
-            <div className="min-h-96 rounded-lg border bg-card p-4 text-card-foreground">
-              {content ? (
-                <div className="text-sm break-words whitespace-pre-wrap">
-                  {content}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  본문을 입력하면 여기에 표시됩니다
-                </p>
-              )}
+            {/* 데스크톱에서는 입력 영역과 같은 높이로 고정하고 미리보기만 세로 스크롤한다. */}
+            <div className="min-h-96 min-w-0 overflow-x-hidden rounded-lg border bg-card text-card-foreground lg:min-h-0 lg:overflow-y-auto">
+              <MarkdownPreview content={content} />
             </div>
           </section>
         </div>
@@ -328,7 +322,7 @@ export function PostEditor({ initialPost }: PostEditorProps) {
                   ? "저장 중…"
                   : isEdit
                     ? "수정하기"
-                    : "저장하기"}
+                    : "발행하기"}
               </Button>
             </div>
           </div>
