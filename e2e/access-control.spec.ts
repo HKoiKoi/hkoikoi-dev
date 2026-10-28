@@ -12,6 +12,18 @@ test.describe("비로그인의 관리자 영역 접근 차단", () => {
   }
 });
 
+test.describe("퍼센트 인코딩 경로로 관리자 영역 우회 시도", () => {
+  // /%61dmin은 /admin의 인코딩 표기다. 어떤 경우에도 관리자 화면(200)이 열리면 안 된다.
+  for (const path of ["/%61dmin/posts", "/%41dmin/posts", "/admin%2Fposts"]) {
+    test(`${path} 는 관리자 화면을 렌더링하지 않는다`, async ({ request }) => {
+      const response = await request.get(path, { maxRedirects: 0 });
+
+      expect(response.status()).toBeGreaterThanOrEqual(300);
+      expect(response.status()).not.toBe(200);
+    });
+  }
+});
+
 test.describe("로그인 실패 반복", () => {
   test("3회 연속 실패해도 매번 오류가 보이고 로그인 화면이 유지된다", async ({
     page,
