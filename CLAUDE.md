@@ -33,7 +33,7 @@ npx playwright test e2e/routes.spec.ts    # 단일 e2e 파일
 
 ## 환경 변수
 
-`.env.example`을 참고해 `.env.local`(또는 `.env`)에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`를 설정한다. 둘이 없으면 `lib/utils.ts`의 `hasEnvVars`가 false가 되어 `lib/supabase/proxy.ts`의 세션 검사를 건너뛴다. `DATA_DIR`, `TEMPLATES_USE`, `ENABLE_GUI`는 shrimp MCP용이다. `.env`는 settings에서 읽기가 막혀 있다.
+`.env.example`을 참고해 `.env.local`(또는 `.env`)에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`를 설정한다. 둘이 없으면 `lib/supabase/proxy.ts`의 `hasEnvVars`가 false가 되어 세션 검사를 건너뛴다. `DATA_DIR`, `TEMPLATES_USE`, `ENABLE_GUI`는 shrimp MCP용이다. `.env`는 settings에서 읽기가 막혀 있다.
 
 ## 아키텍처
 

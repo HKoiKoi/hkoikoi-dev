@@ -43,7 +43,7 @@ hkoikoi-dev/
 │   ├── editor/             # insert-at-cursor.ts(커서 삽입·자리표시 치환 순수 함수) + 테스트
 │   ├── types/              # 도메인 타입 (post, profile, resume)
 │   ├── schemas/            # post.ts(zod 입력 스키마, POST_LIMITS, parseTags) + 테스트
-│   ├── queries/            # posts.ts(공개 글 조회), admin-posts.ts(관리자 조회), 서버 전용 + 테스트
+│   ├── queries/            # posts.ts(공개 글 조회), admin-posts.ts(관리자 조회), columns.ts(공용 select 컬럼), 서버 전용 + 테스트
 │   ├── posts/ projects/ publications/   # slugify·form-data·published-at·정렬 등 순수 함수와 옆의 테스트
 │   ├── site-config.ts      # 사이트 이름, 내비게이션 항목
 │   ├── format-date.ts / is-active-path.ts / utils.ts   # 공용 유틸 (+ *.test.ts)
@@ -153,7 +153,7 @@ lib/
 ├── editor/                # insert-at-cursor.ts: insertAtCursor, replaceOnce, createUploadPlaceholder (+ 테스트)
 ├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
 ├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
-├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getPostBySlug, admin-posts.ts: getAdminPosts / getAdminPostById (+ 테스트)
+├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getPostBySlug, admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
 ├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), rehype-sanitize-style.ts(`<style>` CSS 내용 검사), plugins.ts(remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
 ├── posts/                 # slugify.ts, form-data.ts, published-at.ts (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
