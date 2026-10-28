@@ -7,6 +7,8 @@ export const POST_LIMITS = {
   excerpt: 150,
   content: 100000,
   tags: 10,
+  category: 50,
+  tag: 50,
 } as const;
 
 const DEFAULT_CATEGORY = "일반";
@@ -44,9 +46,19 @@ export const postSchema = z.object({
   category: z
     .string()
     .trim()
+    .max(POST_LIMITS.category, {
+      error: `카테고리는 ${POST_LIMITS.category}자 이하로 입력해 주세요.`,
+    })
     .transform((value) => value || DEFAULT_CATEGORY),
   tags: z
-    .array(z.string().trim())
+    .array(
+      z
+        .string()
+        .trim()
+        .max(POST_LIMITS.tag, {
+          error: `태그는 ${POST_LIMITS.tag}자 이하로 입력해 주세요.`,
+        }),
+    )
     .transform((tags) => [...new Set(tags.filter(Boolean))])
     .refine((tags) => tags.length <= POST_LIMITS.tags, {
       error: `태그는 최대 ${POST_LIMITS.tags}개까지 사용할 수 있습니다.`,

@@ -66,6 +66,22 @@ describe("postSchema", () => {
     expect(result.success && result.data.category).toBe("일반");
   });
 
+  it("category 50자는 통과, 51자는 거부한다", () => {
+    expect(parse({ category: "a".repeat(POST_LIMITS.category) }).success).toBe(
+      true,
+    );
+    expect(
+      errorPaths(parse({ category: "a".repeat(POST_LIMITS.category + 1) })),
+    ).toContain("category");
+  });
+
+  it("태그 50자는 통과, 51자는 거부한다", () => {
+    expect(parse({ tags: ["a".repeat(POST_LIMITS.tag)] }).success).toBe(true);
+    expect(
+      errorPaths(parse({ tags: ["a".repeat(POST_LIMITS.tag + 1)] })),
+    ).toContain("tags");
+  });
+
   it("tags의 중복·빈 값을 제거한다", () => {
     const result = parse({ tags: [" a ", "a", ""] });
     expect(result.success && result.data.tags).toEqual(["a"]);
