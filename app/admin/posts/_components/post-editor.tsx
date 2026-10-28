@@ -322,7 +322,7 @@ export function PostEditor({ initialPost }: PostEditorProps) {
                   ? "저장 중…"
                   : isEdit
                     ? "수정하기"
-                    : "저장하기"}
+                    : "발행하기"}
               </Button>
             </div>
           </div>
