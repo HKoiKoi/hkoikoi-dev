@@ -2,43 +2,21 @@
 
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
-import {
-  useActionState,
-  useRef,
-  useState,
-  type ClipboardEvent,
-  type DragEvent,
-} from "react";
+import { useActionState, useState } from "react";
 import { savePost } from "@/app/admin/posts/actions";
+import { FieldError } from "@/app/admin/posts/_components/field-error";
 import { ImageUploadButton } from "@/app/admin/posts/_components/image-upload-button";
+import { MarkdownPreview } from "@/app/admin/posts/_components/markdown-preview";
+import { PostMetaFields } from "@/app/admin/posts/_components/post-meta-fields";
 import { ThumbnailField } from "@/app/admin/posts/_components/thumbnail-field";
-import { Badge } from "@/components/ui/badge";
+import { useContentUpload } from "@/app/admin/posts/_components/use-content-upload";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { MarkdownPreview } from "@/app/admin/posts/_components/markdown-preview";
-import {
-  createUploadPlaceholder,
-  insertAtCursor,
-  replaceWithCaret,
-} from "@/lib/editor/insert-at-cursor";
-import { slugify } from "@/lib/posts/slugify";
-import {
-  parseTags,
-  POST_LIMITS,
-  type PostActionState,
-} from "@/lib/schemas/post";
-import { uploadImage } from "@/lib/storage/upload-image";
-import { validateImage } from "@/lib/storage/validate-image";
+import { type PostActionState } from "@/lib/schemas/post";
 import type { Post } from "@/lib/types/post";
 import { cn } from "@/lib/utils";
-
-const EXCERPT_MAX = POST_LIMITS.excerpt;
-const TAGS_MAX = POST_LIMITS.tags;
-// 공개 글 상세 라우트(app/(site)/blog/[slug])와 같다. 편집기에서는 수정할 수 없다.
-const POST_PATH_PREFIX = "/blog/";
 
 const initialState: PostActionState = { ok: false };
 
@@ -47,163 +25,32 @@ interface PostEditorProps {
   initialPost?: Post;
 }
 
-interface FieldErrorProps {
-  id: string;
-  errors?: string[];
-}
-
-// 마크다운 이미지 alt: 확장자를 뺀 파일명, 대괄호는 제거한다.
-function toAltText(fileName: string): string {
-  return fileName.replace(/\.[^.]+$/, "").replace(/[[\]]/g, "");
-}
-
-function pickImageFiles(files: FileList): File[] {
-  return Array.from(files).filter((file) => file.type.startsWith("image/"));
-}
-
-// 필드별 서버 검증 오류 (입력의 aria-describedby와 id로 연결)
-function FieldError({ id, errors }: FieldErrorProps) {
-  if (!errors || errors.length === 0) return null;
-  return (
-    <p id={id} role="alert" className="text-sm text-destructive">
-      {errors[0]}
-    </p>
-  );
-}
-
 export function PostEditor({ initialPost }: PostEditorProps) {
   const [state, formAction, isPending] = useActionState(savePost, initialState);
   const fieldErrors = state.fieldErrors ?? {};
 
-  const [title, setTitle] = useState(initialPost?.title ?? "");
-  const [slug, setSlug] = useState(initialPost?.slug ?? "");
-  // 사용자가 슬러그를 직접 수정하면 제목 기반 자동 제안을 멈춘다. 수정 모드에서는 처음부터 끈다.
-  const [slugTouched, setSlugTouched] = useState(Boolean(initialPost));
-  const [category, setCategory] = useState(initialPost?.category ?? "일반");
-  const [tagInput, setTagInput] = useState(initialPost?.tags.join(", ") ?? "");
-  const [excerpt, setExcerpt] = useState(initialPost?.excerpt ?? "");
   // 어느 버튼으로 제출했는지 저장 중 문구에만 사용한다. 발행 여부는 제출 버튼의 name/value로 전송된다.
   const [submitKind, setSubmitKind] = useState<"draft" | "publish">("draft");
-  // 본문은 편집기가 보유한다. 미리보기(MarkdownPreview)가 같은 값을 사용한다.
-  const [content, setContent] = useState(initialPost?.content ?? "");
-  const contentRef = useRef(content);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const {
+    content,
+    textareaRef,
+    uploadingCount,
+    uploadErrors,
+    updateContent,
+    uploadFiles,
+    handlePaste,
+    handleDrop,
+    handleDragOver,
+  } = useContentUpload(initialPost?.content ?? "");
   const [thumbnailUrl, setThumbnailUrl] = useState(
     initialPost?.thumbnail_url ?? "",
   );
   const [thumbnailBusy, setThumbnailBusy] = useState(false);
-  const [uploadingCount, setUploadingCount] = useState(0);
-  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   // 모바일(lg 미만) 전용 탭 선택값. 두 패널은 항상 마운트되고 CSS로만 숨겨 입력값이 유지된다.
   const [mobileTab, setMobileTab] = useState<"write" | "preview">("write");
 
   const isEdit = Boolean(initialPost);
-  const allTags = parseTags(tagInput);
-  const tags = allTags.slice(0, TAGS_MAX);
-  const tagsOverflow = allTags.length > TAGS_MAX;
-  const excerptOver = excerpt.length > EXCERPT_MAX;
   const isUploading = uploadingCount > 0 || thumbnailBusy;
-
-  function handleTitleChange(value: string) {
-    setTitle(value);
-    if (!slugTouched) setSlug(slugify(value));
-  }
-
-  // 비동기 업로드 중에도 최신 본문을 기준으로 치환하기 위해 ref로 동기화한다.
-  function updateContent(update: (prev: string) => string) {
-    contentRef.current = update(contentRef.current);
-    setContent(contentRef.current);
-  }
-
-  // 값이 렌더에 반영된 다음 프레임에 캐럿을 옮긴다.
-  function moveCaret(position: number) {
-    requestAnimationFrame(() => {
-      textareaRef.current?.setSelectionRange(position, position);
-    });
-  }
-
-  function addUploadError(message: string) {
-    setUploadErrors((prev) => [...prev, message]);
-  }
-
-  // 파일을 순차 업로드한다. 각 파일은 시작 시점의 선택 영역에 자리표시를 넣고 결과로 치환한다.
-  async function uploadFiles(files: File[]) {
-    setUploadErrors([]);
-    // 직전 파일을 치환한 뒤의 캐럿. DOM 선택 영역은 다음 렌더 전까지 옛 위치라 다음 파일 삽입에는 이 값을 쓴다.
-    let nextCaret: number | null = null;
-    for (const file of files) {
-      const validationError = validateImage(file);
-      if (validationError) {
-        addUploadError(`${file.name}: ${validationError}`);
-        continue;
-      }
-
-      const textarea = textareaRef.current;
-      const start =
-        nextCaret ?? textarea?.selectionStart ?? contentRef.current.length;
-      const end =
-        nextCaret ?? textarea?.selectionEnd ?? contentRef.current.length;
-      const placeholder = createUploadPlaceholder(crypto.randomUUID());
-      const inserted = insertAtCursor(
-        contentRef.current,
-        start,
-        end,
-        placeholder,
-      );
-      updateContent(() => inserted.value);
-      moveCaret(inserted.cursor);
-
-      // 치환 후에도 캐럿이 같은 글자 옆에 남도록 보정한다(URL 한가운데에 남아 이어 입력이 깨지는 것을 방지).
-      const swapPlaceholder = (replacement: string) => {
-        const el = textareaRef.current;
-        const caret =
-          el && document.activeElement === el
-            ? el.selectionStart
-            : inserted.cursor;
-        const result = replaceWithCaret(
-          contentRef.current,
-          caret,
-          placeholder,
-          replacement,
-        );
-        updateContent(() => result.value);
-        moveCaret(result.cursor);
-        nextCaret = result.cursor;
-      };
-
-      setUploadingCount((count) => count + 1);
-      try {
-        const url = await uploadImage(file);
-        swapPlaceholder(`![${toAltText(file.name)}](${url})`);
-      } catch {
-        swapPlaceholder("");
-        addUploadError(`${file.name}: 이미지 업로드에 실패했습니다.`);
-      } finally {
-        setUploadingCount((count) => count - 1);
-      }
-    }
-  }
-
-  // 이미지 파일이 있을 때만 가로채고, 일반 텍스트 붙여넣기·드롭은 기본 동작을 유지한다.
-  function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
-    const files = pickImageFiles(event.clipboardData.files);
-    if (files.length === 0) return;
-    event.preventDefault();
-    void uploadFiles(files);
-  }
-
-  function handleDrop(event: DragEvent<HTMLTextAreaElement>) {
-    const files = pickImageFiles(event.dataTransfer.files);
-    if (files.length === 0) return;
-    event.preventDefault();
-    void uploadFiles(files);
-  }
-
-  function handleDragOver(event: DragEvent<HTMLTextAreaElement>) {
-    if (Array.from(event.dataTransfer.types).includes("Files")) {
-      event.preventDefault();
-    }
-  }
 
   return (
     <div className="grid gap-4 pb-20">
@@ -223,142 +70,21 @@ export function PostEditor({ initialPost }: PostEditorProps) {
           <input type="hidden" name="id" value={initialPost.id} />
         )}
         {/* 메타데이터 필드. 모바일에서는 미리보기 탭일 때만 숨긴다. */}
-        <div
+        <PostMetaFields
+          initialPost={initialPost}
+          fieldErrors={fieldErrors}
           className={cn(
             "gap-6",
             mobileTab === "write" ? "grid" : "hidden lg:grid",
           )}
         >
-          <div className="grid gap-2">
-            <Label htmlFor="post-title">제목</Label>
-            <Input
-              id="post-title"
-              name="title"
-              aria-invalid={!!fieldErrors.title}
-              aria-describedby={
-                fieldErrors.title ? "post-title-error" : undefined
-              }
-              value={title}
-              onChange={(event) => handleTitleChange(event.target.value)}
-              placeholder="글 제목"
-            />
-            <FieldError id="post-title-error" errors={fieldErrors.title} />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="post-slug">URL</Label>
-            <div className="flex">
-              <span className="flex items-center rounded-l-lg border border-r-0 bg-muted px-3 text-sm text-muted-foreground select-none">
-                {POST_PATH_PREFIX}
-              </span>
-              <Input
-                id="post-slug"
-                name="slug"
-                aria-invalid={!!fieldErrors.slug}
-                aria-describedby={
-                  fieldErrors.slug ? "post-slug-error" : undefined
-                }
-                value={slug}
-                onChange={(event) => {
-                  setSlugTouched(true);
-                  setSlug(event.target.value);
-                }}
-                placeholder="제목 입력 시 자동 제안"
-                className="rounded-l-none"
-              />
-            </div>
-            <FieldError id="post-slug-error" errors={fieldErrors.slug} />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="post-category">카테고리</Label>
-            <Input
-              id="post-category"
-              name="category"
-              aria-invalid={!!fieldErrors.category}
-              aria-describedby={
-                fieldErrors.category ? "post-category-error" : undefined
-              }
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-            />
-            <FieldError
-              id="post-category-error"
-              errors={fieldErrors.category}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="post-tags">태그</Label>
-            <Input
-              id="post-tags"
-              name="tags"
-              aria-invalid={!!fieldErrors.tags}
-              value={tagInput}
-              onChange={(event) => setTagInput(event.target.value)}
-              placeholder="쉼표로 구분 (최대 10개)"
-              aria-describedby={cn(
-                "post-tags-help",
-                fieldErrors.tags && "post-tags-error",
-              )}
-            />
-            {tags.length > 0 && (
-              <ul aria-label="입력된 태그" className="flex flex-wrap gap-1.5">
-                {tags.map((tag) => (
-                  <li key={tag}>
-                    <Badge variant="secondary">{tag}</Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p
-              id="post-tags-help"
-              role={tagsOverflow ? "alert" : undefined}
-              className={cn(
-                "text-xs",
-                tagsOverflow ? "text-destructive" : "text-muted-foreground",
-              )}
-            >
-              {tagsOverflow
-                ? `태그는 최대 ${TAGS_MAX}개까지 사용할 수 있습니다. 초과분은 무시됩니다.`
-                : `${tags.length}/${TAGS_MAX}개`}
-            </p>
-            <FieldError id="post-tags-error" errors={fieldErrors.tags} />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="post-excerpt">소개글</Label>
-            <Textarea
-              id="post-excerpt"
-              name="excerpt"
-              aria-invalid={!!fieldErrors.excerpt}
-              value={excerpt}
-              onChange={(event) => setExcerpt(event.target.value)}
-              placeholder="목록 카드에 보일 짧은 소개"
-              aria-describedby={cn(
-                "post-excerpt-count",
-                fieldErrors.excerpt && "post-excerpt-error",
-              )}
-            />
-            <p
-              id="post-excerpt-count"
-              className={cn(
-                "text-right text-xs",
-                excerptOver ? "text-destructive" : "text-muted-foreground",
-              )}
-            >
-              {excerpt.length}/{EXCERPT_MAX}
-            </p>
-            <FieldError id="post-excerpt-error" errors={fieldErrors.excerpt} />
-          </div>
-
           <ThumbnailField
             value={thumbnailUrl}
             onChange={setThumbnailUrl}
             error={fieldErrors.thumbnail_url?.[0]}
             onBusyChange={setThumbnailBusy}
           />
-        </div>
+        </PostMetaFields>
 
         {/* 본문 입력과 미리보기를 나란히 둔다. 모바일에서는 탭으로 전환한다. */}
         <div className="grid gap-4 lg:h-[70vh] lg:grid-cols-2 lg:items-stretch lg:gap-8">

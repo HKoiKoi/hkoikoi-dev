@@ -92,7 +92,7 @@ app/
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
 │   ├── actions.ts          # logout Server Action
 │   ├── _components/        # admin-guard.tsx, logout-button.tsx
-│   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx, 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·deletePost Server Action)
+│   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx(메타 필드 post-meta-fields.tsx, 본문 상태·이미지 업로드 훅 use-content-upload.ts, 필드 오류 field-error.tsx로 분리), 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·deletePost Server Action)
 └── auth/
     ├── login/              # 로그인 (actions.ts: login Server Action, _components/login-form.tsx)
     └── error/              # 인증 오류 안내
