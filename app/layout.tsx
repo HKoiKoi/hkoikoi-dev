@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Noto_Sans_KR } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { getSiteUrl } from "@/lib/site-url";
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,11 +14,10 @@ export const metadata: Metadata = {
   description: "hkoikoi의 개발 블로그와 프로젝트 기록",
 };
 
-// 가변 폰트이므로 weight를 지정하지 않는다(기본값 'variable').
-// 타입 정의상 Noto Sans KR의 subsets에 'korean'이 없어 'latin'만 preload하고,
-// 한글 글리프는 Google Fonts가 제공하는 unicode-range 조각으로 로드된다.
-const notoSansKr = Noto_Sans_KR({
-  variable: "--font-noto-sans-kr",
+// 본문 폰트 Pretendard Variable은 위 CSS(unicode-range 분할 서브셋, font-display: swap)로 로드하고,
+// 폰트 이름은 globals.css의 --font-sans에서 지정한다. 코드용 JetBrains Mono는 가변 폰트다.
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   display: "swap",
   subsets: ["latin"],
 });
@@ -28,8 +28,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning>
-      <body className={`${notoSansKr.variable} font-sans antialiased`}>
+    <html lang="ko" className={jetBrainsMono.variable} suppressHydrationWarning>
+      <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

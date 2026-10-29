@@ -15,7 +15,7 @@
 | 백엔드     | Supabase (`@supabase/ssr`, `@supabase/supabase-js`), 쿠키 기반 인증, 생성된 DB 타입 |
 | 유틸리티   | `clsx` + `tailwind-merge`(`cn`), `class-variance-authority`, `lucide-react`         |
 | 테마       | `next-themes` (`attribute="class"`), `tw-animate-css`                               |
-| 폰트       | `next/font/google`의 Noto Sans KR (`app/layout.tsx`)                                |
+| 폰트       | Pretendard Variable 서브셋 + `next/font/google` JetBrains Mono (`app/layout.tsx`)   |
 | 린트·포맷  | ESLint 9 flat config, Prettier(+ tailwind 플러그인), Husky, lint-staged, commitlint |
 | 정적 분석  | knip (미사용 파일·export·의존성 검출, 설정은 `knip.jsonc`)                          |
 | 테스트     | Vitest 5 + Testing Library(jsdom), Playwright(chromium)                             |
@@ -81,7 +81,7 @@ hkoikoi-dev/
 
 ```
 app/
-├── layout.tsx              # 루트 레이아웃 (ThemeProvider, Noto Sans KR, 메타데이터)
+├── layout.tsx              # 루트 레이아웃 (ThemeProvider, 폰트, 메타데이터)
 ├── globals.css             # Tailwind v4 + shadcn 테마 변수
 ├── not-found.tsx
 ├── opengraph-image.png / twitter-image.png / favicon.ico

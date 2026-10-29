@@ -22,7 +22,7 @@
 ## 기술 스택
 
 - Next.js 16 (App Router, Turbopack, Cache Components, `proxy.ts`), React 19, TypeScript
-- Tailwind CSS v4, shadcn/ui `base-nova`(Base UI 기반), `next-themes`, Noto Sans KR
+- Tailwind CSS v4, shadcn/ui `base-nova`(Base UI 기반), `next-themes`, Pretendard·JetBrains Mono
 - Supabase: 쿠키 기반 인증(`@supabase/ssr`), Postgres(RLS), Storage
 - Vitest + Testing Library, Playwright, ESLint, Prettier, Husky, commitlint, knip
 
