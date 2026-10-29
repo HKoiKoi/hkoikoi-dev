@@ -68,6 +68,27 @@ describe("getLatestPosts", () => {
     expect(builder.limit).toHaveBeenCalledWith(3);
   });
 
+  it("오류 결과는 수명을 0으로 줄여 캐시에 저장되지 않게 한다", async () => {
+    createBuilder({ data: null, error: { message: "boom" } });
+
+    await getLatestPosts(3);
+
+    expect(cacheLifeMock).toHaveBeenCalledWith({
+      stale: 0,
+      revalidate: 0,
+      expire: 0,
+    });
+  });
+
+  it("성공하면 수명을 줄이지 않는다", async () => {
+    createBuilder(ok([]));
+
+    await getLatestPosts(3);
+
+    expect(cacheLifeMock).toHaveBeenCalledTimes(1);
+    expect(cacheLifeMock).toHaveBeenCalledWith("max");
+  });
+
   it("posts 태그를 붙인다", async () => {
     createBuilder(ok([]));
 
