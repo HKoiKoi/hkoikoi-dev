@@ -287,7 +287,7 @@ export async function POST(request: Request) {
 - 메타데이터는 `metadata` / `generateMetadata`를 사용합니다. `app/layout.tsx`의 `metadataBase`는 `lib/site-url.ts`의 `getSiteUrl()`(`NEXT_PUBLIC_SITE_URL`, 미설정이면 `http://localhost:3000`)을 씁니다. `openGraph`·`twitter`를 지정하면 `app/opengraph-image.png`가 상속되지 않으므로 글 상세는 기본 이미지를 절대 URL로 명시합니다(`lib/post-metadata.ts`). 페이지별 `metadata`는 정적 페이지에 이미 지정되어 있고, 블로그 상세는 `generateMetadata`를 씁니다(`app/(site)/blog/[slug]/page.tsx`).
 - `app/opengraph-image.png`, `app/twitter-image.png`는 파일 규칙으로 자동 연결됩니다.
 - `next/image` 기본값이 바뀌었습니다 (`minimumCacheTTL` 4시간, `imageSizes`에서 16 제거, 쿼리 스트링이 있는 로컬 이미지는 `images.localPatterns` 필요). 상세는 `01-app/02-guides/upgrading/version-16.md`를 참고하세요. Supabase Storage 이미지를 쓰면 `images.remotePatterns`에 프로젝트 도메인을 추가합니다.
-- 폰트는 `next/font/google`을 씁니다. `app/layout.tsx`는 Noto Sans KR을 `variable: "--font-noto-sans-kr"`로 로드하고, `app/globals.css`의 `--font-sans`가 이를 참조합니다 (`styling-guide.md`).
+- 본문 폰트는 `pretendard` 패키지의 unicode-range 분할 CSS를 `app/layout.tsx`에서 import하고, 코드용 JetBrains Mono는 `next/font/google`(`variable: "--font-jetbrains-mono"`)로 `<html>`에 붙입니다. `app/globals.css`의 `--font-sans`·`--font-mono`가 이를 참조합니다 (`styling-guide.md`).
 
 ## 빌드와 설정
 
