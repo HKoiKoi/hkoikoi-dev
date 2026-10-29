@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AdminGuard } from "@/app/admin/_components/admin-guard";
@@ -5,6 +6,9 @@ import { ScrollToTop } from "@/components/layout/scroll-to-top";
 import { LogoutButton } from "@/app/admin/_components/logout-button";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site-config";
+
+// robots.txt disallow만으로는 색인 차단이 보장되지 않아 페이지 단위로도 noindex를 둔다.
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 // 헤더는 일부러 AdminGuard 바깥(정적 셸)에 둔다. 헤더에는 공개 상수와 링크뿐이라
 // 로그인한 비관리자에게 잠깐 보여도 노출되는 정보가 없고, 가드 안으로 옮기면 모든
