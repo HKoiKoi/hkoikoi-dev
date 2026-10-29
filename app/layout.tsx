@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
-const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(defaultUrl),
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: "hkoikoi.dev",
     template: "%s | hkoikoi.dev",

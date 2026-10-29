@@ -46,6 +46,8 @@ hkoikoi-dev/
 │   ├── queries/            # posts.ts(공개 글 조회), admin-posts.ts(관리자 조회), columns.ts(공용 select 컬럼), 서버 전용 + 테스트
 │   ├── posts/ projects/ publications/   # slugify·form-data·published-at·정렬 등 순수 함수와 옆의 테스트
 │   ├── site-config.ts      # 사이트 이름, 내비게이션 항목
+│   ├── site-url.ts         # NEXT_PUBLIC_SITE_URL 기준 절대 URL(getSiteUrl, absoluteUrl) + 테스트
+│   ├── post-metadata.ts    # 글 상세 메타데이터(OG·twitter·없는 글 noindex) 순수 함수 + 테스트
 │   ├── format-date.ts / is-active-path.ts / utils.ts   # 공용 유틸 (+ *.test.ts)
 ├── supabase/migrations/    # DB 마이그레이션 SQL (원격 version과 파일명 일치)
 ├── e2e/                    # Playwright 테스트 (*.spec.ts)
@@ -68,6 +70,7 @@ hkoikoi-dev/
 └── .env / .env.example     # 환경 변수
 ```
 
+- `app/robots.ts`·`app/sitemap.ts`는 메타데이터 라우트입니다. `/robots.txt`는 정적, `/sitemap.xml`은 글 조회가 `cookies()`를 읽어 요청 시점에 만들어집니다. `/admin`(`app/admin/layout.tsx`)과 `/auth`(`app/auth/layout.tsx`)는 layout에서 `robots: { index: false, follow: false }`를 지정하며, `robots`는 얕은 병합이라 하위 page에서 다시 지정하지 않습니다.
 - `tailwind.config.ts`는 없습니다. 테마는 `app/globals.css`의 `@theme inline`에서 정의합니다.
 - `middleware.ts`는 만들지 않습니다. 요청 전처리는 루트의 `proxy.ts`가 맡습니다.
 - `AGENTS.md`의 `next dev`가 관리하는 블록은 직접 지우지 말고 변경분을 함께 커밋합니다.
@@ -254,7 +257,7 @@ import { cn } from "@/lib/utils";
 ### 테스트 배치
 
 - 단위/컴포넌트 테스트: 대상 파일 옆의 `*.test.ts(x)` (예: `lib/format-date.test.ts`). 환경은 jsdom이고 `vitest.setup.ts`가 `jest-dom` 매처와 `cleanup`을 설정합니다.
-- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
+- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
 - 커버리지는 `app/`, `components/`, `lib/`를 대상으로 하되 `components/ui/**`는 제외합니다.
 - Server Component(async)는 Vitest로 직접 렌더링하기 어렵습니다. 로직은 함수로 분리해 단위 테스트하고, 화면 흐름은 E2E로 검증합니다.
 

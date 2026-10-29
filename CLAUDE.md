@@ -26,14 +26,14 @@ npx vitest run -t "테스트 이름"            # 이름으로 필터
 npx playwright test e2e/routes.spec.ts    # 단일 e2e 파일
 ```
 
-- 단위 테스트는 대상 파일 옆에 `*.test.ts(x)`로 두고, e2e는 `e2e/*.spec.ts`(`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`), 공용 헬퍼는 `e2e/fixtures/admin.ts`. Vitest는 `e2e`, `.agents`를 제외한다.
+- 단위 테스트는 대상 파일 옆에 `*.test.ts(x)`로 두고, e2e는 `e2e/*.spec.ts`(`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`), 공용 헬퍼는 `e2e/fixtures/admin.ts`. Vitest는 `e2e`, `.agents`를 제외한다.
 - Git 훅(Husky): `pre-commit`은 lint-staged(eslint --fix --max-warnings=0 + prettier), `commit-msg`는 commitlint, `pre-push`는 `typecheck && lint`. `--no-verify`는 settings에서 deny되어 있다.
 - 커밋 메시지는 컨벤셔널 형식 `타입: 제목` / `타입(scope): 제목`, 제목은 한국어 허용, 헤더 100자 이내.
 - CI(`.github/workflows/ci.yml`)는 typecheck → lint → format:check → test → build 순서로 실행하며 빌드에는 placeholder Supabase 환경변수를 주입한다. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`만 돌린다. 나머지 E2E(관리자 계정·DB 쓰기 필요)와 knip은 CI에서 실행하지 않으므로 로컬에서 돌린다.
 
 ## 환경 변수
 
-`.env.example`을 참고해 `.env.local`(또는 `.env`)에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`를 설정한다. 둘이 없으면 `lib/supabase/proxy.ts`의 `hasEnvVars`가 false가 되어 세션 검사를 건너뛴다. `DATA_DIR`, `TEMPLATES_USE`, `ENABLE_GUI`는 shrimp MCP용이다. `.env`는 settings에서 읽기가 막혀 있다.
+`.env.example`을 참고해 `.env.local`(또는 `.env`)에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`를 설정한다. 이 둘이 없으면 `lib/supabase/proxy.ts`의 `hasEnvVars`가 false가 되어 세션 검사를 건너뛴다. `NEXT_PUBLIC_SITE_URL`은 절대 URL(metadataBase·sitemap·robots) 기준이며 미설정이면 `http://localhost:3000`이다(배포 시 운영 도메인 설정). `DATA_DIR`, `TEMPLATES_USE`, `ENABLE_GUI`는 shrimp MCP용이다. `.env`는 settings에서 읽기가 막혀 있다.
 
 ## 아키텍처
 
@@ -47,7 +47,7 @@ Next.js App Router + Supabase. `src/` 없이 루트에 `app/`, `components/`, `l
 - **스타일**: Tailwind v4 (`tailwind.config.ts` 없음, `@tailwindcss/postcss` + `app/globals.css`), 클래스 병합은 `lib/utils.ts`의 `cn()`, 테마는 `next-themes`(`attribute="class"`), 폰트는 Noto Sans KR(`app/layout.tsx`).
 - **Next 설정**: `cacheComponents: true`. 요청 시점 데이터(`cookies()`, `params`, `searchParams`, Supabase 세션)를 읽는 컴포넌트는 `<Suspense>`로 감싸고, `dynamic`/`revalidate` 세그먼트 설정은 쓰지 않는다.
 
-아직 없는 것: `react-hook-form`(`zod`는 설치됨), `hooks/`, `public/`. 마크다운 렌더링은 `components/markdown/markdown-content.tsx`와 `lib/markdown/`(sanitize 스키마·플러그인 순서)에 있다. 이미지 업로드는 `lib/storage/`(검증·경로·브라우저 직접 업로드), `lib/editor/`(커서 삽입·자리표시 치환)와 `app/admin/posts/_components/`의 편집기 UI에 구현돼 있다. SEO는 ROADMAP Task 018~019에서 구현한다.
+아직 없는 것: `react-hook-form`(`zod`는 설치됨), `hooks/`, `public/`. 마크다운 렌더링은 `components/markdown/markdown-content.tsx`와 `lib/markdown/`(sanitize 스키마·플러그인 순서)에 있다. 이미지 업로드는 `lib/storage/`(검증·경로·브라우저 직접 업로드), `lib/editor/`(커서 삽입·자리표시 치환)와 `app/admin/posts/_components/`의 편집기 UI에 구현돼 있다. SEO 메타데이터(`lib/site-url.ts`, `lib/post-metadata.ts`, `app/sitemap.ts`, `app/robots.ts`, `/admin`·`/auth` noindex)는 Task 018에서 구현됐고, 캐싱·성능은 Task 019에서 한다. 절대 URL은 `NEXT_PUBLIC_SITE_URL` 기준이다.
 
 ## 알려진 예외
 

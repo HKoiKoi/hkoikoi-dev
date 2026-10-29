@@ -451,12 +451,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 기능: F014, F006
   - 관련 파일: `app/(site)/blog/[slug]/page.tsx`(`generateMetadata`), `app/sitemap.ts`, `app/robots.ts`, `app/layout.tsx`, `lib/site-url.ts`, `.env.example`, `.github/workflows/ci.yml`
   - 수락 기준: 글 상세에 title·description(=소개글)·OG 이미지(=썸네일, 없으면 기본 `opengraph-image.png`)가 설정되고, `/sitemap.xml`에 고정 페이지 10개 + 발행 글(`lastModified = updated_at`)이, `/robots.txt`에 `/admin`·`/auth` 제외가 포함됨. 절대 URL은 모두 `NEXT_PUBLIC_SITE_URL` 기준. 없는 글·초안은 noindex
-  - [ ] `NEXT_PUBLIC_SITE_URL` 도입: `lib/site-url.ts`, `.env.example` 키 추가, CI `build` env에 자리표시자, `app/layout.tsx`의 `metadataBase` 교체(`VERCEL_URL` 의존 제거)
-  - [ ] `generateMetadata`: `getPostBySlug` 재사용(같은 요청 내 중복 조회 방지를 위해 `React.cache` 또는 캐시 함수 사용), 없으면 `robots: { index: false }`
-  - [ ] `app/sitemap.ts`: `lib/site-config.ts` 메뉴 + 발행 글(슬러그 인코딩)
-  - [ ] `app/robots.ts`: `disallow: ['/admin', '/auth']`, sitemap 절대 URL
-  - [ ] `/admin`·`/auth/login`·`/auth/error` 페이지 단위 noindex: `app/admin/layout.tsx`와 `app/auth/*/page.tsx`(또는 `app/auth/layout.tsx` 신설)에 정적 `export const metadata = { robots: { index: false, follow: false } }` 추가(robots.txt disallow는 색인 차단을 보장하지 않음). `robots`는 얕은 병합이라 하위 page에서 `robots`를 다시 지정하면 layout 값이 사라지므로 하위에서는 지정하지 않는다. 출력 태그(`noindex, nofollow`)는 번들 문서에 명시가 없어 빌드 후 HTML로 확인한다
-  - [ ] 트레이드오프 기록: 없는 글은 스트리밍 이후 `notFound()`라 HTTP 200 + noindex(soft 404) 수용
+  - [x] `NEXT_PUBLIC_SITE_URL` 도입: `lib/site-url.ts`, `.env.example` 키 추가, CI `build` env에 자리표시자, `app/layout.tsx`의 `metadataBase` 교체(`VERCEL_URL` 의존 제거)
+  - [x] `generateMetadata`: `getPostBySlug` 재사용(같은 요청 내 중복 조회 방지를 위해 `React.cache` 또는 캐시 함수 사용), 없으면 `robots: { index: false }`
+  - [x] `app/sitemap.ts`: `lib/site-config.ts` 메뉴 + 발행 글(슬러그 인코딩)
+  - [x] `app/robots.ts`: `disallow: ['/admin', '/auth']`, sitemap 절대 URL
+  - [x] `/admin`·`/auth/login`·`/auth/error` 페이지 단위 noindex: `app/admin/layout.tsx`와 `app/auth/*/page.tsx`(또는 `app/auth/layout.tsx` 신설)에 정적 `export const metadata = { robots: { index: false, follow: false } }` 추가(robots.txt disallow는 색인 차단을 보장하지 않음). `robots`는 얕은 병합이라 하위 page에서 `robots`를 다시 지정하면 layout 값이 사라지므로 하위에서는 지정하지 않는다. 출력 태그(`noindex, nofollow`)는 번들 문서에 명시가 없어 빌드 후 HTML로 확인한다
+  - [x] 트레이드오프 기록: 없는 글은 스트리밍 이후 `notFound()`라 HTTP 200 + noindex(soft 404) 수용
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 발행 글 상세 → `<title>`에 글 제목, `meta[name=description]`=소개글, `meta[property="og:image"]`=썸네일 절대 URL
     - 정상: Playwright MCP → `/sitemap.xml` → 고정 페이지와 발행 글 URL, 초안 URL 없음
@@ -464,7 +464,9 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → `/blog/없는-글` → `meta[name=robots]`에 `noindex`
     - 엣지: Playwright MCP → 썸네일 없는 글 → 기본 OG 이미지
     - 엣지: Playwright MCP → 한글 슬러그 글 → sitemap의 `loc`이 퍼센트 인코딩된 유효 URL
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-29 `npm run check`(typecheck·lint·prettier 통과, Vitest 31 파일 / 242개)·`npm run build`(placeholder env, `/robots.txt` ○ 정적, `/sitemap.xml` ƒ 동적)·`npm run knip`(종료 코드 0) 통과. `e2e/seo.spec.ts` 7개 통과(skip 0, 관리자 자격 증명 사용): `/robots.txt`의 `Disallow: /admin`·`/auth`와 `Sitemap:` 절대 URL, `/sitemap.xml`의 고정 페이지 10개, `/auth/login`·`/auth/error`의 noindex, 없는 글 noindex(HTTP 200), 발행 글의 `<title>`(`제목 | hkoikoi.dev`)·`meta[name=description]`(=소개글)·기본 `og:image`와 sitemap 포함·초안 제외, 한글 슬러그 `loc`의 퍼센트 인코딩과 그 URL 접근. 테스트 후 원격 `posts`의 `e2e-` 글 잔존 0건(읽기 전용 SQL로 확인). Playwright MCP는 쓰지 않고 Playwright Test e2e로 대체했다.
+    - 확인한 사실: noindex는 `<meta name="robots" content="noindex, nofollow"/>`로 출력된다(`/auth/login`·`/auth/error`는 서버 응답과 e2e로 확인. `/admin`은 비로그인 시 로그인으로 리다이렉트되어 HTML을 확인하지 못했고 layout의 `metadata` 코드만 확인). 없는 글은 `content="noindex"`이고 스트리밍 때문에 같은 태그가 두 번 나온다(원인은 확인하지 않음). 없는 글은 상태 코드 200이라 soft 404 트레이드오프를 그대로 수용한다. `openGraph`·`twitter`를 지정하면 `app/opengraph-image.png`가 상속되지 않아(임시 라우트의 빌드 HTML로 확인) 썸네일이 없을 때 `lib/post-metadata.ts`가 기본 이미지를 절대 URL로 명시한다.
+    - 제한 사항·미확인: 썸네일이 있는 글의 `og:image`는 단위 테스트(`lib/post-metadata.test.ts`)로만 확인했고 e2e로는 확인하지 않았다(썸네일 업로드는 `blog-images` 고아 파일을 늘리므로 하지 않음). sitemap의 `lastModified`(=`updated_at`)도 단위 테스트로만 확인했다. Chromium과 dev 서버 기준이며 배포 환경의 `NEXT_PUBLIC_SITE_URL`은 Task 020에서 확인한다. `seo.spec.ts`는 CI `e2e-smoke`에 넣지 않았다(발행 글 시나리오가 관리자 계정을 쓰므로 로컬 전용).
 
 - **Task 019: 캐싱·성능·접근성 최적화**
   - 관련 기능: F005, F006, F011, F013
@@ -491,12 +493,14 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [ ] README 최종 점검: hkoikoi.dev 기준 기본판은 작성되어 있으므로(설치·환경 변수·관리자 계정 설정 절차), 배포 절차와 `<style>` 작성 규칙(`post-` class, `#user-content-{id}`)을 채우고 실제 구현 상태와 맞는지 확인
   - [ ] `docs/guides/project-structure.md`의 구조·정리 대상 목록을 실제 상태로 갱신
   - [ ] `data/*.ts`의 `// TODO` 샘플을 실제 이력으로 교체하도록 사용자에게 안내(실제 내용은 사용자 제공)
+  - [ ] 기본 OG 이미지 교체: `app/opengraph-image.png`·`app/twitter-image.png`가 Supabase 스타터의 "Next.js Starter Kit" 이미지(1200x600, 두 파일 동일)로 남아 있다. hkoikoi.dev용 이미지(권장 1200x630)로 두 파일을 같은 이름으로 덮어쓴다(코드 변경 없음, 이미지는 사용자 제공). Task 018에서 홈과 썸네일 없는 글의 `og:image`가 이 파일을 가리킨다
   - 테스트 체크리스트:
     - 정상: 터미널 → `npm run check && npm run build && npm run knip` → 모두 통과
     - 정상: Playwright MCP → 배포 URL에서 방문자 여정 → 모든 페이지 정상, 콘솔 오류 0건(`browser_console_messages`)
     - 정상: Playwright MCP → 배포 URL에서 관리자 로그인 → 글 작성·이미지 업로드·발행 → 공개 확인 → 삭제
     - 오류: Playwright MCP → 배포 URL `/admin/posts` 비로그인 접근 → `/auth/login`
     - 엣지: Playwright MCP → 배포 URL `/robots.txt`·`/sitemap.xml` → 운영 도메인 절대 URL
+    - 엣지: Playwright MCP → 배포 URL 홈·썸네일 없는 글의 `og:image` → 교체한 hkoikoi.dev 이미지(스타터 이미지 아님)
   - 테스트 결과: (미수행)
 
 ## 기능 ID 매핑
