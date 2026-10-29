@@ -6,6 +6,7 @@ import { CategoryBadge } from "@/components/blog/category-badge";
 import { TagBadge } from "@/components/blog/tag-badge";
 import { MarkdownContent } from "@/components/markdown/markdown-content";
 import { formatDate } from "@/lib/format-date";
+import { buildPostMetadata } from "@/lib/post-metadata";
 import { getPostBySlug } from "@/lib/queries/posts";
 
 // params는 퍼센트 인코딩된 채로 전달되므로(한글 슬러그 등) 직접 디코딩한다.
@@ -24,7 +25,7 @@ export async function generateMetadata({
 }: PageProps<"/blog/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPostBySlug(decodeSlug(slug));
-  return post ? { title: post.title, description: post.excerpt } : {};
+  return buildPostMetadata(post);
 }
 
 // params는 요청 시점 데이터이므로 Suspense 안에서 await한다 (cacheComponents).
