@@ -1,8 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const createClientMock = vi.hoisted(() => vi.fn());
+const cacheTagMock = vi.hoisted(() => vi.fn());
+const cacheLifeMock = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/supabase/server", () => ({ createClient: createClientMock }));
+vi.mock("@/lib/supabase/public", () => ({
+  createPublicClient: createClientMock,
+}));
+vi.mock("next/cache", () => ({
+  cacheTag: cacheTagMock,
+  cacheLife: cacheLifeMock,
+}));
 
 import { getLatestPosts, getPostBySlug, getPublishedPosts } from "./posts";
 
@@ -26,7 +34,7 @@ function createBuilder(result: Result) {
     builder[key].mockReturnValue(builder);
   }
   const from = vi.fn(() => builder);
-  createClientMock.mockResolvedValue({ from });
+  createClientMock.mockReturnValue({ from });
   return { builder, from };
 }
 
@@ -60,6 +68,36 @@ describe("getLatestPosts", () => {
     expect(builder.limit).toHaveBeenCalledWith(3);
   });
 
+  it("오류 결과는 수명을 0으로 줄여 캐시에 저장되지 않게 한다", async () => {
+    createBuilder({ data: null, error: { message: "boom" } });
+
+    await getLatestPosts(3);
+
+    expect(cacheLifeMock).toHaveBeenCalledWith({
+      stale: 0,
+      revalidate: 0,
+      expire: 0,
+    });
+  });
+
+  it("성공하면 수명을 줄이지 않는다", async () => {
+    createBuilder(ok([]));
+
+    await getLatestPosts(3);
+
+    expect(cacheLifeMock).toHaveBeenCalledTimes(1);
+    expect(cacheLifeMock).toHaveBeenCalledWith("max");
+  });
+
+  it("posts 태그를 붙인다", async () => {
+    createBuilder(ok([]));
+
+    await getLatestPosts(3);
+
+    expect(cacheTagMock).toHaveBeenCalledWith("posts");
+    expect(cacheLifeMock).toHaveBeenCalledWith("max");
+  });
+
   it("오류면 []를 반환하고 로그를 남긴다", async () => {
     createBuilder({ data: null, error: { message: "boom" } });
 
@@ -67,8 +105,10 @@ describe("getLatestPosts", () => {
     expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("createClient가 던져도 []를 반환한다", async () => {
-    createClientMock.mockRejectedValue(new Error("no cookies"));
+  it("클라이언트 생성이 던져도 []를 반환한다", async () => {
+    createClientMock.mockImplementation(() => {
+      throw new Error("no env");
+    });
 
     await expect(getLatestPosts(3)).resolves.toEqual([]);
     expect(errorSpy).toHaveBeenCalled();
@@ -121,8 +161,10 @@ describe("getPublishedPosts", () => {
     expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("createClient가 던져도 []를 반환한다", async () => {
-    createClientMock.mockRejectedValue(new Error("no cookies"));
+  it("클라이언트 생성이 던져도 []를 반환한다", async () => {
+    createClientMock.mockImplementation(() => {
+      throw new Error("no env");
+    });
 
     await expect(getPublishedPosts()).resolves.toEqual([]);
     expect(errorSpy).toHaveBeenCalled();
@@ -142,6 +184,14 @@ describe("getPostBySlug", () => {
     expect(builder.maybeSingle).toHaveBeenCalled();
   });
 
+  it("posts와 post:<slug> 태그를 붙인다", async () => {
+    createBuilder(ok(null));
+
+    await getPostBySlug("hello");
+
+    expect(cacheTagMock).toHaveBeenCalledWith("posts", "post:hello");
+  });
+
   it("NFD로 들어온 slug를 NFC로 바꿔 조회한다", async () => {
     const nfc = "한글-글".normalize("NFC");
     const nfd = nfc.normalize("NFD");
@@ -151,6 +201,7 @@ describe("getPostBySlug", () => {
     await getPostBySlug(nfd);
 
     expect(builder.eq).toHaveBeenCalledWith("slug", nfc);
+    expect(cacheTagMock).toHaveBeenCalledWith("posts", `post:${nfc}`);
   });
 
   it("없으면 null을 반환한다", async () => {
@@ -166,8 +217,10 @@ describe("getPostBySlug", () => {
     expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("createClient가 던져도 null을 반환한다", async () => {
-    createClientMock.mockRejectedValue(new Error("no cookies"));
+  it("클라이언트 생성이 던져도 null을 반환한다", async () => {
+    createClientMock.mockImplementation(() => {
+      throw new Error("no env");
+    });
 
     await expect(getPostBySlug("x-throw")).resolves.toBeNull();
     expect(errorSpy).toHaveBeenCalled();

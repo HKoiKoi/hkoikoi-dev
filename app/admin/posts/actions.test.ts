@@ -3,11 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const requireAdminMock = vi.hoisted(() => vi.fn());
 const createClientMock = vi.hoisted(() => vi.fn());
 const revalidatePathMock = vi.hoisted(() => vi.fn());
+const updateTagMock = vi.hoisted(() => vi.fn());
 const redirectMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth/require-admin", () => ({ requireAdmin: requireAdminMock }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: createClientMock }));
-vi.mock("next/cache", () => ({ revalidatePath: revalidatePathMock }));
+vi.mock("next/cache", () => ({
+  revalidatePath: revalidatePathMock,
+  updateTag: updateTagMock,
+}));
 vi.mock("next/navigation", () => ({
   redirect: redirectMock,
   // Next 내부 신호(NEXT_로 시작)만 다시 던지고 나머지는 삼키는 실제 동작을 흉내 낸다.
@@ -75,7 +79,10 @@ function mockPostsTable(results: {
     eq: () => ({
       select: () =>
         Promise.resolve(
-          results.delete ?? { data: [{ id: POST_ID }], error: null },
+          results.delete ?? {
+            data: [{ id: POST_ID, slug: "deleted-post" }],
+            error: null,
+          },
         ),
     }),
   }));
@@ -84,7 +91,7 @@ function mockPostsTable(results: {
       maybeSingle: () =>
         Promise.resolve(
           results.existing ?? {
-            data: { published_at: EXISTING_PUBLISHED_AT },
+            data: { published_at: EXISTING_PUBLISHED_AT, slug: "old-slug" },
             error: null,
           },
         ),
@@ -233,7 +240,8 @@ describe("savePost", () => {
     expect(payload.slug).toBe("test-post");
     expect(payload.published).toBe(true);
     expect(payload.published_at).toEqual(expect.any(String));
-    expect(revalidatePathMock).toHaveBeenCalledWith("/blog");
+    expect(updateTagMock).toHaveBeenCalledWith("posts");
+    expect(updateTagMock).toHaveBeenCalledWith("post:test-post");
     expect(revalidatePathMock).toHaveBeenCalledWith("/admin/posts");
   });
 
@@ -271,6 +279,31 @@ describe("savePost", () => {
     };
     expect(payload.published).toBe(false);
     expect(payload.published_at).toBe(EXISTING_PUBLISHED_AT);
+    // 초안 전환도 목록과 상세 캐시를 비워 공개 글이 즉시 사라진다.
+    expect(updateTagMock).toHaveBeenCalledWith("posts");
+    expect(updateTagMock).toHaveBeenCalledWith("post:test-post");
+  });
+
+  it("슬러그를 바꾸면 이전·새 슬러그 태그를 모두 무효화한다", async () => {
+    mockPostsTable({});
+
+    await expect(
+      savePost({ ok: false }, buildFormData({ id: POST_ID })),
+    ).rejects.toThrow("NEXT_REDIRECT:/admin/posts");
+
+    expect(updateTagMock).toHaveBeenCalledWith("posts");
+    expect(updateTagMock).toHaveBeenCalledWith("post:old-slug");
+    expect(updateTagMock).toHaveBeenCalledWith("post:test-post");
+  });
+
+  it("저장에 실패하면 태그를 무효화하지 않는다", async () => {
+    mockPostsTable({
+      update: { data: null, error: { code: "XX000", message: "boom" } },
+    });
+
+    await savePost({ ok: false }, buildFormData({ id: POST_ID }));
+
+    expect(updateTagMock).not.toHaveBeenCalled();
   });
 });
 
@@ -291,11 +324,13 @@ describe("deletePost", () => {
     expect(createClientMock).not.toHaveBeenCalled();
   });
 
-  it("삭제에 성공하면 경로를 무효화하고 ok를 반환한다", async () => {
+  it("삭제에 성공하면 삭제된 글의 태그를 무효화하고 ok를 반환한다", async () => {
     mockPostsTable({});
 
     await expect(deletePost(POST_ID)).resolves.toEqual({ ok: true });
     expect(requireAdminMock).toHaveBeenCalledTimes(1);
+    expect(updateTagMock).toHaveBeenCalledWith("posts");
+    expect(updateTagMock).toHaveBeenCalledWith("post:deleted-post");
     expect(revalidatePathMock).toHaveBeenCalledWith("/admin/posts");
   });
 
@@ -311,6 +346,7 @@ describe("deletePost", () => {
       message: "글을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.",
     });
     expect(revalidatePathMock).not.toHaveBeenCalled();
+    expect(updateTagMock).not.toHaveBeenCalled();
   });
 
   it("영향 행이 0이면(RLS 거부·이미 삭제) 실패로 처리한다", async () => {
@@ -320,5 +356,6 @@ describe("deletePost", () => {
 
     expect(result.ok).toBe(false);
     expect(revalidatePathMock).not.toHaveBeenCalled();
+    expect(updateTagMock).not.toHaveBeenCalled();
   });
 });
