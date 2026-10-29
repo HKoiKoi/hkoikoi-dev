@@ -475,7 +475,10 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [ ] `node_modules/next/dist/docs/`에서 `use cache`, `cacheTag`, `updateTag`/`revalidateTag` 문서 확인 후 전략 확정(쿠키를 읽는 서버 클라이언트는 캐시 함수 안에서 쓸 수 없으므로, 공개 조회용 쿠키 없는 Supabase 클라이언트 `lib/supabase/public.ts` 도입)
   - [ ] 태그 설계: `posts`(목록), `post:<slug>`(상세). Server Action에서 저장·삭제 시 무효화, 슬러그 변경 시 이전·새 슬러그 모두 무효화
   - [ ] 썸네일 `next/image`(크기 지정·`sizes`), 폰트 `display: swap`, 불필요한 Client Component 경계 축소, `npm run analyze`로 KaTeX·highlight 번들이 공개 상세 클라이언트 번들에 포함되지 않는지 확인
-  - [ ] 접근성: 랜드마크·`aria-current`·포커스 링·대비(라이트/다크), 폼 라벨·오류 `aria-describedby`
+  - [x] 접근성: 랜드마크·`aria-current`·포커스 링·대비(라이트/다크), 폼 라벨·오류 `aria-describedby`
+    - 점검 전: `/admin`·`/auth/login`에 `<main>` 없음, 스킵 링크 없음, 관리자 메뉴에 `aria-current` 없음, 로그인 오류·썸네일 오류가 입력과 `aria-describedby`로 연결되지 않음. 포커스 링(`ring-ring/50`) 대비 1.75(라이트)·1.85(다크):1로 3:1 미달. 버튼 글자 대비 `primary-foreground`/`primary` 2.84(라이트)·2.66(다크):1, 다크 `secondary` 배지 3.63:1로 4.5:1 미달(oklch→sRGB 상대 휘도로 계산).
+    - 수정: 공개·관리자·로그인 `<main id="main-content">`와 `SkipLink`(루트 레이아웃), `AdminNav`(`aria-current`), 로그인 오류 `aria-invalid`·`aria-describedby`·`autocomplete`, 썸네일 오류 연결. 도메인 컴포넌트 포커스 링을 불투명 `ring-ring`으로 변경. 토큰: 라이트 `--primary` L 0.6995→0.56(흰 글자 4.97:1), 다크 `--primary-foreground`를 어두운 배경색으로(6.17:1), 다크 `--secondary` L 0.5943→0.50(5.39:1), 다크 `--ring` L 0.5054→0.68(배경 5.57:1). `components/ui`는 수정하지 않았다(`border-ring`이 함께 바뀌므로 입력·버튼 포커스는 불투명 테두리로도 구분됨).
+    - 검증: 2026-10-29 `npm run check`·`npm run knip`·`npm run build` 통과, `e2e/a11y.spec.ts` 8개(랜드마크, `aria-current`, 로그인 오류 연결, 스킵 링크, Tab 순회·포커스 링 box-shadow, 이력 드롭다운·테마 전환·블로그 필터 해제 키보드 조작)와 기존 관리자·방문자·공개 경로 e2e 통과. 미확인: 편집기를 키보드만으로 조작하는 e2e(라벨·`aria-describedby`는 코드로만 확인), 수정 후 대비 재측정 결과의 시각 확인, Lighthouse 접근성 점수(후속 Task).
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 관리자가 글 제목 수정 저장 → 비로그인 탭에서 `/blog`·상세 새로고침 → 즉시 새 제목
     - 정상: Playwright MCP → 글 삭제 → `/blog` 새로고침 → 즉시 미노출, 상세 not-found

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { SkipLink } from "@/components/layout/skip-link";
 import { getSiteUrl } from "@/lib/site-url";
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
@@ -36,6 +37,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <SkipLink />
           {children}
         </ThemeProvider>
       </body>

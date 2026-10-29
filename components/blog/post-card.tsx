@@ -63,7 +63,7 @@ export function PostCard({ post, className }: PostCardProps) {
           {/* stretched link: after 가상 요소로 카드 전체를 클릭 영역으로 확장 */}
           <Link
             href={href}
-            className="outline-none after:absolute after:inset-0 after:rounded-xl after:content-[''] hover:underline focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
+            className="outline-none after:absolute after:inset-0 after:rounded-xl after:content-[''] hover:underline focus-visible:after:ring-[3px] focus-visible:after:ring-ring"
           >
             {title}
           </Link>
