@@ -38,7 +38,7 @@ hkoikoi-dev/
 ├── data/                   # 이력·프로젝트·논문 등 정적 콘텐츠 (TypeScript 데이터)
 ├── lib/
 │   ├── auth/               # is-admin.ts(역할 판별), is-admin-path.ts(/admin 경로 판정), require-admin.ts(서버 가드) + 테스트
-│   ├── supabase/           # client.ts / server.ts / proxy.ts / database.types.ts
+│   ├── supabase/           # client.ts / server.ts / public.ts / proxy.ts / database.types.ts
 │   ├── storage/            # validate-image.ts(형식·크기 검증, 경로 생성), upload-image.ts(브라우저 직접 업로드) + 테스트
 │   ├── editor/             # insert-at-cursor.ts(커서 삽입·자리표시 치환 순수 함수) + 테스트
 │   ├── types/              # 도메인 타입 (post, profile, resume)
@@ -111,6 +111,7 @@ app/
 - `params`, `searchParams`는 Promise이므로 `await` 하거나 `PageProps<'/경로'>` / `LayoutProps<'/경로'>` 헬퍼를 사용합니다. 타입은 `npx next typegen`으로 생성합니다(`npm run typecheck`가 먼저 실행합니다).
 - Cache Components가 켜져 있으므로 요청 시점 데이터(쿠키, Supabase 세션 등)를 읽는 컴포넌트는 `<Suspense>`로 감쌉니다 (`nextjs-16.md`).
 - 라우트 세그먼트 설정 `dynamic`, `revalidate`, `fetchCache`, `runtime`은 사용하지 않습니다.
+- 공개 글 조회(`lib/queries/posts.ts`)는 `'use cache'` + `cacheTag` + `cacheLife('max')`로 캐시하고, 저장·삭제 Server Action이 `updateTag`로 무효화합니다. 쿠키를 읽는 쿼리(`admin-posts.ts`)에는 `'use cache'`를 붙이지 않습니다 (`nextjs-16.md`).
 - 한 라우트에서만 쓰는 컴포넌트는 그 폴더의 `_components/`에 둡니다 (`_` 접두 폴더는 라우팅 제외).
 - URL에 영향 없이 레이아웃만 나누려면 Route Group `(group)`을 사용합니다. 공개 영역은 `(site)`가 이 역할입니다.
 
@@ -151,13 +152,14 @@ lib/
 ├── supabase/
 │   ├── client.ts          # createBrowserClient<Database> — Client Component 전용
 │   ├── server.ts          # createServerClient<Database> + cookies() — Server Component / Action / Route Handler
+│   ├── public.ts          # createPublicClient<Database> — 쿠키·세션 없는 anon 클라이언트, 'use cache' 안의 공개 조회 전용
 │   ├── proxy.ts           # proxy.ts에서 호출하는 updateSession()과 hasEnvVars(env 미설정 시 세션 검사 생략)
 │   └── database.types.ts  # 생성 파일 (직접 편집 금지)
 ├── storage/               # validate-image.ts: ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES, validateImage, buildImagePath / upload-image.ts: uploadImage (브라우저 전용, + 테스트)
 ├── editor/                # insert-at-cursor.ts: insertAtCursor, replaceOnce, replaceWithCaret, createUploadPlaceholder (+ 테스트)
 ├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
 ├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
-├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getPostBySlug, admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
+├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getPostBySlug('use cache' + cacheTag, public 클라이언트), admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
 ├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), rehype-sanitize-style.ts(`<style>` CSS 내용 검사), plugins.ts(remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
 ├── posts/                 # slugify.ts, form-data.ts, published-at.ts (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
@@ -168,7 +170,7 @@ lib/
 
 - `cn()`은 `clsx` + `tailwind-merge`로 `lib/utils.ts`에 직접 구현되어 있습니다. **모든 코드는 `import { cn } from "@/lib/utils"`를 사용**합니다 (`components/ui/*`도 동일).
 - `hasEnvVars`는 `lib/supabase/proxy.ts`의 지역 상수입니다(사용처가 proxy 하나뿐이라 `lib/utils.ts`에서 옮김, 근거는 ROADMAP "알려진 트레이드오프"). Supabase 환경 변수가 없으면 세션 검사를 건너뜁니다.
-- Supabase 클라이언트는 **요청마다 새로 만듭니다.** 모듈 전역 변수에 담지 않습니다 (`server.ts` 주석 참고). 세 클라이언트 모두 `Database` 제네릭이 적용되어 있습니다.
+- Supabase 클라이언트는 **요청마다 새로 만듭니다.** 모듈 전역 변수에 담지 않습니다 (`server.ts` 주석 참고). `client.ts`·`server.ts`·`public.ts` 모두 `Database` 제네릭이 적용되어 있고, `public.ts`는 캐시 함수 안에서만 씁니다.
 - `lib/supabase/server.ts`는 `next/headers`를 쓰는 서버 전용 모듈이므로 Client Component에서 import하지 않습니다. 필요하면 상단에 `import "server-only"`를 추가합니다 (패키지 설치 필요).
 - `lib/types/post.ts`의 `PostSummary`/`Post`/`PostInput`은 `Tables<'posts'>`에서 파생합니다. 컬럼을 바꾸면 마이그레이션 → 타입 재생성 순서로 진행합니다.
 - 검증 스키마(zod)는 `lib/schemas/`에, 관리자 조회는 `lib/queries/admin-posts.ts`에 둡니다. 훅이 생기면 루트 `hooks/`를 추가합니다 (`components.json`의 `hooks` 별칭은 `@/hooks`).

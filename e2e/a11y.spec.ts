@@ -92,7 +92,9 @@ test.describe("접근성: 키보드 조작", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByRole("menuitem", { name: "경력" })).toBeVisible();
 
-    // 열리면 첫 항목(학력)에 포커스가 가므로 한 번 내리면 경력이다.
+    // 열리면 첫 항목(학력)에 포커스가 간다. 포커스가 자리 잡기 전에 키를 누르면
+    // 무시되므로 먼저 기다린 뒤 한 번 내리면 경력이다.
+    await expect(page.getByRole("menuitem", { name: "학력" })).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/career$/);
