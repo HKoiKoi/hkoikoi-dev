@@ -82,6 +82,7 @@ export function ThumbnailField({
           variant="outline"
           size="sm"
           disabled={uploading}
+          aria-describedby={message ? "post-thumbnail-error" : undefined}
           onClick={() => inputRef.current?.click()}
         >
           {uploading ? "업로드 중…" : value ? "썸네일 변경" : "썸네일 업로드"}
@@ -102,7 +103,11 @@ export function ThumbnailField({
         )}
       </div>
       {message && (
-        <p role="alert" className="text-sm text-destructive">
+        <p
+          id="post-thumbnail-error"
+          role="alert"
+          className="text-sm text-destructive"
+        >
           {message}
         </p>
       )}

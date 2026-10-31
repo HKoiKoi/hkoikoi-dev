@@ -13,7 +13,7 @@ export function TagBadge({ tag, className }: TagBadgeProps) {
     <TechBadge className={className}>
       <Link
         href={`/blog?tag=${encodeURIComponent(tag)}`}
-        className="rounded-full outline-none after:absolute after:inset-0 after:z-30 after:rounded-full after:content-[''] focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
+        className="rounded-full outline-none after:absolute after:inset-0 after:z-30 after:rounded-full after:content-[''] focus-visible:after:ring-[3px] focus-visible:after:ring-ring"
       >
         #{tag}
       </Link>

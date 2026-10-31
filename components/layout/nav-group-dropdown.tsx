@@ -27,7 +27,7 @@ export function NavGroupDropdown({ group }: NavGroupDropdownProps) {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "inline-flex h-9 items-center gap-1 rounded-md px-2.5 text-sm whitespace-nowrap transition-colors outline-none hover:bg-muted/60 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-muted/60 data-popup-open:text-foreground [&_svg]:size-3.5 [&_svg]:shrink-0",
+          "inline-flex h-9 items-center gap-1 rounded-md px-2.5 text-sm whitespace-nowrap transition-colors outline-none hover:bg-muted/60 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring data-popup-open:bg-muted/60 data-popup-open:text-foreground [&_svg]:size-3.5 [&_svg]:shrink-0",
           active
             ? "bg-muted font-semibold text-foreground"
             : "text-muted-foreground",

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 // site-footer.tsx의 주변 링크와 동일한 스타일
 const linkClassName =
-  "inline-flex items-center gap-1.5 rounded-md outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50";
+  "inline-flex items-center gap-1.5 rounded-md outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring";
 
 // 푸터에 표시할 관리자 링크.
 // `getClaims()`로 확인한 app_metadata.role이 admin일 때만 `/admin/posts` 링크를 렌더링한다.

@@ -17,7 +17,7 @@ async function CopyrightYear() {
 }
 
 const linkClassName =
-  "inline-flex items-center gap-1.5 rounded-md outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-4";
+  "inline-flex items-center gap-1.5 rounded-md outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring [&_svg]:size-4";
 
 // 사이트 하단 푸터 (정적 마크업)
 export function SiteFooter({ children }: SiteFooterProps) {
