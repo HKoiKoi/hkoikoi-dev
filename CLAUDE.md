@@ -47,7 +47,7 @@ Next.js App Router + Supabase. `src/` 없이 루트에 `app/`, `components/`, `l
 - **스타일**: Tailwind v4 (`tailwind.config.ts` 없음, `@tailwindcss/postcss` + `app/globals.css`), 클래스 병합은 `lib/utils.ts`의 `cn()`, 테마는 `next-themes`(`attribute="class"`), 폰트는 Pretendard Variable 서브셋(`pretendard` 패키지 CSS)과 JetBrains Mono(`app/layout.tsx`).
 - **Next 설정**: `cacheComponents: true`. 요청 시점 데이터(`cookies()`, `params`, `searchParams`, Supabase 세션)를 읽는 컴포넌트는 `<Suspense>`로 감싸고, `dynamic`/`revalidate` 세그먼트 설정은 쓰지 않는다.
 
-아직 없는 것: `react-hook-form`(`zod`는 설치됨), `hooks/`, `public/`. 마크다운 렌더링은 `components/markdown/markdown-content.tsx`와 `lib/markdown/`(sanitize 스키마·플러그인 순서)에 있다. 이미지 업로드는 `lib/storage/`(검증·경로·브라우저 직접 업로드), `lib/editor/`(커서 삽입·자리표시 치환)와 `app/admin/posts/_components/`의 편집기 UI에 구현돼 있다. SEO 메타데이터(`lib/site-url.ts`, `lib/post-metadata.ts`, `app/sitemap.ts`, `app/robots.ts`, `/admin`·`/auth` noindex)는 Task 018, 캐싱·썸네일 `next/image`·접근성은 Task 019에서 구현됐다(결과는 ROADMAP). 절대 URL은 `NEXT_PUBLIC_SITE_URL` 기준이다.
+아직 없는 것: `react-hook-form`(`zod`는 설치됨), `hooks/`. `public/`에는 홈 프로필 사진 `avatar.webp`만 있다(위치정보를 뺀 변환본, 원본 사진은 두지 않는다). 마크다운 렌더링은 `components/markdown/markdown-content.tsx`와 `lib/markdown/`(sanitize 스키마·플러그인 순서)에 있다. 이미지 업로드는 `lib/storage/`(검증·경로·브라우저 직접 업로드), `lib/editor/`(커서 삽입·자리표시 치환)와 `app/admin/posts/_components/`의 편집기 UI에 구현돼 있다. SEO 메타데이터(`lib/site-url.ts`, `lib/post-metadata.ts`, `app/sitemap.ts`, `app/robots.ts`, `/admin`·`/auth` noindex)는 Task 018, 캐싱·썸네일 `next/image`·접근성은 Task 019에서 구현됐다(결과는 ROADMAP). 절대 URL은 `NEXT_PUBLIC_SITE_URL` 기준이다.
 
 ## 알려진 예외
 
