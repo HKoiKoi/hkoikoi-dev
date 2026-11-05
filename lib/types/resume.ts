@@ -36,5 +36,6 @@ export type Publication = {
   authors: string;
   venue: string;
   year: number;
-  link: string;
+  /** 공개된 게재 페이지 주소. 없으면 제목을 링크 없이 표시한다. */
+  link?: string;
 };

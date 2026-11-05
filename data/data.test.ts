@@ -84,13 +84,14 @@ describe("publications", () => {
     expect(new Set(titles).size).toBe(titles.length);
   });
 
-  it("필수 필드가 채워져 있고 year가 정수이며 link가 http(s)다", () => {
+  it("필수 필드가 채워져 있고 year가 정수이며 link가 있다면 http(s)다", () => {
     for (const publication of publications) {
       expect(isBlank(publication.title)).toBe(false);
       expect(isBlank(publication.authors)).toBe(false);
       expect(isBlank(publication.venue)).toBe(false);
       expect(Number.isInteger(publication.year)).toBe(true);
-      expect(publication.link).toMatch(/^https?:\/\//);
+      if (publication.link !== undefined)
+        expect(publication.link).toMatch(/^https?:\/\//);
     }
   });
 });
