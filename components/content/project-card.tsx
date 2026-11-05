@@ -44,7 +44,7 @@ export function ProjectCard({ project, className }: ProjectCardProps) {
         )}
       </CardContent>
       {hasLinks && (
-        <CardFooter className="flex flex-wrap gap-2">
+        <CardFooter className="mt-auto flex flex-wrap gap-2">
           {links.github && (
             <Button
               variant="outline"
