@@ -6,7 +6,11 @@ export type ResumeEntry = {
   description?: string;
   /** 카드 오른쪽 하단에 강조해 표시하는 수치(예: 학점 "3.87 / 4.5"). */
   grade?: string;
+  /** grade를 스크린리더에 읽어 줄 이름. 없으면 "평점". */
+  gradeLabel?: string;
   tags?: string[];
+  /** 영역별로 나눈 기술 스택. 영역마다 한 줄로 표시한다(예: 개발, 데이터베이스). */
+  tagGroups?: { label: string; tags: string[] }[];
   link?: string;
 };
 

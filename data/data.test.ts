@@ -39,12 +39,18 @@ describe.each(Object.entries(resumeSections))("%s", (_name, entries) => {
         "period",
         "description",
         "grade",
+        "gradeLabel",
         "link",
       ] as const) {
         if (entry[key] !== undefined) expect(isBlank(entry[key])).toBe(false);
       }
       if (entry.tags)
         expect(entry.tags.every((tag) => !isBlank(tag))).toBe(true);
+      for (const group of entry.tagGroups ?? []) {
+        expect(isBlank(group.label)).toBe(false);
+        expect(group.tags.length).toBeGreaterThan(0);
+        expect(group.tags.every((tag) => !isBlank(tag))).toBe(true);
+      }
     }
   });
 });
