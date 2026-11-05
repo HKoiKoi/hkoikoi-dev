@@ -1,9 +1,15 @@
+import { connection } from "next/server";
+
 import { PostCard } from "@/components/blog/post-card";
 import { EmptyState } from "@/components/content/empty-state";
 import { getLatestPosts } from "@/lib/queries/posts";
 
-// DB 조회(cookies 사용)는 요청 시점 데이터라 홈의 정적 셸과 분리해 Suspense 안에서 렌더한다.
+// 글 조회는 'use cache'라 그대로 두면 결과가 홈의 정적 셸(프리렌더 HTML)에 포함되어,
+// 글을 저장·삭제해도 운영에서 갱신되지 않는다(삭제한 글이 계속 보임). connection()으로
+// 이 영역만 요청 시점 렌더링으로 분리하고, 목록은 posts 태그 캐시에서 읽어 비용을 줄인다.
+// 호출하는 쪽이 Suspense로 감싸야 한다.
 export async function LatestPosts() {
+  await connection();
   const posts = await getLatestPosts(3);
 
   if (posts.length === 0) {
