@@ -14,6 +14,7 @@ hkoikoi.dev는 채용 담당자·동료 개발자(방문자)와 관리자 본인
 - 기준 문서: `docs/PRD.md` (기능 ID F001~F014)
 - 구조·컨벤션: `docs/guides/project-structure.md`, `nextjs-16.md`, `component-patterns.md`, `styling-guide.md`, `forms-react-hook-form.md`
 - 스택: Next.js 16.4 (App Router, `cacheComponents: true`, `proxy.ts`), React 19.3, Tailwind v4, shadcn/ui `base-nova`(Base UI), Supabase(인증·DB·스토리지), Vitest + Playwright
+- 상태: **MVP(F001~F014, Task 001~020) 완료 — 2026-11-05.** 근거는 Task 020의 운영 배포 검증(`https://www.hkoikoi.dev`)과 각 Task의 `테스트 결과`다. 완료 처리 때 확인하지 못한 항목은 완료로 바꾸지 않고 Task 021(MVP 잔여 검증)로 넘겼다. 다음 작업은 Phase 6(MVP 이후 범위)이다.
 
 ## 개발 워크플로우
 
@@ -445,9 +446,11 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 잔존 데이터: `posts` e2e 글 0건, `auth.users` e2e 사용자 0건(총 1건), 프로브 객체 0건. 단 `blog-images`에는 테스트가 올린 1x1 PNG(70바이트)가 71건 남아 있다. 버킷에 select 정책이 없어 관리자 세션의 Storage API 삭제가 403이고, SQL 삭제는 `storage.protect_delete()` 트리거가 막는다. 사용자 결정으로 고아 파일을 수용했고(스키마 변경 없음), e2e를 실행할 때마다 객체가 늘어난다. 수락 기준의 "스토리지 잔존 0건"은 충족하지 못했다.
     - 제한 사항·미확인: 자동 테스트의 붙여넣기·드롭은 `ClipboardEvent`/`DragEvent`를 합성한 것이다. Playwright MCP 수동 시나리오는 Playwright Test e2e로 대체했고 MCP는 사용하지 않음. Chromium만 확인했으며(375px 폭은 Chromium 뷰포트 크기 조정) Safari·Firefox·실제 휴대폰은 확인하지 않음(사용자가 Chrome만 쓰므로 범위에서 제외). 2026-10-28 사용자가 로컬 Chrome에서 실제 OS 클립보드 붙여넣기와 실제 파일 드래그앤드롭으로 삽입·미리보기 표시를 직접 확인함. Supabase 스키마 변경이 없어 `get_advisors`는 다시 실행하지 않음.
 
-### Phase 5: SEO·최적화·마무리
+### Phase 5: SEO·최적화·마무리 ✅
 
-- **Task 018: 블로그 SEO 메타데이터·sitemap·robots 구축**
+> 2026-11-05 MVP 완료 처리. Task 018~020의 체크박스는 이미 실제 결과로 채워져 있었고, 수락 기준 중 확인하지 못한 부분은 각 Task 제목 옆 괄호와 `테스트 결과`의 "제한 사항·미확인"에 남긴 채 Task 021로 넘겼다.
+
+- **Task 018: 블로그 SEO 메타데이터·sitemap·robots 구축** ✅ - 완료 (썸네일 있는 글의 `og:image`와 sitemap `lastModified`는 단위 테스트로만 확인)
   - 관련 기능: F014, F006
   - 관련 파일: `app/(site)/blog/[slug]/page.tsx`(`generateMetadata`), `app/sitemap.ts`, `app/robots.ts`, `app/layout.tsx`, `lib/site-url.ts`, `.env.example`, `.github/workflows/ci.yml`
   - 수락 기준: 글 상세에 title·description(=소개글)·OG 이미지(=썸네일, 없으면 기본 `opengraph-image.png`)가 설정되고, `/sitemap.xml`에 고정 페이지 10개 + 발행 글(`lastModified = updated_at`)이, `/robots.txt`에 `/admin`·`/auth` 제외가 포함됨. 절대 URL은 모두 `NEXT_PUBLIC_SITE_URL` 기준. 없는 글·초안은 noindex
@@ -468,7 +471,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 확인한 사실: noindex는 `<meta name="robots" content="noindex, nofollow"/>`로 출력된다(`/auth/login`·`/auth/error`는 서버 응답과 e2e로 확인. `/admin`은 비로그인 시 로그인으로 리다이렉트되어 HTML을 확인하지 못했고 layout의 `metadata` 코드만 확인). 없는 글은 `content="noindex"`이고 스트리밍 때문에 같은 태그가 두 번 나온다(원인은 확인하지 않음). 없는 글은 상태 코드 200이라 soft 404 트레이드오프를 그대로 수용한다. `openGraph`·`twitter`를 지정하면 `app/opengraph-image.png`가 상속되지 않아(임시 라우트의 빌드 HTML로 확인) 썸네일이 없을 때 `lib/post-metadata.ts`가 기본 이미지를 절대 URL로 명시한다.
     - 제한 사항·미확인: 썸네일이 있는 글의 `og:image`는 단위 테스트(`lib/post-metadata.test.ts`)로만 확인했고 e2e로는 확인하지 않았다(썸네일 업로드는 `blog-images` 고아 파일을 늘리므로 하지 않음). sitemap의 `lastModified`(=`updated_at`)도 단위 테스트로만 확인했다. Chromium과 dev 서버 기준이며 배포 환경의 `NEXT_PUBLIC_SITE_URL`은 Task 020에서 확인한다. `seo.spec.ts`는 CI `e2e-smoke`에 넣지 않았다(발행 글 시나리오가 관리자 계정을 쓰므로 로컬 전용).
 
-- **Task 019: 캐싱·성능·접근성 최적화**
+- **Task 019: 캐싱·성능·접근성 최적화** ✅ - 완료 (편집기를 키보드만으로 조작하는 확인, 이력 4종·`/volunteer`·`/activities` Lighthouse 측정은 미확인 → Task 021로 이월)
   - 관련 기능: F005, F006, F011, F013
   - 관련 파일: `lib/queries/posts.ts`, `lib/supabase/public.ts`, `app/admin/posts/actions.ts`, `app/(site)/**`, `next.config.ts`
   - 수락 기준: 공개 글 조회가 Cache Components(`'use cache'` + `cacheTag`)로 캐시되고, 저장·삭제 시 태그 무효화로 공개 목록·상세에 즉시 반영(F011). 주요 공개 페이지 Lighthouse(모바일) 성능·접근성 90점 이상, 키보드만으로 헤더·필터·편집기 조작 가능
@@ -493,7 +496,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 구현 중 발견·수정한 결함: 썸네일을 `next/image`로 바꾼 뒤 `src`가 `/_next/image?url=…%2Fblog-images%2F…`로 인코딩되어 `admin-image-upload.spec.ts`의 `img[src*="/blog-images/"]` 셀렉터가 맞지 않았다(`blog-images`로 수정). `a11y.spec.ts`의 이력 드롭다운 테스트는 메뉴가 열린 직후 첫 항목에 포커스가 가기 전에 ArrowDown을 눌러 `/career` 대신 `/education`으로 가는 경우가 있었다(첫 항목 포커스를 기다리도록 수정, 5회 반복 40/40 통과).
     - 제한 사항·미확인: Supabase Auth 로그인은 `/auth/v1/token`의 IP당 버스트 한도(30건)에 걸린다. 전체 e2e는 로그인을 약 40번 해서 기본 한도(token refreshes 150/5min)에서는 약 37번째 로그인부터 429가 나고 로그인이 필요한 테스트가 실패했다. 85/85 통과는 대시보드에서 "Rate limit for token refreshes"를 500/5min으로 올린 상태에서 얻은 결과다(이 값과 "sign-ups and sign-ins" 100/5min은 테스트 후 원래대로 되돌려야 하며, 되돌리면 전체 e2e를 한 번에 통과시키려면 로그인 세션 재사용이 필요하다). 이 원격은 `main PRODUCTION`으로 표시된 프로젝트다. Lighthouse는 로컬 production 빌드의 `/`·`/projects`·`/career`·`/publications`·`/blog`와 블로그 상세 1건만 측정했고(그 상세는 e2e가 남긴 테스트 글이었다) 나머지 공개 페이지와 관리자 화면은 측정하지 않았다. 편집기를 키보드만으로 조작하는 e2e와, 실제 Supabase 썸네일의 `next/image` 런타임 렌더링을 업로드해 확인하는 e2e는 고아 파일을 늘리므로 하지 않았다. 캐시 무효화 e2e는 단일 인스턴스 production 서버 기준이며 배포 환경(여러 인스턴스·CDN)은 Task 020에서 확인한다. Chromium만 확인했다.
 
-- **Task 020: 최종 회귀 테스트 및 배포 준비**
+- **Task 020: 최종 회귀 테스트 및 배포 준비** ✅ - 완료 2026-11-05 (콘텐츠 교체·sitemap 수정 뒤 전체 e2e·`knip` 재실행, Rate Limits 원복, Auth URL 설정 값 확인은 미확인 → Task 021로 이월)
   - 관련 기능: F001~F014
   - 관련 파일: `e2e/**`, `README.md`, `docs/guides/project-structure.md`, `.env.example`, `data/*.ts`
   - 수락 기준: `npm run check`·`npm run build`·`npm run knip`·`npm run test:e2e` 전체 통과, 배포 환경(예: Vercel)에서 공개·관리자 흐름 확인, 문서가 실제 구조와 일치
@@ -522,6 +525,343 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 확인한 사실: 운영 도메인은 `www.hkoikoi.dev`가 기본이고 `hkoikoi.dev`는 308로 `www`에 리다이렉트된다(`NEXT_PUBLIC_SITE_URL=https://www.hkoikoi.dev`). 환경 변수 3개는 Vercel에서 Config 타입으로 설정했다(`NEXT_PUBLIC_` 접두사가 붙은 변수를 Secret으로 두면 Vercel이 저장을 막는다). 처음 배포 때 `main`이 `develop`보다 44커밋 뒤처져 `/robots.txt`·`/sitemap.xml`이 404였고 `og:image`가 `vercel.app` 주소를 가리켰으나, PR #34 머지로 해결됐다.
     - 발견·수정한 결함: `/sitemap.xml`이 빌드 때 정적으로 프리렌더(`○ Static`, revalidate 30d)되어 글을 발행·삭제해도 갱신되지 않았다. 글 조회가 `'use cache'`라 요청 시점 API가 아니기 때문이다. 운영의 캐시 항목 생성 시각이 발행·삭제보다 앞선 시각에 고정된 것으로 확인했다. `app/sitemap.ts`에서 `await connection()`으로 요청 시점 렌더링을 강제해(빌드 표 `ƒ`) 고쳤고(PR #35, #36), 운영에서 테스트 글 발행 직후 sitemap에 포함되고 삭제 직후 사라지는 것을 확인했다. Task 018 기록의 "`/sitemap.xml` ƒ 동적"은 placeholder env 빌드 결과이며, 실제 Supabase 값으로 빌드하면 정적이 되는 것으로 보인다(placeholder에서는 조회가 실패해 캐시되지 않고 동적이 되는 것으로 추정하며 확인하지 않았다). CI는 placeholder env로 빌드하므로 이 결함을 잡지 못한다.
     - 제한 사항·미확인: `updateTag('posts')`가 정적 Route Handler의 캐시 항목을 만료시키지 못한 정확한 원인(Vercel 동작인지 Next 동작인지)은 확정하지 못했다. 운영 캐시 무효화는 글 발행·삭제 시 목록·상세·sitemap 반영만 확인했고 제목 수정·초안 전환·슬러그 변경은 운영에서 확인하지 않았다(로컬 e2e로만 확인). 삭제된·없는 글 주소는 not-found 화면과 `noindex`를 보이지만 HTTP 200이다(Task 018에서 수용한 soft 404). 썸네일이 있는 글의 `og:image`와 썸네일 업로드는 운영에서 하지 않았다. 운영에서 Lighthouse는 측정하지 않았다(Task 019의 로컬 측정만 있음). Chromium만 확인했고 Safari·Firefox·실제 휴대폰은 확인하지 않았다. 브라우저 탭의 실제 파비콘과 카카오톡·슬랙 공유 카드는 확인하지 못했다. Supabase Auth의 Site URL·Redirect URL은 사용자가 대시보드에서 `www.hkoikoi.dev` 기준으로 변경했다고 알려 왔으나 MCP로 읽을 수 없어 값은 직접 확인하지 못했다(운영 관리자 로그인은 정상 동작했다). Rate Limits(token refreshes) 원복 여부도 확인하지 못했다. 운영 검증 중 `blog-images`에 70바이트 고아 파일이 1개 늘었다(삭제 불가, 수용된 예외). 운영 관리자 계정으로 로그인한 세션이 Playwright 브라우저에 남아 있었으므로 필요하면 로그아웃하거나 비밀번호를 바꾼다.
+    - 후속 수정(2026-11-05, PR #39, 커밋 `5350944`): 운영에서 글을 삭제해도 홈 최신 글에 계속 보이는 결함이 있었다(글 조회가 `'use cache'`라 결과가 홈의 정적 셸에 포함됨). `app/(site)/_components/latest-posts.tsx`에서 `connection()`을 기다려 이 영역만 요청 시점 렌더링으로 분리했다. 이 수정의 테스트·운영 반영 결과는 ROADMAP에 기록되지 않았다 → Task 021에서 확인한다.
+
+### Phase 6: MVP 이후 범위 (Post-MVP)
+
+> PRD의 "MVP 이후 기능(제외)" 목록과 추가 요청(이전/다음 글, 태그 정렬, 태그·카테고리 필터)을 Task로 나눴다. 기능 ID **F015~F025는 ROADMAP의 제안**이며 PRD에는 아직 반영하지 않았다. Task를 시작하기 전에 해당 기능을 PRD에 추가할지 사용자와 정하고, 추가하면 `prd-validator`로 점검한다.
+
+#### Phase 6 공통 전제
+
+- **마이그레이션**: 새 테이블·함수·정책은 `supabase/migrations/`에 파일로 두고 Supabase MCP `apply_migration`으로 적용한다. 원격(`gfrewivdclcitgysgsbi`)은 `main PRODUCTION`이므로 적용 전에 `.mcp.json`의 ref를 확인하고 사용자 확인을 받는다. 적용한 뒤에는 `generate_typescript_types`로 `lib/supabase/database.types.ts`를 다시 만들고 `get_advisors`(security·performance)를 돌린다.
+- **GRANT**: `public` 스키마의 default privileges 때문에 새 테이블은 anon·authenticated에 과잉 권한(`TRUNCATE`·`REFERENCES`·`TRIGGER` 등)을 받는다(`docs/guides/rls-verification.md`, `fix/posts-grants` 기록). 마이그레이션에서 필요한 권한만 남기도록 `revoke`를 함께 둔다. 관리자 판별은 `app_metadata.role = 'admin'`만 쓰고 `user_metadata`는 쓰지 않는다.
+- **캐싱**: 공개 조회는 `lib/queries/posts.ts` 패턴(`createPublicClient()` + `'use cache'` + `cacheTag` + `cacheLife('max')`, 실패는 `failUncached`, 바깥 래퍼에서 `unstable_rethrow` → `console.error` → 빈 값)을 따르고, 쓰기 쪽은 `updateTag`로 무효화한다. 요청 시점 데이터(`searchParams`, 쿠키, 조회수 등)는 `<Suspense>` 안에서 읽는다.
+- **운영 반영 확인 필수**: 운영(Vercel)에서 캐시 결과가 정적 셸에 굳어 태그 무효화가 반영되지 않은 사례가 두 번 있었다(Task 020 sitemap, PR #39 홈 최신 글). 공개 화면에 새 데이터 영역을 붙이면 **실제 Supabase env로** `npm run build`를 돌려 빌드 표(○/◐/ƒ)를 확인하고, 운영에서 발행·삭제 직후 반영되는지 직접 본다. 필요하면 그 영역을 `<Suspense>` + `await connection()`으로 분리한다. CI와 placeholder env 빌드는 이 문제를 잡지 못한다.
+- **테스트 데이터**: DB 쓰기 e2e는 운영 DB를 쓰므로 `e2e-` 접두와 `afterAll` 정리를 지킨다. 이미지 업로드 e2e는 고아 파일을 늘리므로 Task 029 전까지 최소화한다.
+
+#### 우선순위와 권장 구현 순서
+
+| 순서 | Task                                   | 기능 ID(제안) | 우선순위      | 스키마 변경                    | 선행 Task |
+| ---- | -------------------------------------- | ------------- | ------------- | ------------------------------ | --------- |
+| 1    | 021 MVP 잔여 검증·운영 점검            | (F001~F014)   | 즉시          | 없음                           | -         |
+| 2    | 022 이전/다음 글 내비게이션            | F015          | 높음          | 없음                           | 021       |
+| 3    | 023 태그·카테고리 필터 탐색·태그 정렬  | F016          | 높음          | 없음 (필요할 때만 집계 RPC)    | 021       |
+| 4    | 024 블로그 목록 페이지네이션           | F017          | 중간          | 없음                           | 023       |
+| 5    | 025 키워드 검색                        | F018          | 중간          | 있음 (`pg_trgm`·검색 RPC)      | 023, 024  |
+| 6    | 026 RSS 피드                           | F019          | 중간          | 없음                           | 021       |
+| 7    | 027 편집기 임시저장 자동화             | F020          | 중간          | 없음                           | 021       |
+| 8    | 029 스토리지 고아 이미지 정리          | F022          | 중간          | 있음 (관리자 SELECT 정책)      | 021       |
+| 9    | 028 `<style>` 글 단위 스코프 변환      | F021          | 낮음          | 없음                           | 021       |
+| 10   | 030 조회수                             | F023          | 낮음          | 있음 (테이블·RPC)              | 022       |
+| 11   | 031 댓글                               | F024          | 낮음          | 기본안 없음 (방식에 따라 다름) | 021       |
+| 12   | 032 정적 섹션 DB 스키마·공개 조회 전환 | F025          | 낮음          | 있음 (테이블 3개·시드)         | 021       |
+| 13   | 033 정적 섹션 관리자 편집 UI           | F025          | 낮음          | 없음                           | 032       |
+| 14   | 034 Post-MVP 통합 회귀·배포 검증       | F015~F025     | 묶음 완료마다 | 없음                           | 대상 Task |
+
+- 순서 근거: (1) 스키마 변경이 없고 읽기만 하는 블로그 탐색 기능(022·023·026)을 먼저 해서 방문자 가치를 빨리 낸다. (2) 목록 기능은 **URL 상태 유틸·목록 쿼리 → 페이지네이션 → 검색(스키마 변경)** 순서로 쌓는다. 023이 `/blog`의 URL 상태(`category`, `tag`)와 조회 함수 시그니처를 정리하고, 024가 `page`, 025가 `q`를 더한다. (3) 관리자 작성 경험·운영 부채(027·029)는 탐색 묶음과 병렬로 진행할 수 있다. (4) 새 테이블·익명 쓰기·외부 서비스가 필요한 기능(030·031)은 남용 대책 결정이 필요해 뒤에 둔다. (5) 정적 섹션 DB 전환(032·033)은 규모가 가장 크고, 지금의 `data/*.ts` 방식으로도 운영에 문제가 없어 마지막에 둔다.
+- 병렬 가능: 022·023·026·027·028·029는 서로 독립이다. 030은 022(상세 하단 레이아웃) 뒤를 권장하며, 032→033은 순서 의존이다.
+
+- **Task 021: MVP 잔여 검증 및 운영 점검** - 우선순위
+  - 관련 기능: F001~F014 (MVP 완료 처리 때 이월한 미확인 항목)
+  - 목표: MVP 완료 처리 때 근거가 부족했던 항목을 확인하고 운영 설정을 원래대로 돌려, Post-MVP 작업을 녹색 회귀(전체 e2e 통과)와 확인된 운영 설정에서 시작한다
+  - 의존성: 없음
+  - 관련 파일: `e2e/**`, `e2e/fixtures/admin.ts`, `playwright.config.ts`, `knip.jsonc`, `app/(site)/_components/latest-posts.tsx`, Supabase 대시보드(Authentication → Rate Limits, URL Configuration)
+  - 수락 기준: 현재 `develop` 기준 `npm run check`·실제 env `npm run build`·`npm run knip`·전체 e2e가 통과하고, 운영에서 홈 최신 글·목록·상세·sitemap이 발행·제목 수정·초안 전환·슬러그 변경·삭제 직후 반영되며, Rate Limits·Auth URL 설정 값이 기록됨
+  - [ ] 현재 `develop`(PR #39 포함)에서 `npm run check`·`npm run knip`(Task 020의 sitemap 수정 뒤 미실행)과 실제 Supabase env로 `npm run build` 재실행, 빌드 표에서 `/`·`/blog`·`/sitemap.xml` 분류 기록
+  - [ ] 전체 e2e 재실행(실제 이력·로고·OG 이미지 교체 뒤 미실행, `visitor-flow` 포함). Rate Limit 대응은 파일 분할·6분 간격 실행 또는 일시 상향 후 원복
+  - [ ] Supabase Auth Rate Limits(token refreshes)가 기본값(150/5min)으로 원복됐는지, Site URL·Redirect URL이 `https://www.hkoikoi.dev` 기준인지 사용자 확인 결과를 기록(MCP로 읽을 수 없음)
+  - [ ] PR #39 운영 반영 확인: 테스트 글 발행·삭제 직후 홈 최신 글 영역 반영
+  - [ ] 운영에서 확인하지 못한 캐시 무효화 시나리오(제목 수정·초안 전환·슬러그 변경) 확인
+  - [ ] Task 019 이월: 편집기를 키보드만으로 조작(라벨·`aria-describedby`·포커스 순서), 이력 4종·`/volunteer`·`/activities` 모바일 Lighthouse 측정
+  - [ ] (선택) e2e 로그인 세션 재사용(Playwright `storageState`)으로 전체 실행의 로그인 횟수를 30회 미만으로 줄여, Rate Limit을 올리지 않고도 한 번에 통과하게 개선
+  - 테스트 체크리스트:
+    - 정상: 터미널 → `npm run check && npm run knip` → 종료 코드 0
+    - 정상: Playwright MCP → 운영 `/` → 관리자가 테스트 글(`e2e-` 접두) 발행 직후 새로고침 → 최신 글 카드에 노출, 삭제 직후 사라짐
+    - 정상: Playwright MCP → 운영에서 발행 글 제목 수정 → 비로그인 컨텍스트로 `/blog`·상세 새로고침 → 새 제목
+    - 오류: Playwright MCP → 운영에서 발행 글을 임시 저장(초안 전환) → 공개 상세 not-found, `/blog`·홈·sitemap에서 제외
+    - 엣지: Playwright MCP → 운영에서 슬러그 변경 → 이전 슬러그 not-found, 새 슬러그 정상, sitemap에 새 슬러그만
+    - 엣지: 키보드만(Tab/Shift+Tab/Enter/Space) → 편집기 제목 → 슬러그 → 메타 필드 → 본문 → 이미지 버튼 → 하단 바 버튼 순회, 포커스 링 표시, 검증 오류가 입력과 연결되어 읽힘
+  - 테스트 결과: (미수행)
+
+- **Task 022: 블로그 상세 이전/다음 글 내비게이션 구현**
+  - 관련 기능: F015(제안: 이전/다음 글 내비게이션), F006
+  - 목표: 상세 하단에서 인접한 발행 글로 바로 이동해 연속 열람을 돕는다
+  - 의존성: Task 021(권장). 스키마 변경 없음
+  - 관련 파일: `lib/queries/posts.ts`(`getAdjacentPosts`), `lib/queries/posts.test.ts`, `components/blog/post-pager.tsx`(신규), `app/(site)/blog/[slug]/page.tsx`, `e2e/post-navigation.spec.ts`(신규)
+  - 수락 기준: 상세 하단에 "이전 글"(더 오래된 글)·"다음 글"(더 최근 글) 링크가 제목과 함께 표시되고, 가장 오래된·가장 최근 글에서는 해당 쪽이 비어 있음. 초안은 포함되지 않고, 글 저장·삭제·발행 상태 변경 뒤 인접 링크가 즉시 바뀜
+  - [ ] 정렬 기준: 목록과 같은 `published_at desc`, 동률은 `id`로 결정(같은 시각 발행 글의 누락·순환 방지). "이전 = 더 오래된 글, 다음 = 더 최근 글"로 정하고 컴포넌트 주석에 적음
+  - [ ] `fetchAdjacentPosts(publishedAt, id)`: `'use cache'` + `cacheTag('posts')` + `cacheLife('max')`, `published = true` 명시, 양쪽 각 1건(비교 + 정렬 + `limit(1)`, 동률 조건은 PostgREST `or` 필터 `published_at.lt.<X>,and(published_at.eq.<X>,id.lt.<Y>)` — 값은 DB에서 온 timestamp·uuid라 사용자 입력이 아님), 컬럼은 `slug, title`만. 실패는 `failUncached`, 바깥 래퍼는 `{ prev: null, next: null }`
+  - [ ] `PostPager`(Server Component): `<nav aria-label="이전·다음 글">`, 한글 슬러그는 기존 링크와 같은 방식으로 인코딩, 모바일에서는 세로 배치·긴 제목 말줄임
+  - [ ] 상세 페이지에서 본문 조회 뒤 같은 `<Suspense>` 경계 안에서 렌더링(상세가 이미 `params`를 읽는 Suspense 안에 있는지 확인)
+  - [ ] 무효화: 기존 `invalidatePostTags`가 `posts`를 만료하므로 인접 글 제목 변경·삭제도 반영되는지 확인하고, 추가 태그가 필요 없으면 그 근거를 주석으로 남김
+  - [ ] 단위 테스트: 쿼리 인자(published 필터·정렬·동률 조건), 실패 시 빈 값
+  - 테스트 체크리스트:
+    - 정상: Playwright MCP → 발행 글 3건(시드 `e2e-nav-`) 중 가운데 글 상세 → 이전 글 = 가장 오래된 글, 다음 글 = 가장 최근 글의 제목·링크, 클릭 시 이동
+    - 정상: Playwright MCP → 관리자가 인접 글 제목 수정 → 비로그인 컨텍스트로 상세 새로고침 → 새 제목
+    - 오류: Playwright MCP → 인접 위치에 초안이 있는 상태 → 초안을 건너뛰고 그다음 발행 글 표시
+    - 엣지: Playwright MCP → 가장 최근 글 → "다음 글" 없음, 가장 오래된 글 → "이전 글" 없음, 발행 글 1건뿐 → 내비게이션 미표시
+    - 엣지: `posts.test.ts` → 같은 `published_at`의 두 글 → `id` 기준으로 서로를 가리킴(누락·순환 없음)
+    - 엣지: Playwright MCP → 한글 슬러그 인접 글 링크 클릭 → 정상 상세
+  - 테스트 결과: (미수행)
+
+- **Task 023: 태그·카테고리 필터 탐색 및 태그 정렬 규칙 구축**
+  - 관련 기능: F016(제안: 태그·카테고리 필터 탐색과 정렬), F005
+  - 목표: 카드·상세의 배지를 눌러야만 쓸 수 있던 필터를 `/blog` 상단의 카테고리·태그 목록(글 수 포함)에서 바로 고르게 하고, 영어·한글이 섞인 태그를 일관된 순서로 보여 준다
+  - 스키마 확인 결과(2026-11-05, `supabase/migrations/20261026105752_create_posts.sql`·`20261028040654_add_posts_category_tags_length_checks.sql`): `category text not null default '일반'`(1~50자), `tags text[] not null default '{}'`(최대 10개, 요소 50자 이하) 컬럼과 `posts_tags_idx`(GIN)·`posts_category_idx` 인덱스가 이미 있고, 공개 조회도 `?category=&tag=`(정확 일치, AND)를 지원한다. **필터를 위한 스키마·마이그레이션 Task는 필요 없다.** 집계는 앱에서 먼저 하고, 발행 글이 수백 건을 넘어 집계 비용이 문제 되면 그때 집계 RPC(`security invoker`, 내부 `published = true`)를 마이그레이션으로 추가한다
+  - 검색(Task 025)과의 관계: 필터는 정해진 값(카테고리·태그)의 **정확 일치**, 검색은 자유 키워드의 **부분 일치**다. 둘은 `/blog`의 같은 URL 상태(`category`, `tag`, 이후 `page`, `q`)와 같은 조회 함수에서 AND로 결합하되, 스키마 변경 여부와 위험이 달라 Task는 분리한다. 이 Task가 URL 상태 유틸을 먼저 만들고 024·025가 확장한다
+  - 의존성: Task 021(권장). 스키마 변경 없음
+  - 관련 파일: `lib/posts/sort-tags.ts`(+test), `lib/posts/list-params.ts`(+test), `lib/posts/taxonomy.ts`(+test, 집계 순수 함수), `lib/queries/posts.ts`(`getTaxonomy`), `app/(site)/blog/page.tsx`, `app/(site)/blog/_components/{taxonomy-filter,post-filter-bar}.tsx`, `e2e/blog-filter.spec.ts`(신규)
+  - 수락 기준: `/blog` 상단에 카테고리 목록과 태그 목록이 글 수와 함께 표시되고, 선택 상태가 시각과 `aria-current`로 구분되며, 카테고리+태그 AND 조합·해제가 링크만으로(JavaScript 없이도) 동작. 태그·카테고리 목록은 아래 정렬 규칙을 따르고 서버·브라우저에서 같은 결과. 기존 `?category=&tag=` URL은 그대로 동작
+  - [ ] 태그 정렬 규칙(`sortTags`): 그룹 순서 **숫자·기호 → 영문 → 한글 → 기타 문자**. 영문 그룹은 `Intl.Collator('en', { sensitivity: 'base', numeric: true })`(대소문자 무시), 한글 그룹은 `Intl.Collator('ko', { numeric: true })`(가나다순), 비교 결과가 같으면(`React`/`react`) 코드포인트 순으로 결정. 근거:
+    - 이 블로그의 태그는 대부분 기술 고유명사(Next.js, React, Supabase 등)라 영문을 앞에 두면 자주 쓰는 태그가 먼저 보이고, 개발 블로그·문서의 흔한 배치와 같다
+    - 로케일 기본값은 순서가 서로 다르다. 2026-11-05 Node 24에서 `Intl.Collator('ko')`는 한글을 영문보다 앞에, `Intl.Collator('en')`은 영문을 앞에 두었다. 로케일에 맡기지 않고 그룹 순서를 코드로 고정한다
+    - 기본 `Array.prototype.sort()`는 코드포인트 순이라 대문자가 소문자보다 앞서고 기호가 사이에 끼어(`Next.js` → `_draft` → `nextjs`) 사람이 기대하는 순서가 아니다
+    - 로케일을 명시하면 서버(Node ICU)와 브라우저 결과가 같아 하이드레이션 불일치가 없다
+    - 한글을 앞에 두고 싶으면 그룹 순서 상수만 바꾼다(사용자 결정 시 이 항목 갱신)
+  - [ ] 정렬 적용 범위: `/blog` 상단의 태그·카테고리 목록에 적용. 카드·상세의 글별 태그는 작성자가 입력한 순서를 유지(작성 의도가 담긴 순서일 수 있음, 바꾸려면 같은 `sortTags` 재사용). 기본 카테고리 "일반"도 규칙대로 정렬(맨 앞 고정은 하지 않음)
+  - [ ] `getTaxonomy()`: 발행 글의 `category, tags`만 조회하는 `'use cache'` + `cacheTag('posts')` + `cacheLife('max')` 함수, 카테고리별·태그별 글 수는 순수 함수(`lib/posts/taxonomy.ts`)로 집계, 실패하면 빈 목록
+  - [ ] `lib/posts/list-params.ts`: `searchParams` → `{ category?, tag? }` 파싱(배열은 첫 값, 빈 값 무시, 50자 초과 무시, NFC 정규화)과 `buildBlogHref(current, patch)`(다른 조건 유지, 이후 추가될 `page`는 필터가 바뀌면 초기화). `app/(site)/blog/page.tsx`의 `first()`를 대체
+  - [ ] `TaxonomyFilter` UI: 카테고리 칩 줄, 태그 칩(많으면 상위 N개 + `details` "전체 태그"), 선택된 칩을 다시 누르면 해당 조건 해제, 글 수 표시, `aria-current="true"`. 기존 `PostFilterBar`(현재 필터·해제)는 유지하거나 통합. `searchParams`를 읽으므로 기존 Suspense 안에 둠. 0건 조합은 기존 빈 목록 안내 유지
+  - [ ] 결정 기록: 다중 태그 선택(`?tag=a&tag=b`)은 기본 미지원(단일 태그 유지). 대소문자만 다른 태그(`Next.js`/`next.js`)는 별개로 취급하고, 표기 흔들림을 줄이기 위해 편집기 태그 입력에 기존 태그 후보(`datalist`, 관리자 쿼리)를 제안하는 것은 선택 구현으로 둠
+  - 테스트 체크리스트:
+    - 정상: `sort-tags.test.ts` → `['react', '회고', 'Next.js', 'AI', '가나다', '2026']` → `['2026', 'AI', 'Next.js', 'react', '가나다', '회고']`
+    - 정상: Playwright MCP → `/blog` → 카테고리·태그 목록과 글 수 표시, 태그 칩 클릭 → `/blog?tag=<태그>`, 해당 글만, 칩 `aria-current`
+    - 정상: Playwright MCP → 태그 선택 상태에서 카테고리 칩 클릭 → URL에 두 조건 모두, AND 결과, 선택 칩 재클릭 → 해당 조건만 해제
+    - 오류: Playwright MCP → `/blog?tag=<51자 문자열>` → 필터 무시(전체 목록) 또는 빈 목록 안내, 오류 화면 없음
+    - 오류: 셸 env로 잘못된 Supabase URL(수동 확인) → 필터 목록 미표시, 글 목록 빈 안내, 오류 화면 없음
+    - 엣지: `sort-tags.test.ts` → `React`/`react` 동시 존재 → 항상 같은 순서, `v2`/`v10` → `v2`가 앞(numeric), 일본어·이모지 태그 → 맨 뒤 그룹
+    - 엣지: Playwright MCP → 관리자가 새 태그로 글 발행 → 비로그인 `/blog` 새로고침 → 태그 목록에 즉시 추가, 글 삭제 뒤 글 수 0인 태그는 사라짐
+    - 엣지: Playwright MCP → JavaScript 비활성 컨텍스트 → 칩 링크로 필터 적용·해제 동작
+  - 테스트 결과: (미수행)
+
+- **Task 024: 블로그 목록 페이지네이션 구현**
+  - 관련 기능: F017(제안: 블로그 목록 페이지네이션), F005
+  - 목표: 글이 늘어도 목록 응답 크기와 렌더링 비용을 일정하게 유지한다
+  - 의존성: Task 023(`list-params`·`buildBlogHref`). 스키마 변경 없음(기존 `(published, published_at desc)` 인덱스 사용)
+  - 관련 파일: `lib/queries/posts.ts`, `lib/posts/list-params.ts`, `lib/posts/pagination.ts`(+test), `app/(site)/blog/page.tsx`, `app/(site)/blog/_components/pagination.tsx`(신규), `e2e/blog-pagination.spec.ts`(신규)
+  - 수락 기준: `/blog?page=n`이 페이지당 12개(상수)를 최신순으로 표시하고 필터와 함께 동작하며, 필터를 바꾸면 1페이지로 돌아감. 이전/다음·번호 링크가 총 페이지 수에 맞게 표시되고 잘못된 값·범위 밖 페이지는 오류 없이 처리. 홈 최신 3개·sitemap은 영향 없음
+  - [ ] 방식: 오프셋 기반(`range(from, to)` + `count: 'exact'`)을 기본으로 한다(1인 블로그 규모, 번호 링크·URL 공유가 쉬움). 커서 방식은 글이 수천 건이 되면 재검토
+  - [ ] `fetchPublishedPosts(category, tag, page)`가 `{ posts, total }`을 반환, 캐시 키에 page 포함, `cacheTag('posts')`. 정렬에 `id` 보조 정렬을 더해 페이지 경계의 중복·누락 방지
+  - [ ] `page` 파싱: 정수가 아니거나 1 미만이면 1, 마지막 페이지 초과는 빈 목록 안내 + 첫/마지막 페이지 링크(soft 404 선례와 일관되게 `notFound()`는 쓰지 않음)
+  - [ ] `Pagination`: `<nav aria-label="페이지">`, 현재 페이지 `aria-current="page"`, 링크는 `buildBlogHref`로 필터 유지, 모바일에서 번호 축약
+  - [ ] 메타데이터: 2페이지 이상은 title에 "(n페이지)", canonical은 자기 자신. sitemap에는 페이지 URL을 넣지 않음
+  - 테스트 체크리스트:
+    - 정상: Playwright MCP → 발행 글 13건(시드 `e2e-page-`) → `/blog` 12건, "다음" 클릭 → `?page=2`에 1건
+    - 정상: Playwright MCP → `?tag=x&page=2`에서 카테고리 칩 클릭 → URL에서 `page` 제거, 1페이지
+    - 오류: Playwright MCP → `?page=abc`·`?page=0`·`?page=-1` → 1페이지와 같은 결과
+    - 오류: Playwright MCP → `?page=999` → 빈 목록 안내와 첫/마지막 페이지 링크, 오류 화면 없음
+    - 엣지: Playwright MCP → 2페이지를 보는 중 관리자가 새 글 발행 → 새로고침 시 경계 글이 2페이지로 밀리고 중복 없음
+    - 엣지: `pagination.test.ts` → total 0·12·13 → 페이지 수 1(빈 안내)·1·2
+  - 테스트 결과: (미수행)
+
+- **Task 025: 블로그 키워드 검색 구현**
+  - 관련 기능: F018(제안: 블로그 키워드 검색), F005
+  - 목표: 제목·소개글(선택: 본문·태그)의 키워드로 발행 글을 찾는다
+  - 의존성: Task 023(URL 상태), Task 024(검색 결과 페이지네이션). **스키마 변경 있음**
+  - 관련 파일: `supabase/migrations/<timestamp>_add_posts_search.sql`, `lib/supabase/database.types.ts`(재생성), `lib/queries/posts.ts`(`searchPosts`), `lib/posts/list-params.ts`, `app/(site)/blog/_components/search-form.tsx`(신규), `app/(site)/blog/page.tsx`, `e2e/blog-search.spec.ts`(신규)
+  - 수락 기준: `/blog?q=키워드`가 발행 글 중 부분 일치 결과를 최신순으로 보여 주고 필터·페이지와 AND로 결합. 한글 부분 문자열(예: "캐시" → "캐시무효화")이 검색됨. 초안은 결과에 없고 `%`·`_`·`,`·`(`·따옴표 입력이 오류나 필터 주입을 일으키지 않음
+  - [ ] 방식 결정·기록: Postgres 전문 검색(`to_tsvector('simple')`)은 한국어를 형태소로 나누지 못해 부분 문자열 검색이 안 되므로, `pg_trgm` + GIN trigram 인덱스(`title`, `excerpt`, 선택 `content`) + `ilike`를 기본안으로 한다. 외부 검색 서비스(Algolia 등)는 비용·의존성 대비 이득이 작아 제외
+  - [ ] 마이그레이션: `create extension if not exists pg_trgm with schema extensions`, trigram 인덱스, 검색 RPC `search_published_posts(q text, p_category text, p_tag text, p_limit int, p_offset int)`(`security invoker`, `set search_path = ''`, 내부에서 `published = true`, `like` 와일드카드 이스케이프, 총 건수 반환 방식 결정). PostgREST `or()` 필터 문자열에 사용자 입력을 넣지 않으려고 RPC로 한다. EXECUTE는 `revoke ... from public` 뒤 anon·authenticated에만 부여
+  - [ ] 적용 뒤 `generate_typescript_types`, `get_advisors`(security: `function_search_path_mutable`·`extension_in_public` 없음 확인, performance)
+  - [ ] `q` 파싱: trim, NFC 정규화, 2~50자(1자는 검색하지 않고 안내, 50자 초과는 자름)
+  - [ ] 캐싱 결정: 검색어는 키 공간이 사실상 무한이라 `'use cache'`로 저장하면 캐시가 커질 수 있다. `node_modules/next/dist/docs/`의 `use cache`·`cacheLife` 문서를 확인한 뒤 (a) 캐시 없이 Suspense 안에서 요청 시점 조회, (b) 짧은 `cacheLife` + `cacheTag('posts')` 중 결정(기본: a)
+  - [ ] `SearchForm`: `<form action="/blog" method="get" role="search">`(JavaScript 없이 동작), 라벨, 현재 `category`·`tag`는 hidden으로 유지하고 `page`는 초기화. 결과 수와 "검색어 지우기" 링크
+  - [ ] 검색 결과 화면은 `robots: { index: false }`(검색어 URL 색인 방지)
+  - 테스트 체크리스트:
+    - 정상: Playwright MCP → 발행 글 `e2e-search-캐시무효화-정리` 시드 → `/blog`에서 "캐시" 검색 → 해당 글 표시, URL `?q=캐시`
+    - 정상: Playwright MCP → `?q=캐시&tag=nextjs` → 두 조건 AND
+    - 오류: Playwright MCP → 초안에만 있는 키워드 검색 → 0건 안내(초안 미노출)
+    - 오류: Playwright MCP → `q`에 `%`, `_`, `a,b)`, `' or 1=1 --` 입력 → 오류 화면 없이 문자 그대로 검색(0건 또는 실제 일치만)
+    - 엣지: Playwright MCP → 1자 검색 → 검색하지 않고 안내, 51자 이상 → 잘린 값으로 검색
+    - 엣지: Supabase MCP `execute_sql`(읽기 전용 트랜잭션, rollback) → anon 역할로 RPC 호출 → 초안 0건
+    - 엣지: Playwright MCP → NFD 한글 검색어(URL 직접 입력) → NFC 검색과 같은 결과
+  - 테스트 결과: (미수행)
+
+- **Task 026: RSS 피드 구축**
+  - 관련 기능: F019(제안: RSS 피드), F014
+  - 목표: 피드 리더 구독자에게 새 글을 알린다
+  - 의존성: Task 021(권장). 스키마 변경 없음
+  - 관련 파일: `app/feed.xml/route.ts`(신규), `lib/feed/build-rss.ts`(+test), `app/layout.tsx`(`metadata.alternates.types`), `proxy.ts`(matcher), `e2e/seo.spec.ts`
+  - 수락 기준: `/feed.xml`이 RSS 2.0(`application/rss+xml; charset=utf-8`)으로 최신 발행 글 20건(제목·링크·소개글·발행일·guid)을 `NEXT_PUBLIC_SITE_URL` 기준 절대 URL로 제공하고, 발행·삭제 직후(운영 포함) 반영. 모든 페이지 `<head>`에 피드 `link rel="alternate"`. 피드 검증기 통과
+  - [ ] Route Handler에서 기존 캐시 조회를 재사용하되 **`await connection()`으로 요청 시점 렌더링을 강제**(Task 020 sitemap 결함: `'use cache'` 조회만 있는 Route Handler는 실제 env 빌드에서 정적으로 굳어 갱신되지 않았다). 실제 env로 `npm run build` 후 빌드 표에서 `ƒ` 확인
+  - [ ] `buildRss(posts, siteUrl)` 순수 함수: XML 특수문자 이스케이프, 한글 슬러그 퍼센트 인코딩 링크, `pubDate`는 RFC 822, `guid isPermaLink="false"`는 글 id(슬러그를 바꿔도 구독자에게 중복 알림이 가지 않게), 본문은 넣지 않고 소개글만(raw HTML·`<style>` 노출 방지), `atom:link rel="self"`
+  - [ ] `proxy.ts` matcher에서 `feed.xml` 제외(세션 갱신 불필요, `robots.txt`·`sitemap.xml`과 같은 방식)
+  - [ ] 루트 `metadata.alternates.types['application/rss+xml']`, 푸터 RSS 링크(선택)
+  - 테스트 체크리스트:
+    - 정상: `build-rss.test.ts` → 제목에 `&`·`<` 포함 글 → 이스케이프된, 파싱 가능한 XML
+    - 정상: Playwright MCP(또는 `curl`) → `/feed.xml` → 200, `content-type` rss+xml, 최신 발행 글 순서
+    - 정상: Playwright MCP → 관리자가 글 발행 직후 `/feed.xml` → 포함, 삭제 직후 → 제외(운영에서도 확인)
+    - 오류: 셸 env로 잘못된 Supabase URL(수동 확인) → 200 + item 0개 채널, 500 아님
+    - 엣지: Playwright MCP → `/feed.xml`의 한글 슬러그 `link` 접근 → 상세 정상
+    - 엣지: W3C Feed Validation Service(수동 확인) → 운영 `https://www.hkoikoi.dev/feed.xml` 유효
+  - 테스트 결과: (미수행)
+
+- **Task 027: 편집기 임시저장 자동화**
+  - 관련 기능: F020(제안: 편집기 임시저장 자동화), F008, F010
+  - 목표: 브라우저 종료·새로고침·네트워크 오류로 작성 중인 글이 사라지지 않게 한다
+  - 의존성: Task 021(권장). 스키마 변경 없음(기본안)
+  - 관련 파일: `app/admin/posts/_components/{post-editor,autosave-status}.tsx`, `app/admin/posts/_components/use-autosave.ts`(+test), `lib/editor/draft-storage.ts`(+test), `app/admin/posts/actions.ts`, `e2e/admin-autosave.spec.ts`(신규)
+  - 수락 기준: 입력이 멈추고 2초 뒤 자동 저장되고 상태("저장 중…"/"자동 저장됨 HH:MM"/"로컬에 보관됨"/"저장 실패")가 표시됨. 새로고침 뒤 저장하지 않은 로컬 사본이 있으면 복원 여부를 묻는다. **발행된 글은 자동 저장으로 초안이 되거나 공개 내용이 바뀌지 않는다.** 저장하지 않은 변경이 있으면 나가기 전에 경고
+  - [ ] 저장 위치 결정·기록: (1) 모든 글: `localStorage` 백업(키 `post-draft:<id|new>`, 필드·저장 시각), 서버 쓰기 없음. (2) id가 있는 초안(`published = false`): 기존 `savePost` 임시 저장 경로로 서버 자동 저장. (3) 발행된 글: 서버 자동 저장 금지, 로컬 백업만(지금의 "임시 저장"은 발행 글을 초안으로 되돌리므로 자동 실행하면 글이 공개에서 내려간다, Task 013 후속 개선 기록). (4) 새 글: 첫 수동 저장 전에는 로컬만(자동 insert는 URL 이동·중복 생성 위험)
+  - [ ] `useAutosave`: 디바운스, 저장이 진행 중이면 끝난 뒤 마지막 값만 다시 저장(경합 방지), 이미지 업로드 중(Task 017 자리표시)에는 보류, 서버 저장 성공 시 로컬 사본 정리
+  - [ ] 충돌 방지: 서버 자동 저장 때 편집 시작 시점의 `updated_at`을 함께 보내 서버 값이 더 새로우면 덮어쓰지 않고 알림(`savePost`에 낙관적 잠금 옵션 추가 여부 결정)
+  - [ ] 복원 UI: 로컬 사본이 서버 `updated_at`보다 새로우면 "저장하지 않은 변경 복원/버리기" 배너
+  - [ ] `beforeunload` 경고와 하단 바 "나가기" 확인
+  - [ ] 비용 점검: 초안 저장도 `invalidatePostTags`로 `posts` 태그를 만료하는 현재 동작이 자동 저장마다 공개 캐시를 비우지 않도록, 초안→초안 저장은 공개 태그 만료를 생략할지 결정
+  - 테스트 체크리스트:
+    - 정상: Playwright MCP → 기존 초안 편집 화면에서 본문 입력 후 3초 대기 → "자동 저장됨", 새로고침 시 입력 유지
+    - 정상: Playwright MCP → 새 글에서 입력 후 새로고침 → 복원 배너 → "복원" → 입력값 복원, DB 행 생성 없음
+    - 오류: Playwright MCP → 발행 글 편집 중 본문 수정 후 대기 → 서버 저장 없음(공개 상세 내용·발행 상태 그대로), "로컬에 보관됨" 표시
+    - 오류: Playwright MCP → 저장 요청을 `route.abort`로 실패시킴 → "저장 실패" 표시, 입력 유지, 다음 입력 때 재시도
+    - 엣지: Playwright MCP → 이미지 업로드 진행 중 → 자동 저장 보류, 완료 뒤 저장(자리표시 텍스트가 저장되지 않음)
+    - 엣지: Playwright MCP → 두 탭에서 같은 초안 편집 → 늦게 저장한 탭에 충돌 알림, 덮어쓰기 없음
+    - 엣지: `draft-storage.test.ts` → `localStorage` 용량 초과·사용 불가 → 예외 없이 무시
+  - 테스트 결과: (미수행)
+
+- **Task 028: `<style>` 글 단위 스코프 변환 구현**
+  - 관련 기능: F021(제안: `<style>` 글 단위 스코프 변환), F007
+  - 목표: 본문 `<style>` 규칙이 그 글의 본문 컨테이너 안에서만 적용되게 해, 사이트가 쓰는 `post-` 접두 클래스(예: `MarkdownContent`의 `.post-content` 래퍼)나 앞으로 한 화면에 함께 렌더링될 다른 글에 영향을 주지 않게 한다
+  - 현재 상태: `lib/markdown/rehype-sanitize-style.ts`가 이미 `.post-`·`#user-content-` 접두 선택자만 남기고 `@` 규칙·중첩 규칙·`~`/`+`/`:has` 등과 `url()`을 제거한다. 남은 위험은 (1) 사이트의 `post-` 접두 클래스와의 충돌, (2) 여러 글 본문을 한 화면에 렌더링할 때 규칙이 서로 새는 것, (3) `position: fixed` 같은 속성(스코프로도 막지 못하며 기존대로 수용)이다
+  - 의존성: Task 021(권장). 스키마 변경 없음. Task 016(Shadow DOM 미리보기)과 호환 필요
+  - 관련 파일: `lib/markdown/rehype-scope-style.ts`(+test), `lib/markdown/plugins.ts`, `components/markdown/markdown-content.tsx`, `app/(site)/blog/[slug]/page.tsx`, `app/admin/posts/_components/markdown-preview.tsx`, `README.md`(작성 규칙)
+  - 수락 기준: 상세와 미리보기에서 `<style>`의 모든 선택자가 글 래퍼 클래스(`.post-scope-<글 id 기반 값>`) 하위로 바뀌고, 본문 밖 요소(헤더·푸터·`.post-content` 등 사이트 클래스)에 매칭되지 않음. 기존 글의 본문 안 스타일 결과는 같음
+  - [ ] 방식 결정·기록: (a) 선택자 접두 변환(sanitize-style 다음 단계에서 `.post-box` → `.post-scope-x .post-box`, 모든 브라우저에서 동작) — 기본안. (b) CSS `@scope` 래핑 — 방문자 브라우저 지원을 확인해야 하고, 지금 sanitize-style이 `@` 규칙을 모두 지우므로 정책 변경이 필요해 보류
+  - [ ] 플러그인 순서: remark-gfm/remark-math → rehype-raw → rehype-sanitize → rehype-sanitize-style → **rehype-scope-style** → rehype-katex → rehype-highlight. scope 값은 `MarkdownContent`의 prop(`scopeId`)으로 받고 래퍼에 같은 클래스를 붙임(sanitize 뒤에 붙이므로 class 허용 규칙과 무관)
+  - [ ] `scopeId`: 글 id 기반(슬러그 변경에도 안정). 미리보기는 Shadow DOM 안이라 고정 값 사용
+  - [ ] 선택적 확장(별도 결정): 스코프가 생기면 요소 선택자(`h2`, `table` 등)를 스코프 아래에서 허용할 수 있다. 작성은 쉬워지지만 sanitize-style 허용 규칙을 바꿔야 하므로 기본은 기존 제한 유지
+  - [ ] README의 `<style>` 작성 규칙 갱신, PRD 트레이드오프 문구 갱신 필요 여부를 사용자에게 보고(PRD는 사용자 결정 후 수정)
+  - 테스트 체크리스트:
+    - 정상: `rehype-scope-style.test.ts` → `.post-box{color:red}` + scopeId `abc` → `.post-scope-abc .post-box{color:red}`, 선택자 목록(`.post-a, .post-b`)은 각각 접두
+    - 정상: Playwright MCP → `<style>.post-box{color:red}</style><div class="post-box">x</div>` 발행 글(시드 `e2e-scope-`) → 본문 div가 빨간색
+    - 오류: Playwright MCP → 본문에 `<style>.post-content{display:none}</style>` → 본문 래퍼가 숨겨지지 않음
+    - 오류: `rehype-scope-style.test.ts` → 빈 규칙·주석·sanitize-style이 이미 지운 규칙 → 예외 없이 처리
+    - 엣지: 단위 테스트 → `#user-content-intro` 선택자 → 접두 뒤에도 본문 요소에 매칭
+    - 엣지: 터미널 → `npx playwright test e2e/admin-preview.spec.ts` → Shadow DOM 미리보기 결과와 편집기 UI 격리 유지
+  - 테스트 결과: (미수행)
+
+- **Task 029: 스토리지 고아 이미지 정리 도구 구축**
+  - 관련 기능: F022(제안: 스토리지 고아 이미지 정리), F009
+  - 목표: 어떤 글에서도 참조하지 않는 `blog-images` 객체(삭제·교체된 이미지, e2e 테스트 이미지)를 관리자가 확인한 뒤 지울 수 있게 한다
+  - 제약(CLAUDE.md "알려진 예외", Task 017 기록): `blog-images`에는 `storage.objects` SELECT 정책이 없어(list API 노출 방지) 관리자 세션의 Storage API 삭제가 403이다(Storage `remove`는 객체 SELECT와 DELETE 권한이 모두 필요하다). SQL `delete from storage.objects`는 `storage.protect_delete()` 트리거가 막고, 트리거를 끄고 지우면 실제 파일은 남고 메타데이터만 사라지므로 하지 않는다. 따라서 삭제는 **Storage API로만** 하고, 이를 위해 권한 경로를 하나 열어야 한다
+  - 의존성: Task 021(권장). **정책(스키마) 변경 있음**
+  - 관련 파일: `supabase/migrations/<timestamp>_blog_images_admin_select.sql`, `lib/storage/extract-image-paths.ts`(+test), `lib/storage/find-orphans.ts`(+test), `app/admin/storage/page.tsx`(신규), `app/admin/storage/actions.ts`(신규), `app/admin/_components/admin-nav.tsx`, `docs/guides/rls-verification.md`(점검 항목 추가 대상), `e2e/admin-storage.spec.ts`(신규)
+  - 수락 기준: 관리자 전용 `/admin/storage`에서 고아 후보(경로·크기·업로드 시각) 목록을 보고 선택 삭제할 수 있고, 참조 중인 이미지와 유예 기간(기본 7일) 이내 객체는 후보에서 빠짐. anon·비관리자는 여전히 객체 목록을 볼 수 없고 공개 URL 접근은 그대로. 기본 동작은 목록만 보여 주는 드라이런
+  - [ ] 권한 경로 결정·기록: (a) **관리자만** SELECT할 수 있는 정책 추가(`bucket_id = 'blog-images' and (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'`) — 기본안. anon list 차단은 유지되고 service role 키가 필요 없다. (b) 서버 전용 service role 키로 Route Handler·cron에서 삭제 — 운영 환경에 강한 비밀을 새로 두게 되어 제외(이 프로젝트는 service role 키를 쓰지 않는다)
+  - [ ] 마이그레이션 적용 뒤 RLS 읽기 전용 점검(`docs/guides/rls-verification.md`: anon objs 0, `user_metadata.role='admin'` 위조 0, 정책의 `user_metadata` 참조 0)과 `get_advisors`
+  - [ ] 참조 수집: 모든 글(초안 포함, `lib/queries/admin-posts.ts` 계열)의 `content`에서 `…/storage/v1/object/public/blog-images/<path>`를 추출(마크다운 이미지·raw HTML `img src`, URL 인코딩 처리)하고 `thumbnail_url`과 합친 집합. 순수 함수 + 단위 테스트
+  - [ ] 객체 목록: Storage API `list`(연/월 폴더 순회, 페이지 단위) → 참조 집합과의 차집합 → 유예 기간 필터(편집 중 업로드했지만 아직 저장하지 않은 이미지 보호)
+  - [ ] 삭제 Server Action: `requireAdmin()` → **삭제 직전에 참조를 다시 검사** → Storage API `remove`(배치 상한) → 결과 요약. 되돌릴 수 없음을 확인 대화상자로 안내
+  - [ ] 초기 정리: 누적된 e2e 테스트 이미지(70바이트, Task 017 시점 71건 + 이후 실행분)와 운영 검증 이미지 정리. 완료 후 CLAUDE.md "알려진 예외", ROADMAP "알려진 트레이드오프"의 고아 파일 항목 갱신
+  - [ ] (선택) e2e가 자기 업로드를 `afterAll`에서 삭제하도록 변경, 글 삭제 때 그 글만 참조하던 이미지 삭제 제안
+  - 테스트 체크리스트:
+    - 정상: Playwright MCP → 관리자로 `/admin/storage` → 고아 후보 목록, 참조 중인 썸네일·본문 이미지는 없음
+    - 정상: Playwright MCP → 후보 1건 선택 삭제 → 목록에서 사라지고 공개 URL이 더는 이미지를 반환하지 않음
+    - 오류: Supabase MCP `execute_sql`(읽기 전용) → anon·`user_metadata.role='admin'` 위조 authenticated로 `storage.objects` select → 0행
+    - 오류: Playwright MCP → 비로그인 `/admin/storage` → `/auth/login`
+    - 오류: 삭제 직전에 그 이미지를 다른 글에 넣고 저장(경합 재현, 수동 확인) → 서버 재검사로 삭제 건너뜀
+    - 엣지: `extract-image-paths.test.ts` → URL 인코딩 경로, 쿼리스트링이 붙은 URL, 다른 버킷·외부 도메인 URL → 올바르게 포함·제외
+    - 엣지: Playwright MCP → 방금 업로드하고 저장하지 않은 이미지 → 유예 기간 때문에 후보 아님
+  - 테스트 결과: (미수행)
+
+- **Task 030: 블로그 글 조회수 집계 구현**
+  - 관련 기능: F023(제안: 글 조회수), F006
+  - 목표: 글별 누적 조회수를 기록하고 상세(선택: 관리자 글 목록)에 표시한다
+  - 의존성: Task 022(상세 하단 레이아웃 정리 뒤 권장). **스키마 변경 있음**
+  - 관련 파일: `supabase/migrations/<timestamp>_create_post_views.sql`, `lib/supabase/database.types.ts`, `app/api/posts/[id]/view/route.ts`(신규), `app/(site)/blog/[slug]/_components/{view-tracker,view-count}.tsx`(신규), `lib/queries/post-views.ts`, `lib/views/is-bot.ts`(+test), `app/admin/posts/_components/post-table.tsx`
+  - 수락 기준: 발행 글 상세를 연 방문자 1명당 24시간에 1회만 늘고, 봇·관리자 세션·초안은 집계하지 않음. 조회수 표시는 캐시된 본문과 분리되어 본문 캐시(`posts` 태그)를 무효화하지 않음. IP·User-Agent 원문 같은 개인정보를 저장하지 않음
+  - [ ] 스키마: `post_views(post_id uuid primary key references posts(id) on delete cascade, view_count bigint not null default 0, updated_at timestamptz not null default now())`. RLS 활성화, anon·authenticated는 발행 글의 행만 SELECT, 직접 INSERT·UPDATE·DELETE 불가. 과잉 GRANT `revoke`
+  - [ ] 증가 RPC `increment_post_view(p_post_id uuid)`: `security definer`, `set search_path = ''`, 발행 글일 때만 `insert … on conflict do update set view_count = view_count + 1`. EXECUTE는 `revoke from public` 뒤 anon·authenticated에만 부여. advisor의 security definer 관련 경고는 사유를 기록
+  - [ ] 증가 경로: 상세의 작은 Client Component가 마운트 뒤 1회 `POST /api/posts/<id>/view` 호출. Route Handler는 `post_viewed_<id>` httpOnly 쿠키(24시간)로 중복을 막고, User-Agent 봇 패턴과 관리자 claims는 제외. 링크 프리페치·프리렌더로는 늘지 않음
+  - [ ] 표시: `ViewCount`를 별도 `<Suspense>` 안에서 요청 시점 조회(`connection()`), 본문 `'use cache'`와 분리. 실패하면 숫자를 숨김
+  - [ ] 개인정보: 원문 IP·UA 저장 없음, 기능 쿠키만 쓰므로 동의 배너가 필요 없는지 확인해 기록
+  - 테스트 체크리스트:
+    - 정상: Playwright MCP → 비로그인 새 컨텍스트로 발행 글 상세 → 조회수 +1, 같은 컨텍스트에서 새로고침 → 그대로
+    - 정상: Playwright MCP → 또 다른 새 컨텍스트 → +1
+    - 오류: 터미널 → `curl -X POST /api/posts/<초안 id>/view` → 증가 없음, 행 생성 없음
+    - 오류: Supabase MCP(읽기 전용, rollback) → anon으로 `post_views` insert/update → RLS·권한 거부
+    - 엣지: `is-bot.test.ts` → Googlebot·bingbot·HeadlessChrome UA → 봇, 일반 Chrome UA → 봇 아님
+    - 엣지: Playwright MCP → 관리자 로그인 상태로 상세 → 증가 없음
+    - 엣지: 글 삭제 → `post_views` 행 cascade 삭제(Supabase MCP 읽기 전용 조회로 확인)
+  - 테스트 결과: (미수행)
+
+- **Task 031: 블로그 댓글 기능 도입**
+  - 관련 기능: F024(제안: 블로그 댓글), F006
+  - 목표: 방문자가 글에 의견을 남길 수 있게 한다
+  - 의존성: Task 021(권장). 방식에 따라 스키마 변경 여부가 달라짐(기본안은 변경 없음). **방식은 시작 전에 사용자 결정 필요**
+  - 관련 파일: `components/blog/comments.tsx`(신규, Client), `app/(site)/blog/[slug]/page.tsx`, `lib/site-config.ts`(설정값), `next.config.ts`(CSP 확인)
+  - 수락 기준: 발행 글 상세 하단에서 댓글을 읽고 쓸 수 있고, 라이트/다크 테마가 사이트와 맞춰지며, 댓글 영역은 화면에 들어올 때만 로드되어 상세 Lighthouse(모바일) 성능 90 이상 유지. 슬러그를 바꿔도 기존 댓글이 같은 글에 남음
+  - [ ] 방식 결정·기록: (a) **Giscus(GitHub Discussions)** — 기본안. DB·스팸 방지·모더레이션을 GitHub에 맡기고 회원가입 차단 정책과 충돌하지 않는다. 댓글을 쓰려면 GitHub 계정이 필요하다. (b) Supabase 자체 댓글 테이블 — 익명 작성이면 스팸 대책(CAPTCHA)·모더레이션 UI·개인정보(이메일·닉네임) 처리 부담이 크고, 회원가입을 열어야 하면 현재 인증 정책과 충돌한다. (c) Disqus 등 — 광고·추적 때문에 제외
+  - [ ] (a 채택 시, 사용자 수동 작업) 저장소 Discussions 활성화, giscus 앱 설치, 댓글용 카테고리 생성
+  - [ ] 매핑은 `data-mapping="specific"` + `data-term=<글 id>`(pathname 매핑은 슬러그를 바꾸면 끊긴다)
+  - [ ] `Comments`(Client): `IntersectionObserver`로 지연 로드, `next-themes` 테마가 바뀌면 iframe에 `postMessage`로 전달, 로드 실패 시 안내 문구. 초안·없는 글에는 렌더링하지 않음
+  - [ ] CSP: 지금은 `frame-src`·`script-src`를 두지 않아 giscus가 허용되지만, CSP를 강화하면 `giscus.app`을 추가해야 함을 "알려진 트레이드오프"에 기록
+  - 테스트 체크리스트:
+    - 정상: Playwright MCP → 발행 글 상세 하단으로 스크롤 → giscus iframe 로드, 스크롤 전에는 iframe 없음
+    - 정상: Playwright MCP → 테마 전환 → iframe 테마 반영
+    - 오류: Playwright MCP → `giscus.app` 요청을 `route.abort` → 안내 문구, 본문·페이지 오류 없음
+    - 엣지: 슬러그 변경 후 같은 글 상세(수동 확인) → 같은 Discussion 연결
+    - 엣지: Lighthouse 모바일 → 상세 성능 90 이상
+  - 테스트 결과: (미수행)
+
+- **Task 032: 정적 섹션 DB 스키마 및 공개 조회 전환**
+  - 관련 기능: F025(제안: 정적 섹션 DB 저장·관리자 편집), F002, F003, F004
+  - 목표: 이력 6종·프로젝트·논문을 `data/*.ts`에서 Supabase 테이블로 옮겨, 코드 배포 없이 내용을 바꿀 기반을 만든다(편집 UI는 Task 033)
+  - 의존성: Task 021(권장). **스키마 변경 있음.** Task 033의 선행
+  - 관련 파일: `supabase/migrations/<timestamp>_create_resume_tables.sql`, `supabase/migrations/<timestamp>_seed_resume_data.sql`(또는 시드 생성 스크립트), `lib/supabase/database.types.ts`, `lib/types/resume.ts`, `lib/queries/resume.ts`(+test), `app/(site)/{education,career,certifications,volunteer,languages,activities,projects,publications}/page.tsx`, `app/(site)/page.tsx`(대표 프로젝트), `data/*.ts`, `data/data.test.ts`, `docs/guides/project-structure.md`
+  - 수락 기준: 8개 공개 페이지와 메인 대표 프로젝트가 DB 데이터로 전환 전과 같은 내용·순서를 표시하고, 조회 실패 시 빈 안내로 안전하게 처리되며, 쓰기는 관리자만 가능. placeholder env 빌드(CI)가 실패하지 않음
+  - [ ] 범위 결정: 이력 6종·프로젝트·논문을 대상으로 하고 `Profile`(이름·소개·연락처·아바타)은 `data/profile.ts`에 유지(변경 빈도가 낮고 아바타 파일이 `public/`에 있음). 바꾸려면 이 항목 갱신
+  - [ ] 스키마: `resume_entries`(`section` check 6종, `title`, `subtitle`, `period`, `description`, `tags text[]`, `link`, `sort_order int`, `is_visible bool`), `projects`(`name`, `summary`, `period`, `role`, `stack text[]`, 링크 컬럼, `featured`, `sort_order`, `is_visible`), `publications`(`title`, `authors`, `venue`, `year`, `link`, `sort_order`, `is_visible`). 기존 `lib/types` 필드와 1:1, 길이 check는 zod와 같은 값, `updated_at` 트리거는 posts와 같은 함수 재사용
+  - [ ] RLS: anon·authenticated SELECT는 `is_visible = true`, 쓰기는 `app_metadata.role = 'admin'`만. 과잉 GRANT `revoke`. 적용 뒤 `generate_typescript_types`, `get_advisors`, `rls-verification.md` 점검 범위 확장
+  - [ ] 시드: 현재 `data/*.ts` 내용을 그대로 옮김(배열 순서 → `sort_order`, 스크립트로 SQL 생성). 이미 저장소에 공개된 내용이라 노출 범위는 같음
+  - [ ] `lib/queries/resume.ts`: `createPublicClient()` + `'use cache'` + `cacheTag('resume', 'resume:<section>')`·`'projects'`·`'publications'` + `cacheLife('max')`, 실패 `failUncached`, 논문은 기존 `sortPublications` 규칙 유지
+  - [ ] 렌더링 확인: 지금 8개 페이지는 정적(○)이다. DB 조회로 바꾸면 실제 env 빌드에서 캐시 결과가 정적 셸에 포함되며, 운영에서 태그 무효화가 정적 셸에 반영되지 않은 선례(Task 020 sitemap, PR #39 홈 최신 글)가 있다. Task 033에서 운영 반영을 확인하고, 필요하면 데이터 영역을 `<Suspense>` + `connection()`으로 분리
+  - [ ] 전환 뒤 `data/`의 이력·프로젝트·논문 파일과 `data/data.test.ts`의 해당 검사를 제거(시드 검증 테스트로 대체), `knip`·`project-structure.md`·CLAUDE.md 갱신
+  - 테스트 체크리스트:
+    - 정상: Playwright MCP → 전환 전후 8개 페이지·메인 대표 프로젝트 → 항목 수·제목·순서 동일(전환 전 스냅샷과 비교)
+    - 정상: 터미널 → `npx playwright test e2e/static-pages.spec.ts e2e/visitor-flow.spec.ts` → DB 기준으로 갱신한 뒤 통과
+    - 오류: 셸 env로 잘못된 Supabase URL(수동 확인) → 각 페이지 빈 안내, 오류 화면 없음
+    - 오류: Supabase MCP(읽기 전용, rollback) → anon으로 `is_visible = false` 행 select → 0행, insert → RLS 거부
+    - 엣지: Supabase MCP(읽기 전용, rollback) → `user_metadata.role='admin'` 위조 authenticated insert → 거부
+    - 엣지: 터미널 → placeholder env로 `npm run build`(CI 조건) → 성공
+  - 테스트 결과: (미수행)
+
+- **Task 033: 정적 섹션 관리자 편집 UI 구축**
+  - 관련 기능: F025(제안), F012
+  - 목표: 관리자가 이력·프로젝트·논문 항목을 추가·수정·삭제·정렬·숨김 처리하고 공개 화면에 즉시 반영한다
+  - 의존성: Task 032
+  - 관련 파일: `app/admin/{resume,projects,publications}/**`(신규), `app/admin/_components/admin-nav.tsx`, `lib/schemas/{resume,project,publication}.ts`(+test), `lib/queries/admin-resume.ts`, `e2e/admin-resume.spec.ts`(신규)
+  - 수락 기준: 관리자 메뉴에서 각 섹션 목록·편집 화면으로 들어가 항목을 CRUD하고 순서를 바꿀 수 있으며, 저장 즉시(운영 포함) 공개 페이지에 반영. 모든 페이지와 Server Action이 `requireAdmin()`을 직접 호출. 검증 실패는 필드 옆 오류로 표시하고 입력값 유지
+  - [ ] 라우트: `/admin/resume/[section]`, `/admin/projects`, `/admin/publications`와 각 `new`·`[id]/edit`. 라우트 맵 표와 `AdminNav` 갱신
+  - [ ] zod 스키마(길이·링크는 `https:`만·태그/스택 최대 개수) + 단위 테스트, Server Action(`requireAdmin()` → 검증 → 쓰기 → `updateTag`로 해당 태그 만료, `/admin/*`만 `revalidatePath`)
+  - [ ] 정렬: 위/아래 이동 버튼(키보드 접근성, 드래그앤드롭은 선택), `sort_order` 재계산은 RPC나 단일 쿼리로 한 번에(중간 상태 노출 방지)
+  - [ ] 폼은 글 편집기와 같은 Server Action + `useActionState` 패턴(`forms-react-hook-form.md` 확인), 삭제 확인 `Dialog`, 숨김(`is_visible`) 토글
+  - 테스트 체크리스트:
+    - 정상: Playwright MCP → 관리자로 경력 항목(`e2e-` 접두) 추가 → 비로그인 `/career` 새로고침 → 즉시 표시(운영에서도 확인)
+    - 정상: Playwright MCP → 항목 위로 이동 → 공개 페이지 순서 반영
+    - 정상: Playwright MCP → 프로젝트 `featured` 지정 → 메인 대표 프로젝트 반영
+    - 오류: Playwright MCP → 제목 비움·`javascript:` 링크 → 필드 오류, 저장 안 됨
+    - 오류: 터미널 → 비로그인 상태로 Server Action 재전송(curl) → `/auth/login` 리다이렉트, DB 변경 없음
+    - 엣지: Playwright MCP → 숨김 토글 → 공개 페이지에서 사라지고 관리자 목록에는 남음
+    - 엣지: Playwright MCP → 섹션 항목 0건 → 공개 페이지 빈 안내
+  - 테스트 결과: (미수행)
+
+- **Task 034: Post-MVP 통합 회귀 테스트 및 배포 검증**
+  - 관련 기능: F015~F025(제안), F001~F014 회귀
+  - 목표: Post-MVP 묶음을 운영에 내기 전에 회귀와 운영 반영을 확인한다(권장: 탐색 묶음 022~026 완료 때 1회, 전체 완료 때 1회)
+  - 의존성: 검증 대상 Task 완료
+  - 관련 파일: `e2e/**`, `.github/workflows/ci.yml`, `README.md`, `docs/guides/project-structure.md`, `CLAUDE.md`
+  - 수락 기준: `npm run check`·실제 env `npm run build`·`npm run knip`·전체 e2e 통과, 운영에서 새 기능의 정상·오류 시나리오 확인, 문서가 실제 구조와 일치, PRD 반영 대상 기능 ID 목록이 정리됨
+  - [ ] 전체 e2e(세션 재사용 또는 분할 실행), 시크릿 없는 비로그인 시나리오(필터·검색·페이지·RSS)의 CI `e2e-smoke` 편입 검토
+  - [ ] 운영 확인: 필터·검색·페이지·이전/다음 글·RSS·조회수·댓글 각각 정상 1건 이상, 글 발행·삭제 직후 반영
+  - [ ] 운영 Lighthouse 모바일(`/`, `/blog`, 상세) 성능·접근성 90 이상
+  - [ ] `project-structure.md`·CLAUDE.md·README 갱신, PRD에 F015~F025를 반영할지 사용자에게 확인하고 `prd-validator` 점검 안내
+  - [ ] Supabase advisor 최종 확인, 새 테이블·정책 RLS 읽기 전용 점검
+  - 테스트 체크리스트:
+    - 정상: 터미널 → `npm run check && npm run knip` → 종료 코드 0
+    - 정상: Playwright MCP → 운영 방문자 여정(메인 → 블로그 필터 → 검색 → 2페이지 → 상세 → 다음 글 → RSS 링크) → 콘솔 오류 0건(`browser_console_messages`)
+    - 오류: Playwright MCP → 운영 비로그인 `/admin/storage`·`/admin/resume/career` → `/auth/login`
+    - 엣지: Playwright MCP → 운영에서 글 발행·삭제 직후 `/blog` 필터 목록·검색 결과·RSS·sitemap·홈 반영
+  - 테스트 결과: (미수행)
 
 ## 기능 ID 매핑
 
@@ -542,33 +882,62 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 | F013    | 공통 내비게이션·테마  | 002, 004, 011           |
 | F014    | 블로그 SEO 메타데이터 | 018                     |
 
+MVP 전체 회귀·운영 배포 검증(F001~F014)은 Task 020, 이월된 잔여 검증은 Task 021이 맡는다.
+
+### Post-MVP 기능 ID (제안, PRD 미반영)
+
+아래 ID는 ROADMAP의 제안이다. PRD의 "MVP 이후 기능(제외)" 목록과 대응하며, PRD에 반영할 때 번호를 바꾸면 이 표와 Phase 6의 `관련 기능` 줄을 함께 고친다.
+
+| 기능 ID | 기능명                              | PRD 대응 항목                       | 담당 Task |
+| ------- | ----------------------------------- | ----------------------------------- | --------- |
+| F015    | 블로그 상세 이전/다음 글 내비게이션 | (추가 요청)                         | 022       |
+| F016    | 태그·카테고리 필터 탐색·태그 정렬   | (추가 요청, F005 확장)              | 023       |
+| F017    | 블로그 목록 페이지네이션            | 페이지네이션                        | 024       |
+| F018    | 블로그 키워드 검색                  | 검색                                | 025       |
+| F019    | RSS 피드                            | RSS                                 | 026       |
+| F020    | 편집기 임시저장 자동화              | 임시저장 자동화                     | 027       |
+| F021    | `<style>` 글 단위 스코프 변환       | `<style>`의 글 단위 스코프 변환     | 028       |
+| F022    | 스토리지 고아 이미지 정리           | 스토리지 고아 이미지 파일 정리      | 029       |
+| F023    | 글 조회수                           | 조회수                              | 030       |
+| F024    | 블로그 댓글                         | 댓글                                | 031       |
+| F025    | 정적 섹션 DB 저장·관리자 편집       | 학력·경력 등 정적 섹션의 DB 저장... | 032, 033  |
+
 ## 의존성과 병렬 진행
 
 - 순서 의존: 002 → 003 → 004 / 005 → 006 → 007·008·009 → 010 → 011 → 012·013 → 014 → 017 → 018 → 019 → 020
 - 병렬 가능: Task 007·008·009(UI)는 서로 독립. Task 010(DB)·Task 015(마크다운)는 Phase 2와 병렬 진행 가능. Task 016은 015 이후, Task 017은 010·013 이후.
 - UI와 백엔드 분리: Phase 2의 더미 데이터(`lib/dummy/posts.ts`)와 `lib/types/post.ts`가 계약 역할을 하며, Task 012에서 `lib/queries/posts.ts`로 교체한다.
+- Post-MVP 순서 의존: 021 → (023 → 024 → 025) / 022 → 030 / 032 → 033 → 034. 블로그 목록은 **URL 상태·목록 쿼리(023) → 페이지네이션(024) → 검색 스키마·RPC(025)** 순서로 쌓는다.
+- Post-MVP 병렬 가능: 022·023·026·027·028·029·031은 021 이후 서로 독립. 스키마를 바꾸는 Task(025·029·030·032)는 원격이 운영 프로젝트 하나뿐이라 마이그레이션 적용을 한 번에 하나씩 한다.
 
 ## 열린 질문과 기본 결정
 
 PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이 바뀌면 해당 Task를 갱신한다.
 
-| 질문                                        | 기본 결정                                                   | 관련 Task |
-| ------------------------------------------- | ----------------------------------------------------------- | --------- |
-| 대표 프로젝트 3개 선정 기준                 | `Project.featured` 우선, 부족하면 배열 앞에서 채움          | 005, 007  |
-| 블로그 기본 카테고리명 "일반" 유지 여부     | "일반" 유지(DB default·스키마 기본값 한 곳에서 상수로 관리) | 010, 013  |
-| 관리자 보조 진입 경로(푸터 등) 필요 여부    | MVP는 푸터 "관리" 링크와 `/auth/login` 직접 진입만 제공     | 004, 011  |
-| 비밀번호 재설정 흐름 유지 여부(로드맵 추가) | 제거, 재설정은 Supabase 대시보드에서 수행                   | 002       |
-| 편집기 미리보기 격리 방식(로드맵 추가)      | Shadow DOM 우선 검토, 제약 시 `iframe srcdoc`               | 016       |
+| 질문                                        | 기본 결정                                                       | 관련 Task |
+| ------------------------------------------- | --------------------------------------------------------------- | --------- |
+| 대표 프로젝트 3개 선정 기준                 | `Project.featured` 우선, 부족하면 배열 앞에서 채움              | 005, 007  |
+| 블로그 기본 카테고리명 "일반" 유지 여부     | "일반" 유지(DB default·스키마 기본값 한 곳에서 상수로 관리)     | 010, 013  |
+| 관리자 보조 진입 경로(푸터 등) 필요 여부    | MVP는 푸터 "관리" 링크와 `/auth/login` 직접 진입만 제공         | 004, 011  |
+| 비밀번호 재설정 흐름 유지 여부(로드맵 추가) | 제거, 재설정은 Supabase 대시보드에서 수행                       | 002       |
+| 편집기 미리보기 격리 방식(로드맵 추가)      | Shadow DOM 우선 검토, 제약 시 `iframe srcdoc`                   | 016       |
+| (Post-MVP) 태그 정렬 기준                   | 숫자·기호 → 영문(대소문자 무시) → 한글(가나다) → 기타           | 023       |
+| (Post-MVP) 다중 태그 필터                   | 미지원, 단일 태그 + 단일 카테고리 AND 유지                      | 023       |
+| (Post-MVP) 검색 방식                        | `pg_trgm` + 검색 RPC, 검색 결과는 캐시하지 않음                 | 025       |
+| (Post-MVP) 임시저장 자동화 범위             | 로컬 백업은 전부, 서버 자동 저장은 id가 있는 초안만             | 027       |
+| (Post-MVP) 고아 이미지 삭제 권한 경로       | 관리자 전용 SELECT 정책 + Storage API 삭제(service role 미사용) | 029       |
+| (Post-MVP) 댓글 방식                        | Giscus(GitHub Discussions), 시작 전 사용자 확인 필요            | 031       |
+| (Post-MVP) 정적 섹션 DB 전환 범위           | 이력 6종·프로젝트·논문만, Profile은 `data/profile.ts` 유지      | 032       |
 
 ## 알려진 트레이드오프 (PRD 반영)
 
-- `<style>` 허용으로 글 CSS가 해당 페이지 전체에 영향 가능(작성자 1인이라 수용, 스코프 변환은 MVP 밖). 편집기 미리보기만 격리(Task 016).
+- `<style>` 허용으로 글 CSS가 해당 페이지 전체에 영향 가능(작성자 1인이라 수용, 스코프 변환은 MVP 밖 → Post-MVP Task 028). 편집기 미리보기만 격리(Task 016).
   - 2026-10-28 보완: `lib/markdown/rehype-sanitize-style.ts`가 sanitize 뒤 `<style>` 내용을 검사해 `.post-`·`#user-content-` 접두가 아닌 규칙, `@` 규칙(@import 포함), 중첩 규칙, 범위 이탈 선택자(`~`, `+`, `:has` 등), `url()`·`image-set()` 선언을 제거한다(단위 테스트 13개). `.post-` 요소 자체의 `position:fixed` 같은 속성은 막지 않으며 작성자 1인이라 수용한다.
 - 보안 헤더(2026-10-28 결정): `next.config.ts`에 `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, CSP(`object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`)를 둔다. nonce 기반 CSP는 전 페이지 동적 렌더링이 필요해 `cacheComponents`와 맞지 않고 `script-src 'unsafe-inline'`은 이득이 작으며, 본문이 임의 외부 이미지를 쓰므로 `script-src`·`style-src`·`img-src`는 두지 않는다. dev 서버 응답 헤더와 visitor-flow·admin-preview e2e 통과로 확인했다(KaTeX·next-themes 동작은 admin-preview 수식 렌더링 e2e로만 확인).
 - 스타일 변조(`position:fixed` 오버레이, `url()` 외부 요청) 가능성은 관리자 계정 보호(강한 비밀번호·MFA)로 완화(Task 011).
 - 없는 글은 soft 404(HTTP 200 + noindex)로 응답(Task 018).
 - 관리자 role 회수 후에도 기존 JWT는 만료 전까지 유효(RLS 동일). 역할 변경 후 재로그인 필요(Task 011).
-- 스토리지 고아 파일은 정리하지 않음(Task 017).
+- 스토리지 고아 파일은 정리하지 않음(Task 017). 정리 도구는 Post-MVP Task 029에서 다룬다.
 - 로그인 시도 횟수 제한은 Supabase Auth 기본 레이트 리밋(`/auth/v1/token`, IP당 5분 150회·burst 30, 공식 문서 기준)에 의존하고 앱 코드의 제한·CAPTCHA는 없다(관리자 1인, 최소 비밀번호 12자·가입 차단으로 완화, 2026-10-28 사용자 결정으로 수용). 이 프로젝트의 실제 설정값은 2026-10-28 사용자가 대시보드 Authentication > Rate Limits에서 확인했다(가입·로그인 30, 토큰 150, 기본값에서 변경 없음). 서버에서 호출할 때 Supabase가 보는 IP도 미확인이다. Turnstile CAPTCHA는 `login` 액션에 `captchaToken` 전달이 필요하고 Password Verification Attempt hook은 Teams 이상 플랜 전용이라 도입하지 않았다.
 - 관리자 레이아웃 헤더는 `AdminGuard` 바깥(정적 셸)에 둔다. 로그인한 비관리자에게 `notFound()` 전환 전 잠깐 보일 수 있으나 노출되는 것은 공개 상수와 링크뿐이고, 가드 안으로 옮기면 모든 `/admin` 진입에서 빈 화면이 생겨 현상 유지로 결정(2026-10-28 사용자 결정).
 - Supabase advisor 보안 경고 `auth_leaked_password_protection`(유출 비밀번호 보호)은 Pro 플랜 전용이라 예외로 수용. 완화책: 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수(Task 010, 011).
@@ -581,6 +950,6 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
   - [x] `test/admin-post-actions`: 이미 `app/admin/posts/actions.test.ts`(커밋 `bd3d647`)가 `savePost`·`deletePost` 모두 `requireAdmin` 거부 시 예외가 전파되고 `createClient`가 호출되지 않음을 단언한다(`vi.mock`으로 `requireAdmin`·`createClient`를 분리). 후속 항목을 만들 때 이 테스트 파일을 확인하지 못하고 "없음"으로 적은 오류였고, 추가 코드 변경 없이 닫는다(2026-10-28 확인, `npx vitest run app/admin/posts/actions.test.ts` 통과).
   - [x] `fix/posts-grants`(2026-10-28): 원격 `posts`의 과잉 GRANT를 `20261028133002_revoke_excess_posts_grants.sql`로 회수했다. 적용 전 사용자 확인을 받았고 원격 프로젝트(`gfrewivdclcitgysgsbi`)를 확인했다. 회수 전에는 anon이 `INSERT·UPDATE·DELETE·TRUNCATE·REFERENCES·TRIGGER`, authenticated가 `TRUNCATE·REFERENCES·TRIGGER`를 추가로 갖고 있었는데(`public` 스키마 default privileges가 원인), 회수 후 anon은 `SELECT`, authenticated는 `SELECT·INSERT·UPDATE·DELETE`만 남았다(`service_role`·`postgres`는 기본값 유지). `get_advisors`(security)는 기존 예외 `auth_leaked_password_protection` 1건뿐이고, 점검 A(anon 조회 pub 1 / drafts 0)와 C(정책 7개, `user_metadata` 참조 0, storage SELECT 0)를 다시 돌려 같은 결과를 확인했다. default privileges는 바꾸지 않아 새 테이블은 같은 과잉 권한을 받으므로 가이드에 기록했다. `npm run check`·`npm run knip`·`npm run build`(placeholder env) 통과. `npm run test:e2e`는 66개 중 61개 통과, `e2e/admin-image-upload.spec.ts`의 '여러 파일 선택' 1개 실패(전체 실행 2회 모두 실패, 같은 파일 단독 실행은 7회 중 6회 통과), 그 뒤 같은 파일의 4개는 미실행이다. 실패 시점에 본문이 빈 문자열이고 오류 알림도 없어 업로드 입력 핸들러가 붙기 전에 `setInputFiles`가 실행된(하이드레이션 경합) 것으로 보이며, 이 페이지는 `posts`를 조회하지 않아 GRANT와 무관해 보이지만 원인은 확정하지 못했다(GRANT를 되돌려 비교하지 않음). 이후 `test/stabilize-image-upload-e2e`에서 `beforeEach`에 하이드레이션 대기(`image-upload-input`에 `__reactProps$` 부착 확인)를 추가했고, 실행 사이를 6분 이상 둔 전체 e2e 4회가 모두 66개 통과했다(수정 전 전체 실행은 2회 모두 실패). 연속 실행에서는 `login()`이 `/auth/login`에 머물러 실패했고 간격을 두자 사라져 Supabase Auth 로그인 횟수 제한으로 추정하나 오류 문구는 확인하지 못했다. e2e는 한 번에 로그인이 약 45번이라 5분 이상 간격을 두고 돌린다. 관리자 글 CRUD e2e(`admin-posts`·`admin-flow` 등)는 통과했다.
 
-## MVP 이후 (범위 밖)
+## MVP 이후 범위
 
-댓글, RSS, 검색, 페이지네이션, 조회수, 스토리지 고아 이미지 정리, 임시저장 자동화, `<style>` 글 단위 스코프 변환, 정적 섹션의 DB 저장·관리자 편집.
+MVP 범위 밖이던 항목(댓글, RSS, 검색, 페이지네이션, 조회수, 스토리지 고아 이미지 정리, 임시저장 자동화, `<style>` 글 단위 스코프 변환, 정적 섹션의 DB 저장·관리자 편집)과 추가 요청(이전/다음 글, 태그 정렬, 태그·카테고리 필터)은 2026-11-05 **Phase 6(Task 021~034)** 으로 옮겼다. 기능 ID는 "Post-MVP 기능 ID" 표(F015~F025, 제안)를 따른다.
