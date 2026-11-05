@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { profile } from "../data/profile";
 import {
   BASE_URL,
   cleanup,
@@ -18,7 +19,7 @@ test("메인 → 섹션 카드 → 이력 → 헤더로 프로젝트·논문·�
   const nav = page.getByRole("navigation", { name: "주요 메뉴" });
 
   await page.goto("/");
-  await expect(h1).toHaveText("고이코이");
+  await expect(h1).toHaveText(profile.name);
 
   await page
     .getByRole("region", { name: "바로가기" })
@@ -44,7 +45,7 @@ test("메인 → 섹션 카드 → 이력 → 헤더로 프로젝트·논문·�
     .getByRole("link", { name: "hkoikoi.dev" })
     .click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(h1).toHaveText("고이코이");
+  await expect(h1).toHaveText(profile.name);
 });
 
 test.describe("블로그 글 여정", () => {
@@ -132,7 +133,7 @@ test.describe("블로그 글 여정", () => {
       .click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "고이코이",
+      profile.name,
     );
   });
 });
