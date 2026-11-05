@@ -1,10 +1,12 @@
 import type { ResumeEntry } from "@/lib/types/resume";
 
-// TODO: 실제 내용으로 교체
 export const volunteer: ResumeEntry[] = [
   {
-    title: "샘플 봉사단체",
-    subtitle: "교육 봉사",
-    period: "2020.01 – 2020.12",
+    title: "암미지역아동센터",
+    subtitle: "교육/멘토링",
+    period: "2023.07 ~ 2024.07",
+    description: "중학교 학생 대상으로 수학 교육 봉사",
+    grade: "61시간",
+    gradeLabel: "봉사 참여 시간",
   },
 ];
