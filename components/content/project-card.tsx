@@ -66,7 +66,7 @@ export function ProjectCard({ project, className }: ProjectCardProps) {
               nativeButton={false}
               render={<a href={links.demo} target="_blank" rel="noreferrer" />}
             >
-              데모
+              Website
               <ExternalLink data-icon="inline-end" aria-hidden="true" />
               <span className="sr-only">(새 탭에서 열림)</span>
             </Button>
