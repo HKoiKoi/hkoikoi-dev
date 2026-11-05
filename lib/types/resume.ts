@@ -4,6 +4,8 @@ export type ResumeEntry = {
   subtitle?: string;
   period?: string;
   description?: string;
+  /** 카드 오른쪽 하단에 강조해 표시하는 수치(예: 학점 "3.87 / 4.5"). */
+  grade?: string;
   tags?: string[];
   link?: string;
 };

@@ -15,6 +15,7 @@ export function ResumeEntryItem({
   subtitle,
   period,
   description,
+  grade,
   tags,
   link,
   className,
@@ -53,7 +54,22 @@ export function ResumeEntryItem({
             {subtitle}
           </p>
         )}
-        {description && <p className="text-sm break-words">{description}</p>}
+        {(description || grade) && (
+          <div className="flex items-baseline justify-between gap-4">
+            {description && (
+              <p className="text-sm break-words">{description}</p>
+            )}
+            {grade && (
+              <Badge
+                variant="outline"
+                className="ml-auto shrink-0 tabular-nums"
+              >
+                <span className="sr-only">평점 </span>
+                {grade}
+              </Badge>
+            )}
+          </div>
+        )}
         {tags && tags.length > 0 && (
           <ul className="flex flex-wrap gap-1.5" aria-label="태그">
             {tags.map((tag) => (

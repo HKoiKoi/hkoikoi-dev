@@ -38,6 +38,7 @@ describe.each(Object.entries(resumeSections))("%s", (_name, entries) => {
         "subtitle",
         "period",
         "description",
+        "grade",
         "link",
       ] as const) {
         if (entry[key] !== undefined) expect(isBlank(entry[key])).toBe(false);
