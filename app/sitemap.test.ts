@@ -1,9 +1,11 @@
+import { connection } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import sitemap from "@/app/sitemap";
 import { getPublishedPosts } from "@/lib/queries/posts";
 import type { PostSummary } from "@/lib/types/post";
 
 vi.mock("@/lib/queries/posts", () => ({ getPublishedPosts: vi.fn() }));
+vi.mock("next/server", () => ({ connection: vi.fn(async () => {}) }));
 
 function makePost(slug: string, updatedAt: string): PostSummary {
   return { slug, updated_at: updatedAt } as PostSummary;
@@ -43,6 +45,19 @@ describe("sitemap", () => {
       url: "https://example.com/blog/hello",
       lastModified: new Date("2026-10-01T00:00:00Z"),
     });
+  });
+
+  it("정적 프리렌더되지 않도록 글 조회 전에 connection()을 기다린다", async () => {
+    const order: string[] = [];
+    vi.mocked(connection).mockImplementationOnce(async () => {
+      order.push("connection");
+    });
+    vi.mocked(getPublishedPosts).mockImplementationOnce(async () => {
+      order.push("posts");
+      return [];
+    });
+    await sitemap();
+    expect(order).toEqual(["connection", "posts"]);
   });
 
   it("한글 슬러그는 퍼센트 인코딩한다", async () => {
