@@ -48,6 +48,7 @@ hkoikoi-dev/
 │   ├── site-config.ts      # 사이트 이름, 내비게이션 항목
 │   ├── site-url.ts         # NEXT_PUBLIC_SITE_URL 기준 절대 URL(getSiteUrl, absoluteUrl) + 테스트
 │   ├── post-metadata.ts    # 글 상세 메타데이터(OG·twitter·없는 글 noindex) 순수 함수 + 테스트
+│   ├── markdown/           # sanitize 스키마, `<style>` 검사, 플러그인 순서 + 테스트
 │   ├── format-date.ts / is-active-path.ts / utils.ts   # 공용 유틸 (+ *.test.ts)
 ├── supabase/migrations/    # DB 마이그레이션 SQL (원격 version과 파일명 일치)
 ├── e2e/                    # Playwright 테스트 (*.spec.ts)
@@ -84,6 +85,7 @@ app/
 ├── layout.tsx              # 루트 레이아웃 (ThemeProvider, 폰트, 메타데이터)
 ├── globals.css             # Tailwind v4 + shadcn 테마 변수
 ├── not-found.tsx
+├── robots.ts / sitemap.ts  # 메타데이터 라우트 (+ robots.test.ts, sitemap.test.ts)
 ├── opengraph-image.png / twitter-image.png / favicon.ico
 ├── (site)/                 # 공개 사이트 (Route Group, URL에 나타나지 않음)
 │   ├── layout.tsx          # 헤더·푸터
@@ -95,9 +97,10 @@ app/
 ├── admin/                  # 관리자 영역 (로그인 필요)
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
 │   ├── actions.ts          # logout Server Action (+ actions.test.ts)
-│   ├── _components/        # admin-guard.tsx, logout-button.tsx
-│   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx(메타 필드 post-meta-fields.tsx, 본문 상태·이미지 업로드 훅 use-content-upload.ts, 필드 오류 field-error.tsx로 분리), 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·deletePost Server Action)
+│   ├── _components/        # admin-guard.tsx, admin-nav.tsx, logout-button.tsx
+│   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx(메타 필드 post-meta-fields.tsx, 썸네일 thumbnail-field.tsx, 본문 이미지 업로드 버튼 image-upload-button.tsx와 업로드 훅 use-content-upload.ts, 필드 오류 field-error.tsx로 분리), 목록 post-table.tsx와 삭제 확인 delete-post-dialog.tsx, 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·deletePost Server Action)
 └── auth/
+    ├── layout.tsx          # noindex 메타데이터
     ├── login/              # 로그인 (actions.ts: login Server Action + 테스트, _components/login-form.tsx)
     └── error/              # 인증 오류 안내
 ```
@@ -129,11 +132,11 @@ app/
 ```
 components/
 ├── ui/         # shadcn/ui: avatar, badge, button, card, checkbox, dialog, dropdown-menu,
-│               #            input, label, separator, tabs, textarea
+│               #            input, label, separator, skeleton, tabs, textarea
 ├── blog/       # category-badge, post-card, post-list-skeleton, tag-badge
 ├── content/    # empty-state, page-header, project-card, publication-item, resume-*, tech-badge
 ├── markdown/   # markdown-content (+ 테스트), code-block, code-copy-button: 동기 컴포넌트라 서버·클라이언트 양쪽에서 쓴다
-├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link, scroll-to-top
+├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link, scroll-to-top, skip-link
 └── *.tsx       # theme-switcher (app을 import하는 컴포넌트는 두지 않는다: eslint로 강제)
 ```
 
@@ -163,7 +166,10 @@ lib/
 ├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), rehype-sanitize-style.ts(`<style>` CSS 내용 검사), plugins.ts(remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
 ├── posts/                 # slugify.ts, form-data.ts, published-at.ts (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
+├── auth/                  # is-admin.ts, is-admin-path.ts, require-admin.ts (+ 테스트)
 ├── site-config.ts         # siteConfig, navItems
+├── site-url.ts            # getSiteUrl, absoluteUrl (NEXT_PUBLIC_SITE_URL 기준, + 테스트)
+├── post-metadata.ts       # 글 상세 메타데이터(OG·twitter·없는 글 noindex) (+ 테스트)
 ├── format-date.ts / is-active-path.ts   # (+ 테스트)
 └── utils.ts               # cn()
 ```
@@ -222,11 +228,12 @@ import { cn } from "@/lib/utils";
 
 ## 환경 변수
 
-| 키                                       | 노출 범위       | 용도                                                     |
-| ---------------------------------------- | --------------- | -------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`               | 브라우저        | Supabase 프로젝트 URL                                    |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`   | 브라우저        | publishable(또는 anon) 키. RLS가 보호를 담당함           |
-| `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` | 서버 전용(로컬) | 관리자 e2e 로그인용. `.env.local`에만 두고 커밋하지 않음 |
+| 키                                       | 노출 범위       | 용도                                                                         |
+| ---------------------------------------- | --------------- | ---------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`               | 브라우저        | Supabase 프로젝트 URL                                                        |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`   | 브라우저        | publishable(또는 anon) 키. RLS가 보호를 담당함                               |
+| `NEXT_PUBLIC_SITE_URL`                   | 브라우저        | 사이트 절대 URL(metadataBase·sitemap·robots), 기본값 `http://localhost:3000` |
+| `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` | 서버 전용(로컬) | 관리자 e2e 로그인용. `.env.local`에만 두고 커밋하지 않음                     |
 
 - `NEXT_PUBLIC_` 접두 변수는 브라우저 번들에 포함됩니다. **service role 키 등 비밀 값에는 절대 붙이지 않습니다.**
 - 새 키를 추가하면 `.env.example`에 키 이름(값 없이)도 추가합니다. CI의 `build` 단계에도 필요하면 `.github/workflows/ci.yml`의 `env`에 자리표시자 값을 넣습니다.
@@ -259,7 +266,7 @@ import { cn } from "@/lib/utils";
 ### 테스트 배치
 
 - 단위/컴포넌트 테스트: 대상 파일 옆의 `*.test.ts(x)` (예: `lib/format-date.test.ts`). 환경은 jsdom이고 `vitest.setup.ts`가 `jest-dom` 매처와 `cleanup`을 설정합니다.
-- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
+- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
 - 커버리지는 `app/`, `components/`, `lib/`를 대상으로 하되 `components/ui/**`는 제외합니다.
 - Server Component(async)는 Vitest로 직접 렌더링하기 어렵습니다. 로직은 함수로 분리해 단위 테스트하고, 화면 흐름은 E2E로 검증합니다.
 
