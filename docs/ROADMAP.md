@@ -497,12 +497,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 기능: F001~F014
   - 관련 파일: `e2e/**`, `README.md`, `docs/guides/project-structure.md`, `.env.example`, `data/*.ts`
   - 수락 기준: `npm run check`·`npm run build`·`npm run knip`·`npm run test:e2e` 전체 통과, 배포 환경(예: Vercel)에서 공개·관리자 흐름 확인, 문서가 실제 구조와 일치
-  - [ ] 전체 E2E 회귀(방문자·관리자·마크다운·이미지·SEO) 실행 및 결함 수정
-  - [ ] 배포 환경 변수(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL`) 설정, Supabase Auth의 Site URL·Redirect URL을 운영 도메인으로 설정
-  - [ ] README 최종 점검: hkoikoi.dev 기준 기본판은 작성되어 있으므로(설치·환경 변수·관리자 계정 설정 절차), 배포 절차와 `<style>` 작성 규칙(`post-` class, `#user-content-{id}`)을 채우고 실제 구현 상태와 맞는지 확인
-  - [ ] `docs/guides/project-structure.md`의 구조·정리 대상 목록을 실제 상태로 갱신
-  - [ ] `data/*.ts`의 `// TODO` 샘플을 실제 이력으로 교체하도록 사용자에게 안내(실제 내용은 사용자 제공)
-  - [ ] 기본 OG 이미지 교체: `app/opengraph-image.png`·`app/twitter-image.png`가 Supabase 스타터의 "Next.js Starter Kit" 이미지(1200x600, 두 파일 동일)로 남아 있다. hkoikoi.dev용 이미지(권장 1200x630)로 두 파일을 같은 이름으로 덮어쓴다(코드 변경 없음, 이미지는 사용자 제공). Task 018에서 홈과 썸네일 없는 글의 `og:image`가 이 파일을 가리킨다
+  - [x] 전체 E2E 회귀(방문자·관리자·마크다운·이미지·SEO) 실행 및 결함 수정
+  - [x] 배포 환경 변수(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL`) 설정, Supabase Auth의 Site URL·Redirect URL을 운영 도메인으로 설정
+  - [x] README 최종 점검: hkoikoi.dev 기준 기본판은 작성되어 있으므로(설치·환경 변수·관리자 계정 설정 절차), 배포 절차와 `<style>` 작성 규칙(`post-` class, `#user-content-{id}`)을 채우고 실제 구현 상태와 맞는지 확인
+  - [x] `docs/guides/project-structure.md`의 구조·정리 대상 목록을 실제 상태로 갱신
+  - [x] `data/*.ts`의 `// TODO` 샘플을 실제 이력으로 교체하도록 사용자에게 안내(실제 내용은 사용자 제공)
+  - [x] 기본 OG 이미지 교체: `app/opengraph-image.png`·`app/twitter-image.png`가 Supabase 스타터의 "Next.js Starter Kit" 이미지(1200x600, 두 파일 동일)로 남아 있다. hkoikoi.dev용 이미지(권장 1200x630)로 두 파일을 같은 이름으로 덮어쓴다(코드 변경 없음, 이미지는 사용자 제공). Task 018에서 홈과 썸네일 없는 글의 `og:image`가 이 파일을 가리킨다
   - 테스트 체크리스트:
     - 정상: 터미널 → `npm run check && npm run build && npm run knip` → 모두 통과
     - 정상: Playwright MCP → 배포 URL에서 방문자 여정 → 모든 페이지 정상, 콘솔 오류 0건(`browser_console_messages`)
@@ -510,7 +510,18 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → 배포 URL `/admin/posts` 비로그인 접근 → `/auth/login`
     - 엣지: Playwright MCP → 배포 URL `/robots.txt`·`/sitemap.xml` → 운영 도메인 절대 URL
     - 엣지: Playwright MCP → 배포 URL 홈·썸네일 없는 글의 `og:image` → 교체한 hkoikoi.dev 이미지(스타터 이미지 아님)
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-11-01~05 로컬 게이트, 2026-11-05 운영 배포 검증.
+    - 로컬 게이트: `npm run check`(typecheck·lint·prettier 통과, Vitest 32 파일 / 253개)·`npm run build`·`npm run knip` 모두 종료 코드 0(11-01). 이후 sitemap 수정 때 `npm run check` 구성 중 typecheck·eslint·prettier·Vitest(32 파일 / 254개)와 `npm run build`를 다시 통과시켰고, `knip`은 다시 돌리지 않았다.
+    - 전체 e2e: `npx playwright test` 85/85 통과(로컬 dev 서버, Chromium, 관리자 자격 증명 사용, 48.3초, 실패 없음). Supabase Auth 한도 때문에 "token refreshes"를 500/5min으로 올린 상태에서 얻은 결과다. 이 e2e는 실제 이력·로고·OG 이미지 교체(`data/*.ts` 등)와 sitemap 수정 이전에 실행했고 그 뒤로 전체를 다시 돌리지 않았다. 교체 때 이름·어학 값을 데이터 파일에서 읽도록 e2e를 고쳤으나, `visitor-flow` e2e는 운영 DB 쓰기를 포함해 다시 실행하지 않았다. 실행 뒤 원격 `posts`에는 기존 실제 글 1건만 남았다(테스트 글 잔존 0건).
+    - 운영 배포 검증(Playwright MCP, `https://www.hkoikoi.dev`, Chromium, Vercel 배포, Cloudflare DNS는 DNS only):
+      - 방문자 여정: 공개 11개 경로(`/`, 이력 6종·프로젝트·논문, `/blog`, 글 상세)가 모두 200이고 제목이 맞다. 콘솔 오류·경고는 홈과 글 상세에서 0건을 확인했다. 나머지 공개 경로는 상태 코드·제목·`og:image`만 확인했고 콘솔은 보지 않았다.
+      - 관리자 흐름: 사용자가 로그인 폼에 직접 입력한 세션으로 글 작성 → 본문 이미지 1회 업로드(스토리지 URL 삽입) → 발행 → 공개 상세에서 제목·이미지 로드·블로그 목록 노출·콘솔 오류 0건 확인 → 삭제 후 목록에서 사라지고 상세가 not-found임을 확인했다.
+      - 비로그인 `/admin/posts` → `/auth/login`으로 이동하고 로그인 폼이 표시된다.
+      - `/robots.txt`의 `Sitemap:`과 `/sitemap.xml`의 모든 `loc`이 `https://www.hkoikoi.dev` 절대 URL이다.
+      - 홈과 썸네일 없는 글의 `og:image`가 `https://www.hkoikoi.dev/opengraph-image.png`이고 200(PNG)으로 열린다. 이미지는 `file` 명령으로 1200x630을 확인했다(교체본).
+    - 확인한 사실: 운영 도메인은 `www.hkoikoi.dev`가 기본이고 `hkoikoi.dev`는 308로 `www`에 리다이렉트된다(`NEXT_PUBLIC_SITE_URL=https://www.hkoikoi.dev`). 환경 변수 3개는 Vercel에서 Config 타입으로 설정했다(`NEXT_PUBLIC_` 접두사가 붙은 변수를 Secret으로 두면 Vercel이 저장을 막는다). 처음 배포 때 `main`이 `develop`보다 44커밋 뒤처져 `/robots.txt`·`/sitemap.xml`이 404였고 `og:image`가 `vercel.app` 주소를 가리켰으나, PR #34 머지로 해결됐다.
+    - 발견·수정한 결함: `/sitemap.xml`이 빌드 때 정적으로 프리렌더(`○ Static`, revalidate 30d)되어 글을 발행·삭제해도 갱신되지 않았다. 글 조회가 `'use cache'`라 요청 시점 API가 아니기 때문이다. 운영의 캐시 항목 생성 시각이 발행·삭제보다 앞선 시각에 고정된 것으로 확인했다. `app/sitemap.ts`에서 `await connection()`으로 요청 시점 렌더링을 강제해(빌드 표 `ƒ`) 고쳤고(PR #35, #36), 운영에서 테스트 글 발행 직후 sitemap에 포함되고 삭제 직후 사라지는 것을 확인했다. Task 018 기록의 "`/sitemap.xml` ƒ 동적"은 placeholder env 빌드 결과이며, 실제 Supabase 값으로 빌드하면 정적이 되는 것으로 보인다(placeholder에서는 조회가 실패해 캐시되지 않고 동적이 되는 것으로 추정하며 확인하지 않았다). CI는 placeholder env로 빌드하므로 이 결함을 잡지 못한다.
+    - 제한 사항·미확인: `updateTag('posts')`가 정적 Route Handler의 캐시 항목을 만료시키지 못한 정확한 원인(Vercel 동작인지 Next 동작인지)은 확정하지 못했다. 운영 캐시 무효화는 글 발행·삭제 시 목록·상세·sitemap 반영만 확인했고 제목 수정·초안 전환·슬러그 변경은 운영에서 확인하지 않았다(로컬 e2e로만 확인). 삭제된·없는 글 주소는 not-found 화면과 `noindex`를 보이지만 HTTP 200이다(Task 018에서 수용한 soft 404). 썸네일이 있는 글의 `og:image`와 썸네일 업로드는 운영에서 하지 않았다. 운영에서 Lighthouse는 측정하지 않았다(Task 019의 로컬 측정만 있음). Chromium만 확인했고 Safari·Firefox·실제 휴대폰은 확인하지 않았다. 브라우저 탭의 실제 파비콘과 카카오톡·슬랙 공유 카드는 확인하지 못했다. Supabase Auth의 Site URL·Redirect URL은 사용자가 대시보드에서 `www.hkoikoi.dev` 기준으로 변경했다고 알려 왔으나 MCP로 읽을 수 없어 값은 직접 확인하지 못했다(운영 관리자 로그인은 정상 동작했다). Rate Limits(token refreshes) 원복 여부도 확인하지 못했다. 운영 검증 중 `blog-images`에 70바이트 고아 파일이 1개 늘었다(삭제 불가, 수용된 예외). 운영 관리자 계정으로 로그인한 세션이 Playwright 브라우저에 남아 있었으므로 필요하면 로그아웃하거나 비밀번호를 바꾼다.
 
 ## 기능 ID 매핑
 
