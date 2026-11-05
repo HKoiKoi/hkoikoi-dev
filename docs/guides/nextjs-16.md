@@ -135,24 +135,30 @@ Supabase 세션이 필요한 데이터는 **공유 캐시(`use cache`)에 넣지
 공개 데이터(모든 방문자가 같은 값을 보는 것)만 쿠키 없는 클라이언트로 읽어 캐시합니다. 이때 테이블은 RLS로 `anon`/`authenticated`에 공개 조회가 허용되어 있어야 합니다.
 
 ```ts
-// lib/queries/posts.ts에 해당하는 공개 조회 예시(현재 구현은 cookies()를 읽는 서버 클라이언트이고 캐시 없음. 캐시 적용은 Task 019)
-import { createClient } from "@supabase/supabase-js";
+// lib/queries/posts.ts의 구조를 줄인 예시. 쿠키 없는 createPublicClient()(lib/supabase/public.ts)를 쓴다.
 import { cacheLife, cacheTag } from "next/cache";
+import { createPublicClient } from "@/lib/supabase/public";
 
-export async function getPublicPosts() {
+async function fetchPosts() {
   "use cache";
-  cacheLife("hours");
   cacheTag("posts");
+  cacheLife("max"); // 수명은 길게 두고 갱신은 태그 무효화로 한다
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-  );
-  const { data, error } = await supabase.from("posts").select("id, title");
-  if (error) throw error;
-  return data;
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("id, title")
+    .eq("published", true);
+  // 캐시 안에서 throw하면 프리렌더 오류가 되어 빌드가 실패한다. 실패 결과를 돌려주되 저장되지 않게 한다.
+  if (error) {
+    cacheLife({ stale: 0, revalidate: 0, expire: 0 });
+    return { ok: false as const, message: error.message };
+  }
+  return { ok: true as const, data };
 }
 ```
+
+실제 구현은 바깥 래퍼가 `unstable_rethrow` → `console.error` → 빈 값/`null`을 맡습니다. 태그는 목록 `posts`, 상세 `posts`와 `post:<NFC slug>`이고, 저장·삭제 Server Action(`app/admin/posts/actions.ts`의 `invalidatePostTags`)이 `updateTag`로 `posts`와 이전·새 슬러그의 `post:<NFC slug>`를 만료합니다. 슬러그는 DB에 NFC로 저장되므로 태그도 `normalize("NFC")`로 맞춥니다. 관리자 쿼리처럼 쿠키를 읽는 조회는 캐시하지 않습니다.
 
 사용자별 값을 캐시해야 하면 `use cache: private`을 검토합니다 (`01-app/03-api-reference/01-directives/use-cache-private.md`).
 
@@ -284,10 +290,10 @@ export async function POST(request: Request) {
 
 ### 메타데이터, 이미지, 폰트
 
-- 메타데이터는 `metadata` / `generateMetadata`를 사용합니다. `app/layout.tsx`의 `metadataBase`는 `VERCEL_URL`이 없으면 `http://localhost:3000`입니다. Task 018에서 고정 환경 변수 `NEXT_PUBLIC_SITE_URL` 기준으로 바꿉니다. 페이지별 `metadata`는 정적 페이지에 이미 지정되어 있고, 블로그 상세는 `generateMetadata`를 씁니다(`app/(site)/blog/[slug]/page.tsx`).
+- 메타데이터는 `metadata` / `generateMetadata`를 사용합니다. `app/layout.tsx`의 `metadataBase`는 `lib/site-url.ts`의 `getSiteUrl()`(`NEXT_PUBLIC_SITE_URL`, 미설정이면 `http://localhost:3000`)을 씁니다. `openGraph`·`twitter`를 지정하면 `app/opengraph-image.png`가 상속되지 않으므로 글 상세는 기본 이미지를 절대 URL로 명시합니다(`lib/post-metadata.ts`). 페이지별 `metadata`는 정적 페이지에 이미 지정되어 있고, 블로그 상세는 `generateMetadata`를 씁니다(`app/(site)/blog/[slug]/page.tsx`).
 - `app/opengraph-image.png`, `app/twitter-image.png`는 파일 규칙으로 자동 연결됩니다.
 - `next/image` 기본값이 바뀌었습니다 (`minimumCacheTTL` 4시간, `imageSizes`에서 16 제거, 쿼리 스트링이 있는 로컬 이미지는 `images.localPatterns` 필요). 상세는 `01-app/02-guides/upgrading/version-16.md`를 참고하세요. Supabase Storage 이미지를 쓰면 `images.remotePatterns`에 프로젝트 도메인을 추가합니다.
-- 폰트는 `next/font/google`을 씁니다. `app/layout.tsx`는 Noto Sans KR을 `variable: "--font-noto-sans-kr"`로 로드하고, `app/globals.css`의 `--font-sans`가 이를 참조합니다 (`styling-guide.md`).
+- 본문 폰트는 `pretendard` 패키지의 unicode-range 분할 CSS를 `app/layout.tsx`에서 import하고, 코드용 JetBrains Mono는 `next/font/google`(`variable: "--font-jetbrains-mono"`)로 `<html>`에 붙입니다. `app/globals.css`의 `--font-sans`·`--font-mono`가 이를 참조합니다 (`styling-guide.md`).
 
 ## 빌드와 설정
 

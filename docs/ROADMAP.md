@@ -451,12 +451,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 기능: F014, F006
   - 관련 파일: `app/(site)/blog/[slug]/page.tsx`(`generateMetadata`), `app/sitemap.ts`, `app/robots.ts`, `app/layout.tsx`, `lib/site-url.ts`, `.env.example`, `.github/workflows/ci.yml`
   - 수락 기준: 글 상세에 title·description(=소개글)·OG 이미지(=썸네일, 없으면 기본 `opengraph-image.png`)가 설정되고, `/sitemap.xml`에 고정 페이지 10개 + 발행 글(`lastModified = updated_at`)이, `/robots.txt`에 `/admin`·`/auth` 제외가 포함됨. 절대 URL은 모두 `NEXT_PUBLIC_SITE_URL` 기준. 없는 글·초안은 noindex
-  - [ ] `NEXT_PUBLIC_SITE_URL` 도입: `lib/site-url.ts`, `.env.example` 키 추가, CI `build` env에 자리표시자, `app/layout.tsx`의 `metadataBase` 교체(`VERCEL_URL` 의존 제거)
-  - [ ] `generateMetadata`: `getPostBySlug` 재사용(같은 요청 내 중복 조회 방지를 위해 `React.cache` 또는 캐시 함수 사용), 없으면 `robots: { index: false }`
-  - [ ] `app/sitemap.ts`: `lib/site-config.ts` 메뉴 + 발행 글(슬러그 인코딩)
-  - [ ] `app/robots.ts`: `disallow: ['/admin', '/auth']`, sitemap 절대 URL
-  - [ ] `/admin`·`/auth/login`·`/auth/error` 페이지 단위 noindex: `app/admin/layout.tsx`와 `app/auth/*/page.tsx`(또는 `app/auth/layout.tsx` 신설)에 정적 `export const metadata = { robots: { index: false, follow: false } }` 추가(robots.txt disallow는 색인 차단을 보장하지 않음). `robots`는 얕은 병합이라 하위 page에서 `robots`를 다시 지정하면 layout 값이 사라지므로 하위에서는 지정하지 않는다. 출력 태그(`noindex, nofollow`)는 번들 문서에 명시가 없어 빌드 후 HTML로 확인한다
-  - [ ] 트레이드오프 기록: 없는 글은 스트리밍 이후 `notFound()`라 HTTP 200 + noindex(soft 404) 수용
+  - [x] `NEXT_PUBLIC_SITE_URL` 도입: `lib/site-url.ts`, `.env.example` 키 추가, CI `build` env에 자리표시자, `app/layout.tsx`의 `metadataBase` 교체(`VERCEL_URL` 의존 제거)
+  - [x] `generateMetadata`: `getPostBySlug` 재사용(같은 요청 내 중복 조회 방지를 위해 `React.cache` 또는 캐시 함수 사용), 없으면 `robots: { index: false }`
+  - [x] `app/sitemap.ts`: `lib/site-config.ts` 메뉴 + 발행 글(슬러그 인코딩)
+  - [x] `app/robots.ts`: `disallow: ['/admin', '/auth']`, sitemap 절대 URL
+  - [x] `/admin`·`/auth/login`·`/auth/error` 페이지 단위 noindex: `app/admin/layout.tsx`와 `app/auth/*/page.tsx`(또는 `app/auth/layout.tsx` 신설)에 정적 `export const metadata = { robots: { index: false, follow: false } }` 추가(robots.txt disallow는 색인 차단을 보장하지 않음). `robots`는 얕은 병합이라 하위 page에서 `robots`를 다시 지정하면 layout 값이 사라지므로 하위에서는 지정하지 않는다. 출력 태그(`noindex, nofollow`)는 번들 문서에 명시가 없어 빌드 후 HTML로 확인한다
+  - [x] 트레이드오프 기록: 없는 글은 스트리밍 이후 `notFound()`라 HTTP 200 + noindex(soft 404) 수용
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 발행 글 상세 → `<title>`에 글 제목, `meta[name=description]`=소개글, `meta[property="og:image"]`=썸네일 절대 URL
     - 정상: Playwright MCP → `/sitemap.xml` → 고정 페이지와 발행 글 URL, 초안 URL 없음
@@ -464,23 +464,34 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → `/blog/없는-글` → `meta[name=robots]`에 `noindex`
     - 엣지: Playwright MCP → 썸네일 없는 글 → 기본 OG 이미지
     - 엣지: Playwright MCP → 한글 슬러그 글 → sitemap의 `loc`이 퍼센트 인코딩된 유효 URL
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-29 `npm run check`(typecheck·lint·prettier 통과, Vitest 31 파일 / 242개)·`npm run build`(placeholder env, `/robots.txt` ○ 정적, `/sitemap.xml` ƒ 동적)·`npm run knip`(종료 코드 0) 통과. `e2e/seo.spec.ts` 7개 통과(skip 0, 관리자 자격 증명 사용): `/robots.txt`의 `Disallow: /admin`·`/auth`와 `Sitemap:` 절대 URL, `/sitemap.xml`의 고정 페이지 10개, `/auth/login`·`/auth/error`의 noindex, 없는 글 noindex(HTTP 200), 발행 글의 `<title>`(`제목 | hkoikoi.dev`)·`meta[name=description]`(=소개글)·기본 `og:image`와 sitemap 포함·초안 제외, 한글 슬러그 `loc`의 퍼센트 인코딩과 그 URL 접근. 테스트 후 원격 `posts`의 `e2e-` 글 잔존 0건(읽기 전용 SQL로 확인). Playwright MCP는 쓰지 않고 Playwright Test e2e로 대체했다.
+    - 확인한 사실: noindex는 `<meta name="robots" content="noindex, nofollow"/>`로 출력된다(`/auth/login`·`/auth/error`는 서버 응답과 e2e로 확인. `/admin`은 비로그인 시 로그인으로 리다이렉트되어 HTML을 확인하지 못했고 layout의 `metadata` 코드만 확인). 없는 글은 `content="noindex"`이고 스트리밍 때문에 같은 태그가 두 번 나온다(원인은 확인하지 않음). 없는 글은 상태 코드 200이라 soft 404 트레이드오프를 그대로 수용한다. `openGraph`·`twitter`를 지정하면 `app/opengraph-image.png`가 상속되지 않아(임시 라우트의 빌드 HTML로 확인) 썸네일이 없을 때 `lib/post-metadata.ts`가 기본 이미지를 절대 URL로 명시한다.
+    - 제한 사항·미확인: 썸네일이 있는 글의 `og:image`는 단위 테스트(`lib/post-metadata.test.ts`)로만 확인했고 e2e로는 확인하지 않았다(썸네일 업로드는 `blog-images` 고아 파일을 늘리므로 하지 않음). sitemap의 `lastModified`(=`updated_at`)도 단위 테스트로만 확인했다. Chromium과 dev 서버 기준이며 배포 환경의 `NEXT_PUBLIC_SITE_URL`은 Task 020에서 확인한다. `seo.spec.ts`는 CI `e2e-smoke`에 넣지 않았다(발행 글 시나리오가 관리자 계정을 쓰므로 로컬 전용).
 
 - **Task 019: 캐싱·성능·접근성 최적화**
   - 관련 기능: F005, F006, F011, F013
   - 관련 파일: `lib/queries/posts.ts`, `lib/supabase/public.ts`, `app/admin/posts/actions.ts`, `app/(site)/**`, `next.config.ts`
   - 수락 기준: 공개 글 조회가 Cache Components(`'use cache'` + `cacheTag`)로 캐시되고, 저장·삭제 시 태그 무효화로 공개 목록·상세에 즉시 반영(F011). 주요 공개 페이지 Lighthouse(모바일) 성능·접근성 90점 이상, 키보드만으로 헤더·필터·편집기 조작 가능
-  - [ ] `node_modules/next/dist/docs/`에서 `use cache`, `cacheTag`, `updateTag`/`revalidateTag` 문서 확인 후 전략 확정(쿠키를 읽는 서버 클라이언트는 캐시 함수 안에서 쓸 수 없으므로, 공개 조회용 쿠키 없는 Supabase 클라이언트 `lib/supabase/public.ts` 도입)
-  - [ ] 태그 설계: `posts`(목록), `post:<slug>`(상세). Server Action에서 저장·삭제 시 무효화, 슬러그 변경 시 이전·새 슬러그 모두 무효화
-  - [ ] 썸네일 `next/image`(크기 지정·`sizes`), 폰트 `display: swap`, 불필요한 Client Component 경계 축소, `npm run analyze`로 KaTeX·highlight 번들이 공개 상세 클라이언트 번들에 포함되지 않는지 확인
-  - [ ] 접근성: 랜드마크·`aria-current`·포커스 링·대비(라이트/다크), 폼 라벨·오류 `aria-describedby`
+  - [x] `node_modules/next/dist/docs/`에서 `use cache`, `cacheTag`, `updateTag`/`revalidateTag` 문서 확인 후 전략 확정(쿠키를 읽는 서버 클라이언트는 캐시 함수 안에서 쓸 수 없으므로, 공개 조회용 쿠키 없는 Supabase 클라이언트 `lib/supabase/public.ts` 도입)
+    - 결정: 태그 `posts`·`post:<NFC slug>`, `cacheLife('max')`(수명은 길게 두고 갱신은 태그 무효화로), 저장·삭제는 read-your-writes가 필요해 `revalidateTag`(SWR) 대신 `updateTag`. `createPublicClient()`는 `Database` 제네릭, 공개 환경변수, `persistSession`·`autoRefreshToken` false이며 호출마다 새로 만든다. 관리자 쿼리(`admin-posts.ts`)는 캐시하지 않는다.
+  - [x] 태그 설계: `posts`(목록), `post:<slug>`(상세). Server Action에서 저장·삭제 시 무효화, 슬러그 변경 시 이전·새 슬러그 모두 무효화
+    - 구현: `lib/queries/posts.ts`의 `fetchLatestPosts`·`fetchPublishedPosts`·`fetchPostBySlug`가 `'use cache'` + `cacheTag` + `cacheLife('max')`이고, 바깥 래퍼가 `unstable_rethrow` → `console.error` → 빈 값/`null`을 맡는다. 캐시 안에서 throw하면 프리렌더 오류로 빌드가 실패하므로 실패 결과를 돌려주되 `cacheLife({ stale: 0, revalidate: 0, expire: 0 })`로 저장되지 않게 했다. `actions.ts`의 `invalidatePostTags`가 `updateTag`로 `posts`와 이전·새 슬러그의 `post:<NFC slug>`를 만료하고 `/admin/posts`만 `revalidatePath`를 유지한다.
+  - [x] 썸네일 `next/image`(크기 지정·`sizes`), 폰트 `display: swap`, 불필요한 Client Component 경계 축소, `npm run analyze`로 KaTeX·highlight 번들이 공개 상세 클라이언트 번들에 포함되지 않는지 확인
+    - 결과: `PostCard` 썸네일을 `next/image`(`fill`, `sizes`)로 바꾸고 `next.config.ts`의 `images.remotePatterns`에 `NEXT_PUBLIC_SUPABASE_URL` 기반 `blog-images` 공개 경로만 등록했다(환경변수가 없으면 빈 배열). 상세 페이지에는 썸네일 `<img>`가 없어 변경하지 않았다. 폰트는 Pretendard Variable(CSS `font-display: swap`)과 JetBrains Mono(`display: 'swap'`) 모두 swap이다. `'use client'` 파일은 모두 상태·이벤트가 있어 서버로 되돌릴 대상이 없었다. `npm run analyze` 결과 `katex`·`highlight.js`는 admin 편집기 라우트 청크에만 있고 공개 `blog/[slug]` 매니페스트에는 없다(해당 Task 실행 시 기록한 결과이며 이번에 다시 측정하지 않았다).
+  - [x] 접근성: 랜드마크·`aria-current`·포커스 링·대비(라이트/다크), 폼 라벨·오류 `aria-describedby`
+    - 점검 전: `/admin`·`/auth/login`에 `<main>` 없음, 스킵 링크 없음, 관리자 메뉴에 `aria-current` 없음, 로그인 오류·썸네일 오류가 입력과 `aria-describedby`로 연결되지 않음. 포커스 링(`ring-ring/50`) 대비 1.75(라이트)·1.85(다크):1로 3:1 미달. 버튼 글자 대비 `primary-foreground`/`primary` 2.84(라이트)·2.66(다크):1, 다크 `secondary` 배지 3.63:1로 4.5:1 미달(oklch→sRGB 상대 휘도로 계산).
+    - 수정: 공개·관리자·로그인 `<main id="main-content">`와 `SkipLink`(루트 레이아웃), `AdminNav`(`aria-current`), 로그인 오류 `aria-invalid`·`aria-describedby`·`autocomplete`, 썸네일 오류 연결. 도메인 컴포넌트 포커스 링을 불투명 `ring-ring`으로 변경. 토큰: 라이트 `--primary` L 0.6995→0.56(흰 글자 4.97:1), 다크 `--primary-foreground`를 어두운 배경색으로(6.17:1), 다크 `--secondary` L 0.5943→0.50(5.39:1), 다크 `--ring` L 0.5054→0.68(배경 5.57:1). `components/ui`는 수정하지 않았다(`border-ring`이 함께 바뀌므로 입력·버튼 포커스는 불투명 테두리로도 구분됨).
+    - 검증: 2026-10-29 `npm run check`·`npm run knip`·`npm run build` 통과, `e2e/a11y.spec.ts` 8개(랜드마크, `aria-current`, 로그인 오류 연결, 스킵 링크, Tab 순회·포커스 링 box-shadow, 이력 드롭다운·테마 전환·블로그 필터 해제 키보드 조작)와 기존 관리자·방문자·공개 경로 e2e 통과. 미확인: 편집기를 키보드만으로 조작하는 e2e(라벨·`aria-describedby`는 코드로만 확인), 수정 후 대비 재측정 결과의 시각 확인, Lighthouse 접근성 점수(후속 Task).
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 관리자가 글 제목 수정 저장 → 비로그인 탭에서 `/blog`·상세 새로고침 → 즉시 새 제목
     - 정상: Playwright MCP → 글 삭제 → `/blog` 새로고침 → 즉시 미노출, 상세 not-found
     - 오류: Playwright MCP → 발행 글을 초안으로 전환 → 공개 상세 즉시 not-found(캐시 잔존 없음)
     - 엣지: Playwright MCP → 슬러그 변경 → 이전 슬러그 not-found, 새 슬러그 정상
     - 엣지: Playwright MCP → Tab 키로 헤더 메뉴·테마 전환·블로그 필터 순회 → 포커스 표시, Enter로 동작
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-10-31 `npm run check`(typecheck·lint·prettier 통과, Vitest 32 파일 / 253개)·`npm run build`(Partial Prerender ◐ 유지, `/blog`·`/blog/[slug]`는 `cacheLife('max')`로 표시)·`npm run knip`(종료 코드 0) 통과. production 빌드(`npm run build && npm run start`) 위에서 전체 e2e `npx playwright test` 85/85 통과(skip 0, 관리자 자격 증명 사용). 새 `e2e/cache-invalidation.spec.ts` 4개 시나리오는 로그인 쿠키가 없는 별도 브라우저 컨텍스트를 방문자로 두고, 캐시를 데운 뒤 관리자가 변경하면: 제목 수정→`/blog`와 상세에 즉시 새 제목, 삭제→목록에서 사라지고 상세 not-found, 발행→초안 전환→상세 즉시 not-found, 슬러그 변경→이전 슬러그 not-found·새 슬러그 정상. Tab 순회·포커스 링은 기존 `e2e/a11y.spec.ts`가 확인한다. 테스트 후 원격 `posts`의 `e2e-` 글 잔존 0건(읽기 전용 SQL, `.mcp.json` 고정 ref `gfrewivdclcitgysgsbi`). Playwright MCP는 쓰지 않고 Playwright Test e2e로 대체했다.
+    - Lighthouse(모바일 프리셋, production 빌드, 로컬 `localhost:3000`, headless Chrome): `/` 성능 100·접근성 100, `/projects` 100·100, `/career` 100·98, `/publications` 100·98, `/blog` 성능 88(첫 측정)→재측정 3회 100·접근성 100, 블로그 상세 성능 90·100·접근성 100. `/blog` 첫 측정 88은 90점 기준 미달이었다. 첫 요청이라 이미지 최적화(`/_next/image`) 캐시가 비어 있었기 때문으로 추정하며 원인은 확정하지 못했다.
+    - 구현 중 발견·수정한 결함: 썸네일을 `next/image`로 바꾼 뒤 `src`가 `/_next/image?url=…%2Fblog-images%2F…`로 인코딩되어 `admin-image-upload.spec.ts`의 `img[src*="/blog-images/"]` 셀렉터가 맞지 않았다(`blog-images`로 수정). `a11y.spec.ts`의 이력 드롭다운 테스트는 메뉴가 열린 직후 첫 항목에 포커스가 가기 전에 ArrowDown을 눌러 `/career` 대신 `/education`으로 가는 경우가 있었다(첫 항목 포커스를 기다리도록 수정, 5회 반복 40/40 통과).
+    - 제한 사항·미확인: Supabase Auth 로그인은 `/auth/v1/token`의 IP당 버스트 한도(30건)에 걸린다. 전체 e2e는 로그인을 약 40번 해서 기본 한도(token refreshes 150/5min)에서는 약 37번째 로그인부터 429가 나고 로그인이 필요한 테스트가 실패했다. 85/85 통과는 대시보드에서 "Rate limit for token refreshes"를 500/5min으로 올린 상태에서 얻은 결과다(이 값과 "sign-ups and sign-ins" 100/5min은 테스트 후 원래대로 되돌려야 하며, 되돌리면 전체 e2e를 한 번에 통과시키려면 로그인 세션 재사용이 필요하다). 이 원격은 `main PRODUCTION`으로 표시된 프로젝트다. Lighthouse는 로컬 production 빌드의 `/`·`/projects`·`/career`·`/publications`·`/blog`와 블로그 상세 1건만 측정했고(그 상세는 e2e가 남긴 테스트 글이었다) 나머지 공개 페이지와 관리자 화면은 측정하지 않았다. 편집기를 키보드만으로 조작하는 e2e와, 실제 Supabase 썸네일의 `next/image` 런타임 렌더링을 업로드해 확인하는 e2e는 고아 파일을 늘리므로 하지 않았다. 캐시 무효화 e2e는 단일 인스턴스 production 서버 기준이며 배포 환경(여러 인스턴스·CDN)은 Task 020에서 확인한다. Chromium만 확인했다.
 
 - **Task 020: 최종 회귀 테스트 및 배포 준비**
   - 관련 기능: F001~F014
@@ -491,12 +502,14 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [ ] README 최종 점검: hkoikoi.dev 기준 기본판은 작성되어 있으므로(설치·환경 변수·관리자 계정 설정 절차), 배포 절차와 `<style>` 작성 규칙(`post-` class, `#user-content-{id}`)을 채우고 실제 구현 상태와 맞는지 확인
   - [ ] `docs/guides/project-structure.md`의 구조·정리 대상 목록을 실제 상태로 갱신
   - [ ] `data/*.ts`의 `// TODO` 샘플을 실제 이력으로 교체하도록 사용자에게 안내(실제 내용은 사용자 제공)
+  - [ ] 기본 OG 이미지 교체: `app/opengraph-image.png`·`app/twitter-image.png`가 Supabase 스타터의 "Next.js Starter Kit" 이미지(1200x600, 두 파일 동일)로 남아 있다. hkoikoi.dev용 이미지(권장 1200x630)로 두 파일을 같은 이름으로 덮어쓴다(코드 변경 없음, 이미지는 사용자 제공). Task 018에서 홈과 썸네일 없는 글의 `og:image`가 이 파일을 가리킨다
   - 테스트 체크리스트:
     - 정상: 터미널 → `npm run check && npm run build && npm run knip` → 모두 통과
     - 정상: Playwright MCP → 배포 URL에서 방문자 여정 → 모든 페이지 정상, 콘솔 오류 0건(`browser_console_messages`)
     - 정상: Playwright MCP → 배포 URL에서 관리자 로그인 → 글 작성·이미지 업로드·발행 → 공개 확인 → 삭제
     - 오류: Playwright MCP → 배포 URL `/admin/posts` 비로그인 접근 → `/auth/login`
     - 엣지: Playwright MCP → 배포 URL `/robots.txt`·`/sitemap.xml` → 운영 도메인 절대 URL
+    - 엣지: Playwright MCP → 배포 URL 홈·썸네일 없는 글의 `og:image` → 교체한 hkoikoi.dev 이미지(스타터 이미지 아님)
   - 테스트 결과: (미수행)
 
 ## 기능 ID 매핑

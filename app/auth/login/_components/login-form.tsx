@@ -41,16 +41,31 @@ export function LoginForm({
                   name="email"
                   type="email"
                   placeholder="m@example.com"
+                  autoComplete="email"
                   required
+                  aria-invalid={state.error ? true : undefined}
+                  aria-describedby={state.error ? "login-error" : undefined}
                   defaultValue={state.email}
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">비밀번호</Label>
-                <Input id="password" name="password" type="password" required />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  aria-invalid={state.error ? true : undefined}
+                  aria-describedby={state.error ? "login-error" : undefined}
+                />
               </div>
               {state.error && (
-                <p role="alert" className="text-sm text-destructive">
+                <p
+                  id="login-error"
+                  role="alert"
+                  className="text-sm text-destructive"
+                >
                   {state.error}
                 </p>
               )}

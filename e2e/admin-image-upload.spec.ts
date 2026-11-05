@@ -104,7 +104,7 @@ test.describe("관리자 이미지 업로드", () => {
 
     await page.goto("/blog");
     const card = page.locator('[data-slot="card"]').filter({ hasText: title });
-    await expect(card.locator('img[src*="/blog-images/"]')).toBeVisible();
+    await expect(card.locator('img[src*="blog-images"]')).toBeVisible();
   });
 
   test("썸네일 제거 → 미리보기가 사라진다", async ({ page }) => {

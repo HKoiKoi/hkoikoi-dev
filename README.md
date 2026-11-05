@@ -17,12 +17,13 @@
 | DB(`posts` 테이블, RLS)와 이미지 스토리지(`blog-images`) 마이그레이션 | 완료, 원격 프로젝트에 적용됨            |
 | 관리자 인증·권한, 글 저장·발행·삭제                                   | 완료 (Task 011, 013)                    |
 | 마크다운 렌더링, 편집기 실시간 미리보기, 이미지 업로드                | 완료 (Task 015~017)                     |
-| SEO(sitemap, robots, 메타데이터), 캐싱·성능, 배포                     | 예정 (Task 018~020)                     |
+| SEO(sitemap, robots, 메타데이터), 캐싱·성능·접근성                    | 완료 (Task 018, 019)                    |
+| 최종 회귀 테스트, 문서 정리, 배포 환경 검증                           | 진행 중 (Task 020, 배포는 미수행)       |
 
 ## 기술 스택
 
 - Next.js 16 (App Router, Turbopack, Cache Components, `proxy.ts`), React 19, TypeScript
-- Tailwind CSS v4, shadcn/ui `base-nova`(Base UI 기반), `next-themes`, Noto Sans KR
+- Tailwind CSS v4, shadcn/ui `base-nova`(Base UI 기반), `next-themes`, Pretendard·JetBrains Mono
 - Supabase: 쿠키 기반 인증(`@supabase/ssr`), Postgres(RLS), Storage
 - Vitest + Testing Library, Playwright, ESLint, Prettier, Husky, commitlint, knip
 
@@ -41,7 +42,10 @@ npm run dev        # http://localhost:3000
 ```env
 NEXT_PUBLIC_SUPABASE_URL=[Supabase 프로젝트 URL]
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[publishable 또는 anon 키]
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
+
+`NEXT_PUBLIC_SITE_URL`은 metadataBase·sitemap·robots의 절대 URL 기준이며, 끝 슬래시 없이 씁니다. 미설정이면 `http://localhost:3000`입니다.
 
 > `NEXT_PUBLIC_` 변수는 브라우저에 노출됩니다. service role 키 같은 비밀 값에는 이 접두를 붙이지 않습니다.
 > `.env.example`의 `DATA_DIR`, `TEMPLATES_USE`, `ENABLE_GUI`는 앱이 아니라 shrimp-task-manager MCP용입니다.
@@ -75,18 +79,73 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[publishable 또는 anon 키]
 
 관리자 로그인 주소는 `/auth/login`이며 헤더 메뉴에는 노출하지 않습니다. 비로그인으로 `/admin` 하위 경로에 접근하면 로그인 화면으로 이동합니다.
 
+## 글 안 `<style>` 작성 규칙
+
+글 본문에 `<style>`을 쓸 수 있지만, 글 상세 페이지 전체에 적용되므로 sanitize를 통과한 뒤 CSS를 한 번 더 걸러냅니다(`lib/markdown/rehype-sanitize-style.ts`). 걸러진 규칙은 오류 없이 조용히 사라집니다.
+
+**남는 것**
+
+- 모든 선택자가 `.post-` 또는 `#user-content-`로 시작하는 일반 스타일 규칙. 쉼표로 나열한 선택자는 하나라도 허용되지 않으면 규칙 전체가 제거됩니다.
+- 자손 선택자(`.post-a p`)와 커스텀 속성(`--gap`, `var(--gap)`).
+- 본문 요소에는 `post-`로 시작하는 class만 남습니다(그 외 class는 제거). `id`는 자동으로 `user-content-` 접두가 붙으므로 `<div id="box">`는 `#user-content-box`로 선택합니다.
+
+**제거되는 것**
+
+- `@import`, `@font-face`, `@media` 같은 `@` 규칙 전부.
+- 중첩 규칙, 닫히지 않은 블록, 이스케이프(`\`)가 든 규칙.
+- 범위를 벗어나는 선택자: `~`, `+`, `:has`, `:is`, `:where`, `:not`, `:host`, `:root`.
+- `url()`, `image-set()`, `image()`, `expression()`, `-moz-binding`, `behavior:`가 든 선언(해당 선언만 제거되고 같은 규칙의 나머지 선언은 남습니다).
+- `body`, `*` 같이 접두가 다른 전역 선택자 규칙, 주석.
+
+```html
+<style>
+  .post-box {
+    padding: 1rem;
+    border: 1px solid currentColor;
+  }
+  .post-box p {
+    --gap: 4px;
+    margin: var(--gap);
+  }
+</style>
+
+<div class="post-box"><p>스타일이 적용됩니다.</p></div>
+```
+
+`<span>`의 인라인 `style`은 `color: #hex` 한 가지 형태만 통과합니다.
+
+## 배포
+
+호스팅 서비스는 아직 확정하지 않았으므로 서비스별 절차는 적지 않습니다. 어떤 서비스든 필요한 설정은 다음과 같습니다.
+
+1. 빌드 명령은 `npm run build`, 실행은 `npm run start`입니다(Node.js 20.9 이상).
+2. 호스팅의 환경 변수에 세 값을 설정합니다. 이 값들은 `NEXT_PUBLIC_` 접두라 **빌드 시점에** 번들에 들어가므로 변경하면 다시 빌드해야 합니다.
+
+   | 변수                                   | 값                                                  |
+   | -------------------------------------- | --------------------------------------------------- |
+   | `NEXT_PUBLIC_SUPABASE_URL`             | 운영 Supabase 프로젝트 URL                          |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | publishable 또는 anon 키                            |
+   | `NEXT_PUBLIC_SITE_URL`                 | 운영 도메인(예: `https://example.com`, 끝 슬래시 X) |
+
+3. Supabase 대시보드 Authentication → URL Configuration에서 **Site URL**을 운영 도메인으로 바꾸고, **Redirect URLs**에 운영 도메인을 추가합니다. 로컬 개발용 `http://localhost:3000` 항목은 필요할 때만 둡니다.
+4. 배포 뒤 `/robots.txt`, `/sitemap.xml`의 절대 URL이 운영 도메인인지, 비로그인으로 `/admin/posts`에 접근하면 `/auth/login`으로 이동하는지 확인합니다.
+5. 기본 OG 이미지(`app/opengraph-image.png`, `app/twitter-image.png`)는 스타터 이미지가 남아 있으므로 hkoikoi.dev용 이미지(권장 1200x630)로 같은 이름으로 덮어씁니다.
+
 ## 명령어
 
 ```bash
 npm run dev            # 개발 서버
 npm run build          # 프로덕션 빌드
+npm run typecheck      # next typegen + tsc --noEmit
+npm run lint           # ESLint (경고도 실패)
+npm run format:check   # Prettier 검사 (수정은 npm run format)
 npm run check          # typecheck + lint + format:check + test
 npm run test           # 단위 테스트 (Vitest)
 npm run test:e2e       # E2E (Playwright, dev 서버 자동 기동)
 npm run knip           # 미사용 파일·export·의존성 검출
 ```
 
-CI는 typecheck → lint → format:check → test → build를 실행합니다. E2E와 knip은 로컬에서 실행합니다. 커밋 메시지는 `타입: 제목` 형식(한국어 가능)이고, Git 훅(Husky)이 lint-staged와 commitlint를 실행합니다.
+CI는 typecheck → lint → format:check → test → build를 실행합니다. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`만 실행하고, 나머지 E2E(관리자 계정·DB 쓰기 필요)와 knip은 로컬에서 실행합니다. 커밋 메시지는 `타입: 제목` 형식(한국어 가능)이고, Git 훅(Husky)이 lint-staged와 commitlint를 실행합니다.
 
 ## 프로젝트 구조
 
@@ -101,7 +160,7 @@ docs/             # PRD, ROADMAP, 개발 가이드
 proxy.ts          # 세션 갱신 + /admin 보호
 ```
 
-폴더 규칙과 컨벤션은 [`docs/guides/`](docs/guides/)의 가이드를 따릅니다: `project-structure.md`, `nextjs-16.md`, `component-patterns.md`, `styling-guide.md`, `forms-react-hook-form.md`.
+폴더 규칙과 컨벤션은 [`docs/guides/`](docs/guides/)의 가이드를 따릅니다: `project-structure.md`, `nextjs-16.md`, `component-patterns.md`, `styling-guide.md`, `forms-react-hook-form.md`, `rls-verification.md`.
 
 ## 개발 참고
 

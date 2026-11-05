@@ -220,9 +220,9 @@ const mounted = useSyncExternalStore(
 
 ## 폰트
 
-- `app/layout.tsx`는 `next/font/google`의 **Noto Sans KR**을 `variable: "--font-noto-sans-kr"`(가변 폰트라 `weight`는 지정하지 않음, `display: "swap"`)로 로드하고, `<body className={`${notoSansKr.variable} font-sans antialiased`}>`로 적용합니다.
-- `app/globals.css`의 `@theme inline`에서 `--font-sans: var(--font-noto-sans-kr), sans-serif;`로 연결하고 `--font-heading`도 `--font-sans`를 따릅니다. `html { @apply font-sans }`가 기본 폰트를 지정하므로 `font-sans` 유틸리티가 Noto Sans KR로 해석됩니다.
-- 타입 정의상 Noto Sans KR의 `subsets`에는 `korean`이 없어 `latin`만 preload하고, 한글 글리프는 Google Fonts의 unicode-range 조각으로 로드됩니다. 폰트를 바꿀 때는 한글 렌더링을 화면에서 확인합니다.
+- 본문은 **Pretendard Variable**(`pretendard` 패키지의 `pretendardvariable-dynamic-subset.css`, unicode-range 분할·`font-display: swap`)을 `app/layout.tsx`에서 import해 로드합니다. 코드는 `next/font/google`의 **JetBrains Mono**를 `variable: "--font-jetbrains-mono"`로 로드해 `<html>`에 붙입니다(`next/font` 변수는 `:root`에서 해석돼야 Tailwind preflight의 `code`/`pre`에도 적용됩니다).
+- `app/globals.css`의 `@theme inline`에서 `--font-sans: "Pretendard Variable", ...`, `--font-mono: var(--font-jetbrains-mono), ...`로 연결하고 `--font-heading`은 `--font-sans`를 따릅니다. `html { @apply font-sans }`가 기본 폰트를 지정합니다.
+- 폰트를 바꿀 때는 한글 렌더링을 화면에서 확인합니다.
 
 ## 색상 시스템
 

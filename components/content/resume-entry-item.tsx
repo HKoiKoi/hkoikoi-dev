@@ -15,10 +15,21 @@ export function ResumeEntryItem({
   subtitle,
   period,
   description,
+  grade,
+  gradeLabel = "평점",
   tags,
+  tagGroups,
   link,
   className,
 }: ResumeEntryItemProps) {
+  // 평점은 description이 있으면 그 줄 오른쪽에, 없으면 subtitle 줄 오른쪽에 붙인다.
+  const gradeBadge = grade && (
+    <Badge variant="outline" className="ml-auto shrink-0 tabular-nums">
+      <span className="sr-only">{gradeLabel} </span>
+      {grade}
+    </Badge>
+  );
+
   return (
     <li className={className}>
       <Card className="relative gap-2 border-l-4 border-l-primary px-5 shadow-sm transition-shadow hover:shadow-md">
@@ -48,12 +59,24 @@ export function ResumeEntryItem({
             </Badge>
           )}
         </div>
-        {subtitle && (
-          <p className="text-sm break-words text-muted-foreground">
-            {subtitle}
-          </p>
+        {(subtitle || (grade && !description)) && (
+          <div className="flex items-baseline justify-between gap-4">
+            {subtitle && (
+              <p className="text-sm break-words text-muted-foreground">
+                {subtitle}
+              </p>
+            )}
+            {!description && gradeBadge}
+          </div>
         )}
-        {description && <p className="text-sm break-words">{description}</p>}
+        {description && (
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="text-sm break-words whitespace-pre-line">
+              {description}
+            </p>
+            {gradeBadge}
+          </div>
+        )}
         {tags && tags.length > 0 && (
           <ul className="flex flex-wrap gap-1.5" aria-label="태그">
             {tags.map((tag) => (
@@ -62,6 +85,29 @@ export function ResumeEntryItem({
               </li>
             ))}
           </ul>
+        )}
+        {tagGroups && tagGroups.length > 0 && (
+          <dl className="grid gap-1.5">
+            {tagGroups.map((group) => (
+              <div
+                key={group.label}
+                className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"
+              >
+                <dt className="w-20 shrink-0 text-xs font-medium text-muted-foreground">
+                  {group.label}
+                </dt>
+                <dd>
+                  <ul className="flex flex-wrap gap-1.5">
+                    {group.tags.map((tag) => (
+                      <li key={tag}>
+                        <TechBadge>{tag}</TechBadge>
+                      </li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+            ))}
+          </dl>
         )}
       </Card>
     </li>

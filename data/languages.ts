@@ -1,6 +1,11 @@
 import type { ResumeEntry } from "@/lib/types/resume";
 
-// TODO: 실제 내용으로 교체
 export const languages: ResumeEntry[] = [
-  { title: "영어", subtitle: "TOEIC 900", period: "2021.05" },
+  {
+    title: "영어",
+    subtitle: "TOEIC · YBM",
+    grade: "620",
+    gradeLabel: "TOEIC 점수",
+    period: "2026.08.30",
+  },
 ];

@@ -14,8 +14,26 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
 ];
 
+// 썸네일은 lib/schemas/post.ts가 Supabase Storage 공개 버킷 주소만 허용하므로 같은 호스트·경로만 연다.
+// 환경변수가 없거나 잘못된 값이면 외부 이미지 최적화를 열지 않는다.
+function getSupabaseImagePatterns(): URL[] {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return [];
+  try {
+    const { protocol, hostname, port } = new URL(base);
+    return [
+      new URL(
+        `${protocol}//${hostname}${port ? `:${port}` : ""}/storage/v1/object/public/blog-images/**`,
+      ),
+    ];
+  } catch {
+    return [];
+  }
+}
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  images: { remotePatterns: getSupabaseImagePatterns() },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

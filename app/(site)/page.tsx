@@ -43,7 +43,9 @@ export default function Home() {
           <p className="text-lg break-words text-muted-foreground">
             {profile.tagline}
           </p>
-          <p className="break-words whitespace-pre-wrap">{profile.bio}</p>
+          <p className="break-words break-keep whitespace-pre-wrap">
+            {profile.bio}
+          </p>
           <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
             <Button
               nativeButton={false}

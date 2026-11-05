@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ImageIcon } from "lucide-react";
 
@@ -33,14 +34,16 @@ export function PostCard({ post, className }: PostCardProps) {
       )}
     >
       {thumbnail_url ? (
-        // 외부 URL이 임의 도메인일 수 있어 next/image 대신 img 사용
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={thumbnail_url}
-          alt=""
-          loading="lazy"
-          className="aspect-video w-full object-cover"
-        />
+        // 썸네일 주소는 스키마가 Supabase Storage로 제한하며 next.config.ts remotePatterns에 등록돼 있다
+        <div className="relative aspect-video w-full overflow-hidden">
+          <Image
+            src={thumbnail_url}
+            alt=""
+            fill
+            sizes="(min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+          />
+        </div>
       ) : (
         <div
           aria-hidden="true"
@@ -60,7 +63,7 @@ export function PostCard({ post, className }: PostCardProps) {
           {/* stretched link: after 가상 요소로 카드 전체를 클릭 영역으로 확장 */}
           <Link
             href={href}
-            className="outline-none after:absolute after:inset-0 after:rounded-xl after:content-[''] hover:underline focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
+            className="outline-none after:absolute after:inset-0 after:rounded-xl after:content-[''] hover:underline focus-visible:after:ring-[3px] focus-visible:after:ring-ring"
           >
             {title}
           </Link>

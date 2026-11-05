@@ -147,6 +147,30 @@ describe("MarkdownContent 엣지", () => {
 });
 
 describe("MarkdownContent 코드 복사 버튼", () => {
+  it("펜스의 언어를 헤더 줄에 라벨로 표시한다", () => {
+    const c = renderMd("```ts\nconst a = 1\n```");
+    expect(c.querySelector("[data-code-block] span")?.textContent).toBe("ts");
+  });
+
+  it("알려진 언어는 라벨 앞 점에 언어색을 칠하고 모르는 언어는 칠하지 않는다", () => {
+    const known = renderMd("```ts\nconst a = 1\n```");
+    const dot = known.querySelector<HTMLElement>(
+      "[data-code-block] [aria-hidden]",
+    );
+    expect(dot?.style.backgroundColor).toBe("rgb(49, 120, 198)");
+    const unknown = renderMd("```foolang\nx\n```");
+    expect(
+      unknown.querySelector<HTMLElement>("[data-code-block] [aria-hidden]")
+        ?.style.backgroundColor,
+    ).toBe("");
+  });
+
+  it("언어가 없으면 라벨은 비어 있고 복사 버튼은 유지된다", () => {
+    const c = renderMd("```\nplain\n```");
+    expect(c.querySelector("[data-code-block] span")?.textContent).toBe("");
+    expect(screen.getByRole("button", { name: "코드 복사" })).toBeVisible();
+  });
+
   it("코드 블록마다 복사 버튼을 렌더링한다", () => {
     renderMd("```ts\nconst a = 1\n```");
     expect(screen.getByRole("button", { name: "코드 복사" })).toBeVisible();

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
@@ -18,14 +18,16 @@ const DRAFT_SAVED = "임시 저장했습니다.";
 const UNIQUE_VIOLATION = "23505";
 
 /**
- * 글 변경 후 영향을 받는 경로를 무효화한다 (비공개 헬퍼).
- * 공개 조회 쿼리는 'use cache'를 쓰지 않아 cacheTag 소비자가 없으므로
- * updateTag/revalidateTag 대신 경로 단위 revalidatePath를 쓴다.
+ * 글 변경 후 공개 캐시를 태그로 무효화한다 (비공개 헬퍼).
+ * 공개 조회 쿼리(lib/queries/posts.ts)가 posts, post:<NFC slug> 태그를 쓰므로
+ * 목록과 영향받은 글 상세만 만료한다. updateTag는 다음 요청이 새 데이터를 기다려
+ * 저장·삭제 직후 바로 반영된다. 관리자 경로는 캐시 태그가 없어 revalidatePath를 쓴다.
  */
-function revalidatePostPaths() {
-  revalidatePath("/");
-  revalidatePath("/blog");
-  revalidatePath("/blog/[slug]", "page");
+function invalidatePostTags(slugs: string[]) {
+  updateTag("posts");
+  for (const slug of new Set(slugs)) {
+    updateTag(`post:${slug.normalize("NFC")}`);
+  }
   revalidatePath("/admin/posts");
 }
 
@@ -51,6 +53,8 @@ export async function savePost(
 
   // 새 글 insert 직후 편집 화면으로 보내기 위한 id
   let createdId: string | null = null;
+  // 무효화할 슬러그: 새 슬러그와(수정이면) 변경 전 슬러그
+  const staleSlugs: string[] = [parsed.data.slug];
 
   try {
     // 요청마다 새 클라이언트를 만든다.
@@ -59,10 +63,10 @@ export async function savePost(
     let error: { code?: string; message: string } | null;
 
     if (id) {
-      // 수정: 최초 발행일 유지를 위해 기존 published_at을 먼저 읽는다.
+      // 수정: 최초 발행일 유지와 이전 슬러그 무효화를 위해 기존 값을 먼저 읽는다.
       const { data: existing, error: readError } = await supabase
         .from("posts")
-        .select("published_at")
+        .select("published_at, slug")
         .eq("id", id)
         .maybeSingle();
 
@@ -71,6 +75,7 @@ export async function savePost(
         return { ok: false, message: SAVE_FAILED };
       }
       if (!existing) return { ok: false, message: NOT_FOUND };
+      staleSlugs.push(existing.slug);
 
       const payload: PostInput = parsed.data;
       const { data: updated, error: updateError } = await supabase
@@ -122,7 +127,7 @@ export async function savePost(
     return { ok: false, message: SAVE_FAILED };
   }
 
-  revalidatePostPaths();
+  invalidatePostTags(staleSlugs);
 
   // 임시 저장(발행 아님)은 목록으로 보내지 않고 편집 화면에 머문다.
   // 새 글은 이후 저장이 중복 생성이 되지 않도록 방금 만든 글의 수정 화면으로 보낸다.
@@ -144,13 +149,15 @@ export async function deletePost(
     return { ok: false, message: "잘못된 글 식별자입니다." };
   }
 
+  let deletedSlug: string;
+
   try {
     const supabase = await createClient();
     const { data: deleted, error } = await supabase
       .from("posts")
       .delete()
       .eq("id", id)
-      .select("id");
+      .select("id, slug");
 
     if (error) {
       console.error("[deletePost]", error.code, error.message);
@@ -160,12 +167,14 @@ export async function deletePost(
     if (deleted.length === 0) {
       return { ok: false, message: DELETE_FAILED };
     }
+    // 삭제된 행에서 slug를 얻는다(삭제 전 별도 조회 불필요).
+    deletedSlug = deleted[0].slug;
   } catch (error) {
     unstable_rethrow(error);
     console.error("[deletePost]", error);
     return { ok: false, message: DELETE_FAILED };
   }
 
-  revalidatePostPaths();
+  invalidatePostTags([deletedSlug]);
   return { ok: true };
 }
