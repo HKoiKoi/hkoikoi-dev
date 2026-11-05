@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ChevronDownIcon, MenuIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { SiteLogo } from "@/components/layout/site-logo";
 import { NavGroupDropdown } from "@/components/layout/nav-group-dropdown";
 import { NavLink } from "@/components/layout/nav-link";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -14,8 +15,9 @@ export function SiteHeader() {
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4">
         <Link
           href="/"
-          className="shrink-0 rounded-md text-lg font-bold tracking-tight text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring"
+          className="flex shrink-0 items-center gap-2 rounded-md text-lg font-bold tracking-tight text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring"
         >
+          <SiteLogo />
           {siteConfig.name}
         </Link>
         <nav aria-label="주요 메뉴" className="hidden min-w-0 md:block">

@@ -21,7 +21,7 @@
 | 테스트     | Vitest 5 + Testing Library(jsdom), Playwright(chromium)                             |
 | 런타임     | Node `>=20.9` (`.nvmrc`는 24)                                                       |
 
-아직 없는 것(필요할 때 추가): `react-hook-form`(`zod`는 설치됨), `hooks/`, `public/`. 공개 블로그 글은 `lib/queries/posts.ts`가 발행 글을, 관리자 글 목록·편집은 `lib/queries/admin-posts.ts`가 초안 포함 전체 글을 조회합니다.
+아직 없는 것(필요할 때 추가): `react-hook-form`(`zod`는 설치됨), `hooks/`. 공개 블로그 글은 `lib/queries/posts.ts`가 발행 글을, 관리자 글 목록·편집은 `lib/queries/admin-posts.ts`가 초안 포함 전체 글을 조회합니다.
 
 ## 전체 구조
 
@@ -50,6 +50,7 @@ hkoikoi-dev/
 │   ├── post-metadata.ts    # 글 상세 메타데이터(OG·twitter·없는 글 noindex) 순수 함수 + 테스트
 │   ├── markdown/           # sanitize 스키마, `<style>` 검사, 플러그인 순서 + 테스트
 │   ├── format-date.ts / is-active-path.ts / utils.ts   # 공용 유틸 (+ *.test.ts)
+├── public/                 # 정적 파일: avatar.webp(홈 프로필 사진, 위치정보 없는 640px 변환본)
 ├── supabase/migrations/    # DB 마이그레이션 SQL (원격 version과 파일명 일치)
 ├── e2e/                    # Playwright 테스트 (*.spec.ts)
 ├── docs/                   # PRD.md, ROADMAP.md, guides/ (개발 가이드)
@@ -86,7 +87,8 @@ app/
 ├── globals.css             # Tailwind v4 + shadcn 테마 변수
 ├── not-found.tsx
 ├── robots.ts / sitemap.ts  # 메타데이터 라우트 (+ robots.test.ts, sitemap.test.ts)
-├── opengraph-image.png / twitter-image.png / favicon.ico
+├── opengraph-image.png / twitter-image.png   # 1200x630 공유 카드 (hkoikoi.dev용)
+├── icon.svg                # 파비콘(로고 마크). favicon.ico는 없다
 ├── (site)/                 # 공개 사이트 (Route Group, URL에 나타나지 않음)
 │   ├── layout.tsx          # 헤더·푸터
 │   ├── page.tsx            # /
@@ -136,7 +138,7 @@ components/
 ├── blog/       # category-badge, post-card, post-list-skeleton, tag-badge
 ├── content/    # empty-state, page-header, project-card, publication-item, resume-*, tech-badge
 ├── markdown/   # markdown-content (+ 테스트), code-block, code-copy-button: 동기 컴포넌트라 서버·클라이언트 양쪽에서 쓴다
-├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link, scroll-to-top, skip-link
+├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link, scroll-to-top, skip-link, site-logo(헤더의 "h" 마크, currentColor 인라인 SVG)
 └── *.tsx       # theme-switcher (app을 import하는 컴포넌트는 두지 않는다: eslint로 강제)
 ```
 
@@ -272,22 +274,22 @@ import { cn } from "@/lib/utils";
 
 ## 새 파일 추가 규칙
 
-| 대상                      | 위치                                                       |
-| ------------------------- | ---------------------------------------------------------- |
-| 새 공개 페이지            | `app/(site)/<경로>/page.tsx` (proxy 수정 불필요)           |
-| 관리자 페이지             | `app/admin/<경로>/page.tsx` (proxy가 자동 보호)            |
-| Route Handler             | `app/<경로>/route.ts`                                      |
-| Server Action             | 기능 옆 `actions.ts` (파일 최상단에 `"use server"`)        |
-| 공통 UI                   | `components/ui/` (shadcn CLI)                              |
-| 한 페이지 전용 컴포넌트   | 해당 라우트 폴더의 `_components/`                          |
-| 여러 페이지 공용 컴포넌트 | `components/<domain>/`                                     |
-| 정적 콘텐츠(이력 등)      | `data/<이름>.ts` + 타입은 `lib/types/`                     |
-| 순수 로직                 | `lib/<도메인>/<이름>.ts` + 옆에 `*.test.ts`                |
-| DB 스키마 변경            | `supabase/migrations/` → 적용 → `database.types.ts` 재생성 |
-| 단위 테스트               | 대상 파일 옆 `*.test.ts(x)`                                |
-| E2E 테스트                | `e2e/<이름>.spec.ts`                                       |
-| 정적 파일                 | `public/` (폴더 없음, 필요 시 생성)                        |
-| 환경 변수                 | `.env` + `.env.example`에 키 이름 추가                     |
+| 대상                      | 위치                                                            |
+| ------------------------- | --------------------------------------------------------------- |
+| 새 공개 페이지            | `app/(site)/<경로>/page.tsx` (proxy 수정 불필요)                |
+| 관리자 페이지             | `app/admin/<경로>/page.tsx` (proxy가 자동 보호)                 |
+| Route Handler             | `app/<경로>/route.ts`                                           |
+| Server Action             | 기능 옆 `actions.ts` (파일 최상단에 `"use server"`)             |
+| 공통 UI                   | `components/ui/` (shadcn CLI)                                   |
+| 한 페이지 전용 컴포넌트   | 해당 라우트 폴더의 `_components/`                               |
+| 여러 페이지 공용 컴포넌트 | `components/<domain>/`                                          |
+| 정적 콘텐츠(이력 등)      | `data/<이름>.ts` + 타입은 `lib/types/`                          |
+| 순수 로직                 | `lib/<도메인>/<이름>.ts` + 옆에 `*.test.ts`                     |
+| DB 스키마 변경            | `supabase/migrations/` → 적용 → `database.types.ts` 재생성      |
+| 단위 테스트               | 대상 파일 옆 `*.test.ts(x)`                                     |
+| E2E 테스트                | `e2e/<이름>.spec.ts`                                            |
+| 정적 파일                 | `public/` (원본 사진은 두지 않는다: 위치정보 제거·축소 후 추가) |
+| 환경 변수                 | `.env` + `.env.example`에 키 이름 추가                          |
 
 ## 코드 조직 원칙
 

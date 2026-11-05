@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { languages } from "../data/languages";
+
 test.describe("메인 페이지", () => {
   test("연락처 링크와 섹션이 표시된다", async ({ page }) => {
     await page.goto("/");
@@ -49,11 +51,13 @@ test.describe("이력·논문 페이지", () => {
     await expect(link).toHaveAttribute("rel", /noreferrer/);
   });
 
-  test("어학은 언어·시험 점수·취득일 형식으로 표시된다", async ({ page }) => {
+  test("어학은 언어·시험·점수·취득일 형식으로 표시된다", async ({ page }) => {
     await page.goto("/languages");
 
-    await expect(page.getByText("영어")).toBeVisible();
-    await expect(page.getByText("TOEIC 900")).toBeVisible();
-    await expect(page.getByText("2021.05")).toBeVisible();
+    const [entry] = languages;
+    await expect(page.getByText(entry.title, { exact: true })).toBeVisible();
+    await expect(page.getByText(entry.subtitle!)).toBeVisible();
+    await expect(page.getByText(entry.grade!)).toBeVisible();
+    await expect(page.getByText(entry.period!)).toBeVisible();
   });
 });
