@@ -7,5 +7,5 @@ export const profile: Profile = {
   email: "koikoilove99@gmail.com",
   github: "https://github.com/hkoikoi",
   // public/ 안의 파일은 사이트 루트 경로로 제공된다.
-  avatar: "/avatar.png",
+  avatar: "/avatar.webp",
 };
