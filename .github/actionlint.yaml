@@ -1,0 +1,4 @@
+# actionlint 설정. 홈 서버 self-hosted runner의 사용자 정의 라벨을 등록한다.
+self-hosted-runner:
+  labels:
+    - homeserver
