@@ -14,7 +14,7 @@ hkoikoi.dev는 채용 담당자·동료 개발자(방문자)와 관리자 본인
 - 기준 문서: `docs/PRD.md` (기능 ID F001~F014)
 - 구조·컨벤션: `docs/guides/project-structure.md`, `nextjs-16.md`, `component-patterns.md`, `styling-guide.md`, `forms-react-hook-form.md`
 - 스택: Next.js 16.4 (App Router, `cacheComponents: true`, `proxy.ts`), React 19.3, Tailwind v4, shadcn/ui `base-nova`(Base UI), Supabase(인증·DB·스토리지), Vitest + Playwright
-- 상태: **MVP(F001~F014, Task 001~020) 완료 — 2026-11-05.** 근거는 Task 020의 운영 배포 검증(`https://www.hkoikoi.dev`)과 각 Task의 `테스트 결과`다. 완료 처리 때 확인하지 못한 항목은 완료로 바꾸지 않고 Task 021(MVP 잔여 검증)로 넘겼다. 다음 작업은 Phase 6(MVP 이후 범위)이다.
+- 상태: **MVP(F001~F014, Task 001~020) 완료 — 2026-11-05.** 근거는 Task 020의 운영 배포 검증(`https://www.hkoikoi.dev`)과 각 Task의 `테스트 결과`다. 완료 처리 때 확인하지 못한 항목은 완료로 바꾸지 않고 Task 021(MVP 잔여 검증)로 넘겼다. 다음 작업은 Phase 6(MVP 이후 범위)이다. 2026-11-07에 운영을 Vercel에서 Mac mini 홈 서버로 이전하고 `main` push 자동 배포를 구성했다(Phase 7, Task 035~044). 정식 호스트는 `hkoikoi.dev`(apex)다.
 
 ## 개발 워크플로우
 
@@ -862,6 +862,134 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → 운영 비로그인 `/admin/storage`·`/admin/resume/career` → `/auth/login`
     - 엣지: Playwright MCP → 운영에서 글 발행·삭제 직후 `/blog` 필터 목록·검색 결과·RSS·sitemap·홈 반영
   - 테스트 결과: (미수행)
+
+### Phase 7: 홈 서버 이전·자동 배포 ✅
+
+> 운영을 Vercel에서 Mac mini 홈 서버로 옮기고, `main` push 때 CI 통과 후 self-hosted runner로 자동 배포한다(2026-11-07). 구조와 절차는 `docs/guides/self-hosting.md`, 템플릿은 `deploy/`다. 이 Phase는 인프라 작업이라 기능 ID(F-)가 없고 앱 코드는 바꾸지 않았다. Task 번호 035~044는 작업 순서이며 각 Task의 의존성은 앞 번호다.
+
+#### Phase 7 공통 전제
+
+- **서버 접속**: 작업 PC에서 `ssh homeserver`(별칭)로 접속한다. 서버의 `.env.local` 값은 읽지 않고 키 이름과 권한만 점검한다.
+- **정식 호스트는 apex(`hkoikoi.dev`)**: 기본안은 `www`였으나 사용자가 apex로 정했다(2026-11-07). `www`는 apex로 308 리다이렉트하고 `NEXT_PUBLIC_SITE_URL=https://hkoikoi.dev`다. Task 020~021의 "운영 도메인은 `www.hkoikoi.dev`가 기본" 기록은 이전 전(Vercel) 상태다.
+- **운영 영향**: 계획은 도메인 전환(Task 043)이 마지막이라 서버 작업이 운영에 영향이 없다고 가정했으나, 실제로는 작업 중에 apex가 이미 홈 서버를 가리키고 있었다(Cloudflare 터널 경유, 응답 헤더 `via: 1.1 Caddy`). 그래서 Task 038~042의 서버 재시작은 운영에 닿았다. 이후에도 `main` 머지는 곧 운영 배포다.
+- **확인하지 않은 것은 체크하지 않는다**: 아래 `테스트 결과`와 `확인하지 못한 것`을 그대로 따른다.
+
+- **Task 035: 서버 선행 점검과 도메인 방침 확정**
+  - 관련 기능: 없음(인프라)
+  - 목표: 배포 전제 조건(자동 로그인, Node, 디렉터리, 환경 변수 파일)을 갖추고 정식 호스트를 정한다
+  - 의존성: 없음
+  - 관련 파일: (서버 작업. 저장소 변경 없음)
+  - 수락 기준: 재부팅 후 비밀번호 없이 사용자 세션으로 로그인, `node -v`가 `.nvmrc` 메이저와 일치, `~/apps/releases`·`~/apps/shared`·`~/logs` 존재, `.env.local` 권한 600, 정식 호스트 결정 기록
+  - [x] 자동 로그인 설정과 재부팅 검증
+  - [x] `git`, `node@24` 설치·링크(`.nvmrc` 24 일치)
+  - [x] 디렉터리 생성, `.env.local` 사용자가 직접 작성(권한 600)
+  - [x] 정식 호스트 확정: apex
+  - 테스트 결과: 2026-11-07 재부팅 41초 뒤 비밀번호 없이 `/dev/console` 소유자가 서버 사용자가 됨(`/etc/kcpassword` 존재). `sysadminctl -autologin set`은 `SACSetAutoLoginPassword error:22`로 실패해 `/etc/kcpassword`가 생기지 않았고 `autoLoginUser` 값만 남아 있었다(설정 값만 보면 켜진 것처럼 보이는 함정). 자동 로그인을 설정한 뒤 재부팅으로 확인했다. brew `node`가 26.13이라 `node@24`(v24.22.2)를 링크했다. `.env.local`은 권한 600, 키 3개와 `NEXT_PUBLIC_SITE_URL=https://hkoikoi.dev`를 값 노출 없이 확인했다.
+
+- **Task 036: 배포 템플릿 작성(deploy.sh, launchd plist, Caddyfile)**
+  - 관련 기능: 없음(인프라)
+  - 목표: 서버 설정을 재현 가능하게 하는 템플릿 3종을 `deploy/` 아래에 둔다
+  - 의존성: Task 035
+  - 관련 파일: `deploy/deploy.sh`, `deploy/launchd/dev.hkoikoi.web.plist`, `deploy/caddy/Caddyfile`
+  - 수락 기준: `npm run check` 통과, 시크릿·실제 사용자명 없음, `bash -n`·`plutil -lint`·`caddy validate` 통과, 롤백·정리 분기 존재
+  - [x] `deploy.sh`: `git archive` 릴리스, `.env.local` 링크, `npm ci`·`build`, `mv -fh` 링크 교체, `launchctl kickstart -k`, 헬스체크, 실패 시 롤백, 최근 5개 유지
+  - [x] launchd plist(`__HOME__` 플레이스홀더, KeepAlive, 로그), Caddyfile(정식 호스트 프록시, 그 외 308)
+  - 테스트 결과: 2026-11-07 PR #41 병합. `bash -n`(작업 PC와 서버 bash 3.2), `shellcheck`(0.11.0) 경고 0, `plutil -lint`, 서버 `caddy validate`·`caddy fmt`, `npm run check`(Vitest 32 파일 / 254개) 통과, `deploy/`에 실제 사용자명·시크릿 없음. `encode`는 스트리밍 검증 전이라 켜지 않았다.
+
+- **Task 037: Mac mini 수동 배포**
+  - 관련 기능: 없음(인프라)
+  - 목표: 자동화 전에 서버에서 한 번 끝까지 빌드·실행한다
+  - 의존성: Task 035
+  - 관련 파일: (서버 작업)
+  - 수락 기준: 실제 env로 `npm run build` 성공과 빌드 표 기록, `/`·`/blog` 200, `127.0.0.1`에만 바인딩
+  - [x] `main`(`8cb1f2d`) 클론, `.env.local` 링크, `npm ci`·`npm run build`
+  - [x] `next start -H 127.0.0.1 -p 3000`, `curl` 확인, `lsof` 바인딩 확인
+  - [ ] 홈 최신 글이 정적 셸에 굳지 않았는지(삭제 즉시 반영): 이 Task에서는 확인하지 않고 Task 039·043에서 확인
+  - 테스트 결과: 2026-11-07 Node 24.22.2, 실제 env 빌드 성공. 빌드 표: 공개 페이지 대부분 `◐`(1d/1w), `/sitemap.xml` `ƒ`, `/robots.txt`·`/auth/login`·`/icon.svg` 등 `○`. 빌드 로그에 Supabase URL·키 패턴 0건. `/`·`/blog`·`/sitemap.xml`·`/robots.txt` 200, `/admin/posts` 307(`/auth/login`), `lsof`로 `127.0.0.1:3000`만 listen, 작업 PC에서 3000 접근 불가. sitemap·robots 절대 URL은 `https://hkoikoi.dev`.
+
+- **Task 038: Caddy 리버스 프록시와 launchd 서비스 등록**
+  - 관련 기능: 없음(인프라)
+  - 목표: 템플릿을 서버에 설치해 서비스로 상시 실행한다
+  - 의존성: Task 036, 037
+  - 관련 파일: `deploy/caddy/Caddyfile`, `deploy/launchd/dev.hkoikoi.web.plist`
+  - 수락 기준: `caddy validate` 통과, 서비스 running, 프로세스를 죽이면 자동 재시작, 8080에서 정식 호스트 200·그 외 308, 3000·8080 외부 접근 불가
+  - [x] Caddyfile 설치·재시작(기존 임시 설정은 백업), plist 치환·`launchctl bootstrap`, `~/apps/current` 링크
+  - [x] KeepAlive 재시작, 호스트별 응답, 외부 접근 차단
+  - [x] 재부팅 후 앱·Caddy 자동 기동(Task 041의 재부팅에서 확인)
+  - 테스트 결과: 2026-11-07 서비스 running, 프로세스를 kill하면 pid가 1818에서 1856으로 바뀌며 재시작, 8080 경유 `hkoikoi.dev` 200, `www.hkoikoi.dev`·`example.com` 308(경로·쿼리 유지), 작업 PC에서 3000·8080 접근 불가. 재부팅 후 자동 기동은 이 Task 시점에는 미확인이었고 Task 041에서 확인했다.
+
+- **Task 039: 임시 호스트 검증과 Supabase Auth URL 확인**
+  - 관련 기능: 없음(인프라)
+  - 목표: 운영 도메인을 바꾸기 전에 터널 경유 경로를 임시 호스트로 end-to-end 검증한다
+  - 의존성: Task 038
+  - 관련 파일: (서버·대시보드 작업)
+  - 수락 기준: 공개 페이지 200·콘솔 오류 0건, `/admin` 비로그인 리다이렉트, 발행·삭제 직후 공개 목록 반영, 스트리밍 비버퍼링 근거, Supabase Auth URL 값 기록
+  - [x] 터널 라우트·Caddy 임시 허용(`home-test.hkoikoi.dev`), Playwright MCP 방문자 여정, 콘솔·이미지·리다이렉트
+  - [x] 스트리밍 비버퍼링 확인(느린 스트림 임시 엔드포인트)
+  - [x] 사용자가 로그인한 브라우저로 `e2e-` 글 발행·삭제 후 즉시 반영 확인, DB 정리 확인
+  - [x] Supabase Auth URL 기록(Site URL·Redirect URLs)
+  - [x] 임시 호스트 제거(서버 Caddyfile을 저장소 템플릿으로 복구, 터널 라우트·DNS 삭제)
+  - 테스트 결과: 2026-11-07 공개 페이지 10개·sitemap·robots 200, 콘솔 오류 0건(preload 안내 경고 1건), `/admin/posts` → `/auth/login`, `next/image` Supabase 썸네일 4개 렌더링. 스트리밍은 서버 임시 Node 서버(1초 간격 5조각)를 Caddy 경로에 임시 연결해 Caddy·터널 양쪽에서 조각이 약 1초 간격으로 도착함을 확인했다(홈 같은 실제 페이지는 원본에서도 25ms 안에 끝나 타이밍으로 구분할 수 없었다). 임시 서버·라우트는 제거했다. `e2e-cache-check` 글 발행 시 홈·`/blog`·상세에 즉시 나타나고 삭제 시 즉시 사라졌으며(Task 020 sitemap, PR #39 홈 최신 글 선례 재현 안 됨) DB의 `e2e-` 행 0건. Supabase Auth URL(작업 당시): Site URL `https://www.hkoikoi.dev`, Redirect URLs `http://localhost:3000/**`·`https://www.hkoikoi.dev/**`. 앱은 `signInWithPassword`만 써서 영향이 없다. 이 Task에서 Caddy를 재시작하는 동안 apex가 이미 서비스 중이라 짧은 끊김이 있었다.
+
+- **Task 040: `deploy.sh` 실행과 롤백 리허설**
+  - 관련 기능: 없음(인프라)
+  - 목표: 릴리스 폴더 방식 배포의 정상·실패 경로를 서버에서 실제로 실행해 검증한다
+  - 의존성: Task 036, 039
+  - 관련 파일: `deploy/deploy.sh`
+  - 수락 기준: 정상 배포 시 `current` 교체·헬스체크 통과, 헬스체크 실패 시 이전 릴리스 복구·종료 코드 비정상, 빌드 실패 시 `current` 불변, 릴리스 정리가 현재·직전 보존
+  - [x] 정상 배포, 롤백(헬스체크 대상 포트를 바꿔 유도, 2회), 빌드 실패(`npm ci` 실패 유도), 정리(`KEEP_RELEASES=2`와 가짜 릴리스 4개)
+  - [ ] 롤백 중 운영 응답이 끊기지 않는지: 무중단이 아님(아래 결과), 간격이 길어 정확한 끊김 시간은 측정하지 못함
+  - 테스트 결과: 2026-11-07 정상 배포 종료 코드 0·`current` 교체·헬스체크 1회 재시도 후 통과. 롤백은 종료 코드 1, `current`가 이전 릴리스로 복구, 서비스 200 유지. 빌드 실패는 종료 코드 1, `current` 불변, 미완성 폴더 삭제. 정리는 현재·직전 보존, 최신 2개 유지, 나머지만 삭제. 서비스 프로세스 cwd가 새 릴리스임을 `lsof`로 확인. 스크립트 결함은 없었다. 운영이 이미 서비스 중이라 리허설이 실제 영향을 줬고, 약 3초 간격 33회 기록에서 롤백 재시작 순간 502가 1회였다. 첫 롤백 실행의 응답 기록은 기록기 셸이 먼저 끝나 실패해 2차 실행에서 다시 측정했다. 리허설 잔여물은 정리했다.
+
+- **Task 041: self-hosted runner 설치와 public 저장소 보안 설정**
+  - 관련 기능: 없음(인프라)
+  - 목표: 서버에 GitHub Actions runner를 설치하고 public 저장소에서 안전하게 쓰도록 설정한다
+  - 의존성: Task 040
+  - 관련 파일: (서버·GitHub 작업)
+  - 수락 기준: runner가 `homeserver` 라벨로 Idle, 재부팅 후 로그인 없이 Idle 복귀, fork PR 승인 필수와 기본 권한 read 확인, runner 디렉터리에 시크릿 없음
+  - [x] runner v2.338.2 설치(체크섬 대조), `~/actions-runners/hkoikoi-dev`에 라벨 `homeserver`·이름 `hkoikoi-dev`로 등록(토큰은 사용자가 서버에 직접 입력)
+  - [x] `svc.sh install`·`start`, 재부팅 후 자동 기동
+  - [x] fork PR 승인을 `all_external_contributors`로 변경(사용자 확인), 기본 권한 `read` 확인
+  - [x] runner 작업 디렉터리 시크릿 점검
+  - 테스트 결과: 2026-11-07 GitHub에서 runner `online`·`busy=false`. 재부팅 후 가동 2분 시점에 자동 로그인(`/dev/console` 소유자가 서버 사용자), runner가 Idle로 복귀하고 앱·Caddy·cloudflared도 자동 기동, 3000·8080·외부 apex 200(Task 038의 재부팅 후 기동 미확인 항목 해소). fork PR 승인은 `first_time_contributors`에서 `all_external_contributors`로 바꿨고 기본 권한은 이미 `read`, PR 자동 승인은 꺼져 있다. runner 디렉터리의 `.env`는 `LANG`뿐이고 앱 시크릿 없음, `_work` 비어 있음. 여러 프로젝트 runner가 같은 계정을 쓰면 서로의 파일을 읽을 수 있다는 점을 가이드에 적었다.
+
+- **Task 042: `ci.yml`에 deploy job 추가**
+  - 관련 기능: 없음(인프라)
+  - 목표: `main` push 때 CI 통과 후 홈 서버로 자동 배포한다
+  - 의존성: Task 041
+  - 관련 파일: `.github/workflows/ci.yml`, `.github/actionlint.yaml`
+  - 수락 기준: PR에서 deploy skipped, `main` 머지 후 `check`·`e2e-smoke` 통과 뒤 `deploy`가 runner에서 실행되고 `current`가 새 SHA로 교체·헬스체크 통과, 배포가 겹치지 않음, `npm run check` 통과
+  - [x] deploy job(`needs`, `push to main` 조건, `deploy-prod` 그룹, `contents: read`), `main`에서 이전 실행을 취소하지 않도록 workflow `concurrency` 조정, actionlint 라벨 등록
+  - [x] PR #42·#43에서 deploy skipped 확인, `main` 머지 후 실제 배포 확인
+  - [ ] 연달아 두 번 push했을 때 deploy가 겹치지 않는지: 시험하지 않음(`deploy-prod` 그룹 설정으로만 보장)
+  - 테스트 결과: 2026-11-07 `actionlint`·`format:check`·`npm run check`(254개) 통과. PR #42(`develop`)·#43(`develop`→`main`)에서 `check`·`e2e-smoke` 통과, `deploy` skipped. #43 병합 뒤 `main` 실행(run 42375484811)에서 `check`·`e2e-smoke`·`deploy` 모두 success, `deploy`가 runner `hkoikoi-dev`에서 약 23초에 끝나 `current`가 `54ce6cf`(`main` HEAD)로 바뀌고 서비스 cwd와 3000이 200, 직전 릴리스 보존. 배포 구간 10분 211회 응답 기록에서 비200 0건(샘플 간격 약 3초라 1~3초 재시작 끊김이 샘플 사이에 있었을 수 있음). 이 PR 병합으로 `deploy/`·CI·문서가 운영에 반영됐고 앱 코드는 바뀌지 않았다.
+
+- **Task 043: 운영 도메인 확인과 운영 검증**
+  - 관련 기능: 없음(인프라)
+  - 목표: 정식 호스트(apex)가 홈 서버에서 서빙되는지, `www`가 apex로 리다이렉트되는지, 운영 시나리오가 정상인지 확인한다
+  - 의존성: Task 042
+  - 관련 파일: (Cloudflare·Supabase·Vercel 대시보드 작업)
+  - 수락 기준: apex가 홈 서버에서 서빙(응답 헤더·로그), `www`→apex 308, sitemap·robots·og:image가 정식 호스트 절대 URL, 관리자 발행·삭제 직후 공개 화면 반영, 콘솔 오류 0건
+  - [x] apex가 홈 서버에서 서빙되는지 확인(`via: 1.1 Caddy`), `www` 터널 라우트 추가(사용자) 후 308 확인
+  - [x] 방문자 여정, `/admin` 비로그인 리다이렉트, 콘솔 오류 0건
+  - [x] 사용자가 apex에서 로그인한 브라우저로 `e2e-prod-check` 글 발행·삭제 후 즉시 반영, DB 정리 확인
+  - [x] Supabase Site URL을 `https://hkoikoi.dev`로 전환, Redirect URLs에 apex 추가(사용자가 대시보드에서 수행)
+  - [ ] 전환 전 Vercel DNS 값 기록: 하지 못함. 작업 중에 apex가 이미 전환된 상태였다
+  - [ ] Vercel 프로젝트 유지(롤백 경로): 사용자가 삭제하기로 결정, 삭제 완료 여부는 확인하지 못함
+  - 테스트 결과: 2026-11-07 apex는 Cloudflare 프록시(터널) 뒤에서 홈 서버가 서빙(`via: 1.1 Caddy`, `x-powered-by: Next.js`)하고 `www`는 처음에 DNS 레코드가 없었다. 사용자가 `www` 터널 라우트를 추가한 뒤 `https://www…/blog?tag=a` → 308 `https://hkoikoi.dev/blog?tag=a`, `-L`로 200(작업 PC의 로컬 DNS 캐시 때문에 `--resolve`로 우회해 확인). sitemap URL 17개·robots `Sitemap:`·og:image 모두 `https://hkoikoi.dev`. 공개 15개 경로(+sitemap·robots·og 이미지) 200, 없는 경로 404, 비로그인 `/admin/posts` → `/auth/login`, 썸네일 4개 렌더링, 실제 페이지 이동 구간 콘솔 오류·경고 0건. `e2e-prod-check` 발행 직후 홈·`/blog`·상세·sitemap에 즉시 나타나고 삭제 직후 모두 즉시 사라졌으며 DB의 `e2e-` 행 0건(글 7개). Cloudflare가 프록시 응답의 `robots.txt` 앞에 AI 크롤러 차단 "Managed content"를 붙이는 것을 발견했고 의도한 설정인지는 확인하지 못했다. Supabase 대시보드 값은 MCP로 읽을 수 없어 사용자 보고를 따랐다.
+
+- **Task 044: 배포 문서화와 ROADMAP 갱신**
+  - 관련 기능: 없음(문서)
+  - 목표: 홈 서버 배포를 문서로 남기고 프로젝트 문서를 사실에 맞게 고친다
+  - 의존성: Task 043
+  - 관련 파일: `docs/guides/self-hosting.md`, `docs/guides/project-structure.md`, `README.md`, `CLAUDE.md`, `docs/ROADMAP.md`
+  - 수락 기준: `npm run check` 통과, 가이드를 따라 서버 설정이 재현됨(Task 035~042에서 수행한 절차와 일치), ROADMAP 체크박스는 실제 확인한 항목만 체크, `project-structure.md`가 `deploy/` 구조와 일치
+  - [x] `self-hosting.md` 신규(아키텍처, 서버 초기 설정, 수동·자동 배포, 롤백, 장애 대응, 보안, 알려진 한계, 검증 기록)
+  - [x] `project-structure.md`에 `deploy/`·CI deploy job 반영, README 배포 절차를 홈 서버 기준으로 갱신, `CLAUDE.md`에 배포 절 추가·CI 설명 수정
+  - [x] 이 Phase 7 추가
+  - [ ] 가이드를 처음부터 따라 새 서버를 재현해 보기: 하지 않음(수행한 절차를 문서화했을 뿐 재현 시험은 없음)
+  - 테스트 결과: 2026-11-07 `npm run check`(typecheck·lint·prettier 통과, Vitest 32 파일 / 254개) 통과. 문서만 변경해 `npm run build`·`knip`·e2e는 실행하지 않았다. `project-structure.md`의 `deploy/` 구조는 저장소의 실제 파일(`deploy.sh`, `launchd/dev.hkoikoi.web.plist`, `caddy/Caddyfile`)과 대조했다. 가이드의 명령은 Task 035~043에서 서버에 실제로 실행한 것이고, 확인하지 못한 항목(수동 롤백 절차, 동시 push, "정전 후 자동 시동" 설정, macOS 자동 업데이트의 자동 재시작)은 가이드에 그렇게 적었다.
+  - 후속 확인 필요: 블로그 구축기 1~3편은 글을 수정하지 않았다. 자동 로그인(재부팅 후 서비스 기동에 필요)과 정식 호스트가 apex로 정해진 점은 글에 반영되지 않았을 수 있어 사용자 확인이 필요하다.
 
 ## 기능 ID 매핑
 

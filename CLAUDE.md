@@ -29,11 +29,15 @@ npx playwright test e2e/routes.spec.ts    # 단일 e2e 파일
 - 단위 테스트는 대상 파일 옆에 `*.test.ts(x)`로 두고, e2e는 `e2e/*.spec.ts`(`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`), 공용 헬퍼는 `e2e/fixtures/admin.ts`. Vitest는 `e2e`, `.agents`를 제외한다.
 - Git 훅(Husky): `pre-commit`은 lint-staged(eslint --fix --max-warnings=0 + prettier), `commit-msg`는 commitlint, `pre-push`는 `typecheck && lint`. `--no-verify`는 settings에서 deny되어 있다.
 - 커밋 메시지는 컨벤셔널 형식 `타입: 제목` / `타입(scope): 제목`, 제목은 한국어 허용, 헤더 100자 이내.
-- CI(`.github/workflows/ci.yml`)는 typecheck → lint → format:check → test → build 순서로 실행하며 빌드에는 placeholder Supabase 환경변수를 주입한다. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`만 돌린다. 나머지 E2E(관리자 계정·DB 쓰기 필요)와 knip은 CI에서 실행하지 않으므로 로컬에서 돌린다.
+- CI(`.github/workflows/ci.yml`)는 typecheck → lint → format:check → test → build 순서로 실행하며 빌드에는 placeholder Supabase 환경변수를 주입한다. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`만 돌린다. `main` push에서는 둘이 통과한 뒤 `deploy` job이 홈 서버의 self-hosted runner(`[self-hosted, macOS, homeserver]`)에서 `deploy/deploy.sh`를 실행한다(PR에서는 skipped). 나머지 E2E(관리자 계정·DB 쓰기 필요)와 knip은 CI에서 실행하지 않으므로 로컬에서 돌린다.
 
 ## 환경 변수
 
-`.env.example`을 참고해 `.env.local`(또는 `.env`)에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`를 설정한다. 이 둘이 없으면 `lib/supabase/proxy.ts`의 `hasEnvVars`가 false가 되어 세션 검사를 건너뛴다. `NEXT_PUBLIC_SITE_URL`은 절대 URL(metadataBase·sitemap·robots) 기준이며 미설정이면 `http://localhost:3000`이다(배포 시 운영 도메인 설정). `DATA_DIR`, `TEMPLATES_USE`, `ENABLE_GUI`는 shrimp MCP용이다. `.env`는 settings에서 읽기가 막혀 있다.
+`.env.example`을 참고해 `.env.local`(또는 `.env`)에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`를 설정한다. 이 둘이 없으면 `lib/supabase/proxy.ts`의 `hasEnvVars`가 false가 되어 세션 검사를 건너뛴다. `NEXT_PUBLIC_SITE_URL`은 절대 URL(metadataBase·sitemap·robots) 기준이며 미설정이면 `http://localhost:3000`이다(운영은 서버의 `~/apps/shared/.env.local`에서 정식 호스트 `https://hkoikoi.dev`로 설정). `DATA_DIR`, `TEMPLATES_USE`, `ENABLE_GUI`는 shrimp MCP용이다. `.env`는 settings에서 읽기가 막혀 있다.
+
+## 배포
+
+운영(`https://hkoikoi.dev`, 정식 호스트는 apex이고 `www`는 308 리다이렉트)은 Mac mini 홈 서버에서 서비스한다: Cloudflare 터널 → Caddy(`127.0.0.1:8080`) → Next.js(`127.0.0.1:3000`, launchd `dev.hkoikoi.web`). `main`에 머지하면 CI의 `deploy` job이 서버에서 실제 `.env.local`로 빌드한 릴리스 폴더(`~/apps/releases/<SHA>`)를 `~/apps/current` 링크로 교체하고, 헬스체크가 실패하면 이전 릴리스로 되돌린다. 템플릿은 `deploy/`, 서버 설정·롤백·장애 대응은 `docs/guides/self-hosting.md`다. 배포는 무중단이 아니어서 재시작마다 1~3초 끊기고, `main` 머지는 곧 운영 배포다. 서버(`ssh homeserver`)의 `.env.local`은 읽지 않고, `deploy/` 템플릿을 바꾸면 서버 설치본(Caddyfile·plist)은 직접 반영해야 한다(`deploy.sh`는 Caddy 설정을 건드리지 않는다). Vercel 프로젝트는 이전 후 삭제하기로 했으므로 Vercel 롤백 경로를 전제하지 않는다.
 
 ## 아키텍처
 
@@ -58,7 +62,7 @@ Next.js App Router + Supabase. `src/` 없이 루트에 `app/`, `components/`, `l
 
 ## 문서와 에이전트 설정
 
-- `docs/PRD.md`(기능 명세), `docs/ROADMAP.md`(Task별 진행 상황·테스트 결과), `docs/guides/`에 `project-structure.md`(폴더 구조·네이밍·품질 게이트), `nextjs-16.md`, `component-patterns.md`, `styling-guide.md`, `forms-react-hook-form.md`, `rls-verification.md`(RLS 읽기 전용 점검 절차)가 있다. 구조나 컨벤션을 바꾸기 전에 해당 가이드를 먼저 읽고, 구조가 바뀌면 `project-structure.md`도 함께 갱신한다. Task를 마치면 ROADMAP의 체크박스와 테스트 결과를 실제 결과로 갱신하며, 확인하지 않은 항목은 완료로 체크하지 않는다.
+- `docs/PRD.md`(기능 명세), `docs/ROADMAP.md`(Task별 진행 상황·테스트 결과), `docs/guides/`에 `project-structure.md`(폴더 구조·네이밍·품질 게이트), `nextjs-16.md`, `component-patterns.md`, `styling-guide.md`, `forms-react-hook-form.md`, `rls-verification.md`(RLS 읽기 전용 점검 절차), `self-hosting.md`(홈 서버 배포·롤백·장애 대응)가 있다. 구조나 컨벤션을 바꾸기 전에 해당 가이드를 먼저 읽고, 구조가 바뀌면 `project-structure.md`도 함께 갱신한다. Task를 마치면 ROADMAP의 체크박스와 테스트 결과를 실제 결과로 갱신하며, 확인하지 않은 항목은 완료로 체크하지 않는다.
 - `.claude/agents/{dev,docs}/`에 서브 에이전트(code-reviewer, development-planner, nextjs-app-router-expert, supabase-expert, ui-markup-specialist, prd-generator, prd-validator), `.claude/hooks/`에 포맷·알림·종료 훅, `.claude/skills/`에 git 작업(branch·commit·pr)·shadcn·supabase 스킬이 있다. `.agents/skills/`는 shadcn·supabase 스킬 사본이며 lint/test/knip 대상에서 제외된다.
 - `.mcp.json`에는 sequential-thinking, shrimp-task-manager, supabase(프로젝트 고정) MCP가 등록돼 있다. DB 변경은 Supabase MCP의 `apply_migration`으로 적용하되, 원격 프로젝트가 맞는지 먼저 확인한다.
 - 응답과 커밋 메시지는 한국어를 사용한다(`.claude/settings.json`의 `language: ko`).
