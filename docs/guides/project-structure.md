@@ -52,6 +52,7 @@ hkoikoi-dev/
 │   ├── format-date.ts / is-active-path.ts / utils.ts   # 공용 유틸 (+ *.test.ts)
 ├── public/                 # 정적 파일: avatar.webp(홈 프로필 사진, 위치정보 없는 640px 변환본)
 ├── supabase/migrations/    # DB 마이그레이션 SQL (원격 version과 파일명 일치)
+├── deploy/                 # 홈 서버 배포 템플릿: deploy.sh, launchd/dev.hkoikoi.web.plist, caddy/Caddyfile
 ├── e2e/                    # Playwright 테스트 (*.spec.ts)
 ├── docs/                   # PRD.md, ROADMAP.md, guides/ (개발 가이드)
 ├── proxy.ts                # 요청 전처리: Supabase 세션 갱신 + /admin 보호
@@ -63,7 +64,7 @@ hkoikoi-dev/
 ├── knip.jsonc              # knip 설정 (영구 제외만 있고 임시 예외 없음. 생기면 제거 조건을 주석으로)
 ├── commitlint.config.mjs   # 커밋 메시지 규칙
 ├── .husky/                 # pre-commit, commit-msg, pre-push
-├── .github/workflows/      # CI (ci.yml)
+├── .github/                # workflows/ci.yml(CI + 홈 서버 deploy job), actionlint.yaml(homeserver 라벨)
 ├── .agents/skills/         # 에이전트 스킬 사본 (shadcn, supabase 등)
 ├── .claude/                # Claude Code 권한·훅·스킬·서브 에이전트 설정
 ├── .mcp.json               # MCP 서버 (sequential-thinking, shrimp-task-manager, supabase)
@@ -194,6 +195,20 @@ lib/
 - `public` 스키마의 default privileges는 바꾸지 않았으므로 새 테이블은 같은 과잉 GRANT를 받습니다. 새 테이블 마이그레이션에는 필요한 권한만 남기는 `revoke`를 함께 넣고, 점검은 `rls-verification.md`를 따릅니다.
 - 알려진 advisor 경고: `auth_leaked_password_protection` 1건은 Pro 플랜 미사용으로 예외 수용했습니다(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수).
 
+## deploy/ — 홈 서버 배포 템플릿
+
+서버 설정을 재현하기 위한 파일이다. 시크릿과 실제 사용자명은 넣지 않고 플레이스홀더(`__HOME__`)를 쓴다. 앱 코드(`app/`, `lib/` 등)와 import 관계가 없고 lint·knip 대상이 아니다.
+
+| 파일                                   | 설치 위치(서버)                                | 역할                                                                              |
+| -------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| `deploy/deploy.sh`                     | CI가 checkout한 저장소에서 실행                | 릴리스 폴더 빌드, `current` 링크 교체, 헬스체크, 실패 시 롤백, 오래된 릴리스 정리 |
+| `deploy/launchd/dev.hkoikoi.web.plist` | `~/Library/LaunchAgents/dev.hkoikoi.web.plist` | Next.js 앱 서비스(`127.0.0.1:3000`, KeepAlive). `__HOME__`을 `sed`로 치환해 설치  |
+| `deploy/caddy/Caddyfile`               | `/opt/homebrew/etc/Caddyfile`                  | `127.0.0.1:8080`에서 정식 호스트만 앱으로 프록시, 나머지 호스트는 308 리다이렉트  |
+
+- Caddy 설정은 `deploy.sh`가 건드리지 않는다. 바꾸면 서버에 직접 반영하고 `caddy validate` 후 재시작한다.
+- 임시 호스트 허용처럼 서버에서만 바꾼 설정은 끝나면 저장소 템플릿으로 되돌린다.
+- 서버 초기 설정, 배포·롤백, 장애 대응은 [`self-hosting.md`](self-hosting.md)를 따른다.
+
 ## 파일/폴더 네이밍
 
 ```bash
@@ -263,6 +278,7 @@ import { cn } from "@/lib/utils";
 - `commit-msg`: `commitlint` — `타입: 제목` 또는 `타입(scope): 제목`. 제목은 한국어 가능, 헤더 100자 이내.
 - `pre-push`: `typecheck` + `lint`.
 - CI(`.github/workflows/ci.yml`): `typecheck` → `lint` → `format:check` → `test` → `build`. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`(권한 회귀)만 실행합니다. **나머지 E2E와 knip은 CI에서 실행하지 않습니다.** 둘은 로컬에서 직접 돌립니다.
+- 배포: `main`에 push하면 `check`·`e2e-smoke` 통과 뒤 `deploy` job이 홈 서버의 self-hosted runner(`[self-hosted, macOS, homeserver]`)에서 `deploy/deploy.sh`를 실행합니다. `pull_request`에서는 실행되지 않습니다(`skipped`). 자세한 내용은 [`self-hosting.md`](self-hosting.md)입니다.
 - `.claude/settings.json`은 `--no-verify` 커밋과 force push를 막고, 파일을 Edit/Write 하면 포맷 훅을 실행합니다.
 
 ### 테스트 배치

@@ -19,6 +19,7 @@
 | 마크다운 렌더링, 편집기 실시간 미리보기, 이미지 업로드                | 완료 (Task 015~017)                     |
 | SEO(sitemap, robots, 메타데이터), 캐싱·성능·접근성                    | 완료 (Task 018, 019)                    |
 | 최종 회귀 테스트, 문서 정리, 배포 환경 검증                           | 완료 (Task 020, 운영 배포 검증 완료)    |
+| 홈 서버 이전(Mac mini)과 `main` push 자동 배포                        | 완료 (Phase 7, Task 035~044)            |
 
 ## 기술 스택
 
@@ -116,20 +117,22 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ## 배포
 
-호스팅 서비스는 아직 확정하지 않았으므로 서비스별 절차는 적지 않습니다. 어떤 서비스든 필요한 설정은 다음과 같습니다.
+운영 사이트(`https://hkoikoi.dev`)는 Mac mini 홈 서버에서 서비스합니다(Cloudflare 터널 → Caddy → Next.js, launchd). 서버 설정, 배포·롤백, 장애 대응은 [`docs/guides/self-hosting.md`](docs/guides/self-hosting.md)에 있고, 템플릿은 `deploy/`에 있습니다.
 
-1. 빌드 명령은 `npm run build`, 실행은 `npm run start`입니다(Node.js 20.9 이상).
-2. 호스팅의 환경 변수에 세 값을 설정합니다. 이 값들은 `NEXT_PUBLIC_` 접두라 **빌드 시점에** 번들에 들어가므로 변경하면 다시 빌드해야 합니다.
+- **자동 배포**: `main`에 머지하면 CI의 `check`·`e2e-smoke` 통과 뒤 `deploy` job이 홈 서버의 self-hosted runner에서 `deploy/deploy.sh`를 실행합니다. 서버에서 실제 환경 변수로 빌드한 릴리스 폴더를 `current` 링크로 교체하고, 헬스체크가 실패하면 이전 릴리스로 되돌립니다. PR에서는 실행되지 않습니다.
+- **빌드·실행**: `npm run build`, `npm run start`(Node.js 20.9 이상, 운영 서버는 `.nvmrc`의 24).
+- **환경 변수**: 운영 값은 서버의 `~/apps/shared/.env.local`에만 둡니다(저장소·GitHub Secrets에 올리지 않음). `NEXT_PUBLIC_` 접두라 **빌드 시점에** 번들에 들어가므로 값을 바꾸면 다시 배포해야 합니다.
 
-   | 변수                                   | 값                                                  |
-   | -------------------------------------- | --------------------------------------------------- |
-   | `NEXT_PUBLIC_SUPABASE_URL`             | 운영 Supabase 프로젝트 URL                          |
-   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | publishable 또는 anon 키                            |
-   | `NEXT_PUBLIC_SITE_URL`                 | 운영 도메인(예: `https://example.com`, 끝 슬래시 X) |
+  | 변수                                   | 값                                              |
+  | -------------------------------------- | ----------------------------------------------- |
+  | `NEXT_PUBLIC_SUPABASE_URL`             | 운영 Supabase 프로젝트 URL                      |
+  | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | publishable 또는 anon 키                        |
+  | `NEXT_PUBLIC_SITE_URL`                 | 정식 호스트(`https://hkoikoi.dev`, 끝 슬래시 X) |
 
-3. Supabase 대시보드 Authentication → URL Configuration에서 **Site URL**을 운영 도메인으로 바꾸고, **Redirect URLs**에 운영 도메인을 추가합니다. 로컬 개발용 `http://localhost:3000` 항목은 필요할 때만 둡니다.
-4. 배포 뒤 `/robots.txt`, `/sitemap.xml`의 절대 URL이 운영 도메인인지, 비로그인으로 `/admin/posts`에 접근하면 `/auth/login`으로 이동하는지 확인합니다.
-5. 기본 OG 이미지(`app/opengraph-image.png`, `app/twitter-image.png`)는 스타터 이미지가 남아 있으므로 hkoikoi.dev용 이미지(권장 1200x630)로 같은 이름으로 덮어씁니다.
+- 정식 호스트는 apex(`hkoikoi.dev`)이고 `www`는 apex로 308 리다이렉트합니다. Supabase 대시보드 Authentication → URL Configuration의 **Site URL**도 정식 호스트로 맞춥니다(앱은 비밀번호 로그인만 써서 Redirect URLs를 쓰는 흐름은 없습니다).
+- 배포 뒤 `/robots.txt`, `/sitemap.xml`의 절대 URL이 정식 호스트인지, 비로그인으로 `/admin/posts`에 접근하면 `/auth/login`으로 이동하는지 확인합니다.
+- 기본 OG 이미지(`app/opengraph-image.png`, `app/twitter-image.png`)는 스타터 이미지가 남아 있으므로 hkoikoi.dev용 이미지(권장 1200x630)로 같은 이름으로 덮어씁니다.
+- 배포는 무중단이 아니어서 재시작마다 1~3초, 서버 재부팅 때는 1분 가까이 끊깁니다(알려진 한계는 가이드 참고).
 
 ## 명령어
 
@@ -145,7 +148,7 @@ npm run test:e2e       # E2E (Playwright, dev 서버 자동 기동)
 npm run knip           # 미사용 파일·export·의존성 검출
 ```
 
-CI는 typecheck → lint → format:check → test → build를 실행합니다. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`만 실행하고, 나머지 E2E(관리자 계정·DB 쓰기 필요)와 knip은 로컬에서 실행합니다. 커밋 메시지는 `타입: 제목` 형식(한국어 가능)이고, Git 훅(Husky)이 lint-staged와 commitlint를 실행합니다.
+CI는 typecheck → lint → format:check → test → build를 실행합니다. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`만 실행하고, `main` push에서는 둘이 통과한 뒤 `deploy` job이 홈 서버로 배포합니다. 나머지 E2E(관리자 계정·DB 쓰기 필요)와 knip은 로컬에서 실행합니다. 커밋 메시지는 `타입: 제목` 형식(한국어 가능)이고, Git 훅(Husky)이 lint-staged와 commitlint를 실행합니다.
 
 ## 프로젝트 구조
 
@@ -155,12 +158,13 @@ components/       # ui(shadcn), blog, content, layout, markdown, theme-switcher
 data/             # 이력·프로젝트·논문 정적 데이터 (샘플 문구, 실제 내용으로 교체 예정)
 lib/              # supabase 클라이언트·DB 타입, 도메인 타입, 쿼리, 스키마, 순수 로직
 supabase/         # DB 마이그레이션
+deploy/           # 홈 서버 배포 템플릿 (deploy.sh, launchd, Caddy)
 e2e/              # Playwright 테스트
 docs/             # PRD, ROADMAP, 개발 가이드
 proxy.ts          # 세션 갱신 + /admin 보호
 ```
 
-폴더 규칙과 컨벤션은 [`docs/guides/`](docs/guides/)의 가이드를 따릅니다: `project-structure.md`, `nextjs-16.md`, `component-patterns.md`, `styling-guide.md`, `forms-react-hook-form.md`, `rls-verification.md`.
+폴더 규칙과 컨벤션은 [`docs/guides/`](docs/guides/)의 가이드를 따릅니다: `project-structure.md`, `nextjs-16.md`, `component-patterns.md`, `styling-guide.md`, `self-hosting.md`, `forms-react-hook-form.md`, `rls-verification.md`.
 
 ## 개발 참고
 
