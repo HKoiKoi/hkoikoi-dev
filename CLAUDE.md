@@ -37,7 +37,7 @@ npx playwright test e2e/routes.spec.ts    # 단일 e2e 파일
 
 ## 배포
 
-운영(`https://hkoikoi.dev`, 정식 호스트는 apex이고 `www`는 308 리다이렉트)은 Mac mini 홈 서버에서 서비스한다: Cloudflare 터널 → Caddy(`127.0.0.1:8080`) → Next.js(`127.0.0.1:3000`, launchd `dev.hkoikoi.web`). `main`에 머지하면 CI의 `deploy` job이 서버에서 실제 `.env.local`로 빌드한 릴리스 폴더(`~/apps/releases/<SHA>`)를 `~/apps/current` 링크로 교체하고, 헬스체크가 실패하면 이전 릴리스로 되돌린다. 템플릿은 `deploy/`, 서버 설정·롤백·장애 대응은 `docs/guides/self-hosting.md`다. 배포는 무중단이 아니어서 재시작마다 1~3초 끊기고, `main` 머지는 곧 운영 배포다. 서버(`ssh homeserver`)의 `.env.local`은 읽지 않고, `deploy/` 템플릿을 바꾸면 서버 설치본(Caddyfile·plist)은 직접 반영해야 한다(`deploy.sh`는 Caddy 설정을 건드리지 않는다). Vercel 프로젝트는 이전 후 삭제하기로 했으므로 Vercel 롤백 경로를 전제하지 않는다.
+운영(`https://hkoikoi.dev`, 정식 호스트는 apex이고 `www`는 308 리다이렉트)은 Mac mini 홈 서버에서 서비스한다: Cloudflare 터널 → Caddy(`127.0.0.1:8080`) → Next.js(`127.0.0.1:3000`, launchd `dev.hkoikoi.web`). `main`에 머지하면 CI의 `deploy` job이 서버에서 실제 `.env.local`로 빌드한 릴리스 폴더(`~/apps/releases/<SHA>`)를 `~/apps/current` 링크로 교체하고, 헬스체크가 실패하면 이전 릴리스로 되돌린다. 템플릿은 `deploy/`, 서버 설정·롤백·장애 대응은 `docs/guides/self-hosting.md`다. 배포는 무중단이 아니어서 재시작마다 1~3초 끊기고, `main` 머지는 곧 운영 배포다. 서버(`ssh homeserver`)의 `.env.local`은 읽지 않고, `deploy/` 템플릿을 바꾸면 서버 설치본(Caddyfile·plist)은 직접 반영해야 한다(`deploy.sh`는 Caddy 설정을 건드리지 않는다). Vercel 프로젝트는 이전 후 삭제했으므로 Vercel 롤백 경로를 전제하지 않는다.
 
 ## 아키텍처
 

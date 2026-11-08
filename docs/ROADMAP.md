@@ -975,8 +975,8 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] 사용자가 apex에서 로그인한 브라우저로 `e2e-prod-check` 글 발행·삭제 후 즉시 반영, DB 정리 확인
   - [x] Supabase Site URL을 `https://hkoikoi.dev`로 전환, Redirect URLs에 apex 추가(사용자가 대시보드에서 수행)
   - [ ] 전환 전 Vercel DNS 값 기록: 하지 못함. 작업 중에 apex가 이미 전환된 상태였다
-  - [ ] Vercel 프로젝트 유지(롤백 경로): 사용자가 삭제하기로 결정, 삭제 완료 여부는 확인하지 못함
-  - 테스트 결과: 2026-11-07 apex는 Cloudflare 프록시(터널) 뒤에서 홈 서버가 서빙(`via: 1.1 Caddy`, `x-powered-by: Next.js`)하고 `www`는 처음에 DNS 레코드가 없었다. 사용자가 `www` 터널 라우트를 추가한 뒤 `https://www…/blog?tag=a` → 308 `https://hkoikoi.dev/blog?tag=a`, `-L`로 200(작업 PC의 로컬 DNS 캐시 때문에 `--resolve`로 우회해 확인). sitemap URL 17개·robots `Sitemap:`·og:image 모두 `https://hkoikoi.dev`. 공개 15개 경로(+sitemap·robots·og 이미지) 200, 없는 경로 404, 비로그인 `/admin/posts` → `/auth/login`, 썸네일 4개 렌더링, 실제 페이지 이동 구간 콘솔 오류·경고 0건. `e2e-prod-check` 발행 직후 홈·`/blog`·상세·sitemap에 즉시 나타나고 삭제 직후 모두 즉시 사라졌으며 DB의 `e2e-` 행 0건(글 7개). Cloudflare가 프록시 응답의 `robots.txt` 앞에 AI 크롤러 차단 "Managed content"를 붙이는 것을 발견했고 의도한 설정인지는 확인하지 못했다. Supabase 대시보드 값은 MCP로 읽을 수 없어 사용자 보고를 따랐다.
+  - [ ] Vercel 프로젝트 유지(롤백 경로): 하지 않음. 사용자가 이전 후 삭제했다(사용자 보고)
+  - 테스트 결과: 2026-11-07 apex는 Cloudflare 프록시(터널) 뒤에서 홈 서버가 서빙(`via: 1.1 Caddy`, `x-powered-by: Next.js`)하고 `www`는 처음에 DNS 레코드가 없었다. 사용자가 `www` 터널 라우트를 추가한 뒤 `https://www…/blog?tag=a` → 308 `https://hkoikoi.dev/blog?tag=a`, `-L`로 200(작업 PC의 로컬 DNS 캐시 때문에 `--resolve`로 우회해 확인). sitemap URL 17개·robots `Sitemap:`·og:image 모두 `https://hkoikoi.dev`. 공개 15개 경로(+sitemap·robots·og 이미지) 200, 없는 경로 404, 비로그인 `/admin/posts` → `/auth/login`, 썸네일 4개 렌더링, 실제 페이지 이동 구간 콘솔 오류·경고 0건. `e2e-prod-check` 발행 직후 홈·`/blog`·상세·sitemap에 즉시 나타나고 삭제 직후 모두 즉시 사라졌으며 DB의 `e2e-` 행 0건(글 7개). Cloudflare가 프록시 응답의 `robots.txt` 앞에 AI 크롤러 차단 "Managed content"를 붙이는 것을 발견했고, 사용자 확인 결과 따로 켠 설정이 아니라 Cloudflare 기본값이었다. Supabase 대시보드 값은 MCP로 읽을 수 없어 사용자 보고를 따랐다.
 
 - **Task 044: 배포 문서화와 ROADMAP 갱신**
   - 관련 기능: 없음(문서)
@@ -988,7 +988,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] `project-structure.md`에 `deploy/`·CI deploy job 반영, README 배포 절차를 홈 서버 기준으로 갱신, `CLAUDE.md`에 배포 절 추가·CI 설명 수정
   - [x] 이 Phase 7 추가
   - [ ] 가이드를 처음부터 따라 새 서버를 재현해 보기: 하지 않음(수행한 절차를 문서화했을 뿐 재현 시험은 없음)
-  - 테스트 결과: 2026-11-07 `npm run check`(typecheck·lint·prettier 통과, Vitest 32 파일 / 254개) 통과. 문서만 변경해 `npm run build`·`knip`·e2e는 실행하지 않았다. `project-structure.md`의 `deploy/` 구조는 저장소의 실제 파일(`deploy.sh`, `launchd/dev.hkoikoi.web.plist`, `caddy/Caddyfile`)과 대조했다. 가이드의 명령은 Task 035~043에서 서버에 실제로 실행한 것이고, 확인하지 못한 항목(수동 롤백 절차, 동시 push, "정전 후 자동 시동" 설정, macOS 자동 업데이트의 자동 재시작)은 가이드에 그렇게 적었다.
+  - 테스트 결과: 2026-11-07 `npm run check`(typecheck·lint·prettier 통과, Vitest 32 파일 / 254개) 통과. 문서만 변경해 `npm run build`·`knip`·e2e는 실행하지 않았다. `project-structure.md`의 `deploy/` 구조는 저장소의 실제 파일(`deploy.sh`, `launchd/dev.hkoikoi.web.plist`, `caddy/Caddyfile`)과 대조했다. 가이드의 명령은 Task 035~043에서 서버에 실제로 실행한 것이고, 확인하지 못한 항목(수동 롤백 절차, 동시 push, 실제 정전 후 자동 복구, macOS 자동 업데이트의 자동 재시작)은 가이드에 그렇게 적었다. 정전 후 자동 시동 설정은 이후 서버의 `pmset -g`에서 `autorestart 1`로 확인했고(1편 설정), 실제로 전원을 끊어 복구되는지는 시험하지 않았다.
   - 후속 확인 필요: 블로그 구축기 1~3편은 글을 수정하지 않았다. 자동 로그인(재부팅 후 서비스 기동에 필요)과 정식 호스트가 apex로 정해진 점은 글에 반영되지 않았을 수 있어 사용자 확인이 필요하다.
 
 ## 기능 ID 매핑
