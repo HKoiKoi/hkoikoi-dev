@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { hasAdmin, login } from "./fixtures/admin";
+
 test.describe("접근성: 랜드마크와 현재 페이지", () => {
   test("공개 페이지에 banner·main·contentinfo와 이름 있는 nav가 있다", async ({
     page,
@@ -52,6 +54,26 @@ test.describe("접근성: 랜드마크와 현재 페이지", () => {
 });
 
 test.describe("접근성: 키보드 조작", () => {
+  test("관리자 글 목록·작성·수정 화면에 main이 하나만 있다", async ({
+    page,
+  }) => {
+    test.skip(!hasAdmin, "관리자 계정 환경변수 필요");
+    await login(page);
+
+    await page.goto("/admin/posts");
+    await expect(page.getByRole("main")).toHaveCount(1);
+
+    await page.goto("/admin/posts/new");
+    await expect(page.getByRole("main")).toHaveCount(1);
+
+    await page.goto("/admin/posts");
+    const editLink = page.locator('a[href$="/edit"]').first();
+    test.skip((await editLink.count()) === 0, "수정할 글이 없다");
+    await editLink.click();
+    await expect(page).toHaveURL(/\/admin\/posts\/[0-9a-f-]+\/edit$/);
+    await expect(page.getByRole("main")).toHaveCount(1);
+  });
+
   test("첫 Tab은 본문 바로가기이고 Enter로 본문에 포커스가 간다", async ({
     page,
   }) => {
