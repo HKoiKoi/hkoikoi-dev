@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   cleanup,
@@ -196,5 +196,109 @@ test.describe("관리자 글 관리", () => {
     );
     await expect(page.locator("#post-title-error")).toBeVisible();
     await expect(page.locator("#post-excerpt-error")).toBeVisible();
+  });
+  // 제목이 비었거나 다른 필드 하나가 검증에 걸리면 저장되지 않으므로 DB에 쓰지 않는다.
+  // 제목이 유효한 경우에는 아래 케이스가 정확히 한 필드만 틀리게 만든다.
+  const errorCases = [
+    {
+      name: "제목",
+      id: "post-title",
+      title: "",
+      setup: async () => {},
+    },
+    {
+      name: "URL",
+      id: "post-slug",
+      slug: "잘못된 슬러그!!",
+      setup: async () => {},
+    },
+    {
+      name: "카테고리",
+      id: "post-category",
+      setup: async (page: Page) => {
+        await page.getByLabel("카테고리").fill("가".repeat(51));
+      },
+    },
+    {
+      name: "태그",
+      id: "post-tags",
+      setup: async (page: Page) => {
+        await page
+          .getByLabel("태그", { exact: true })
+          .fill(Array.from({ length: 11 }, (_, i) => `t${i}`).join(", "));
+      },
+    },
+    {
+      name: "소개글",
+      id: "post-excerpt",
+      setup: async (page: Page) => {
+        await page.getByLabel("소개글").fill("가".repeat(151));
+      },
+    },
+    {
+      name: "본문",
+      id: "post-content",
+      setup: async (page: Page) => {
+        await page.getByLabel("본문").fill("a".repeat(100001));
+      },
+    },
+    {
+      name: "썸네일",
+      id: "post-thumbnail",
+      // 제목을 비워 두어 주입이 실패해도 저장되지 않게 한다. 그래서 첫 오류 입력은 제목이다.
+      title: "",
+      target: (page: Page) =>
+        page.getByRole("button", { name: "썸네일 업로드" }),
+      focus: (page: Page) => page.locator("#post-title"),
+      setup: async (page: Page) => {
+        // 업로드 없이 허용되지 않는 주소를 제출 시점의 FormData에 직접 넣는다.
+        // hidden input 값은 React 재렌더로 되돌려질 수 있어 formdata 이벤트를 쓴다.
+        await page.locator("form[novalidate]").evaluate((form) => {
+          form.addEventListener("formdata", (event) => {
+            (event as FormDataEvent).formData.set(
+              "thumbnail_url",
+              "https://example.com/x.png",
+            );
+          });
+        });
+      },
+    },
+  ];
+
+  for (const c of errorCases) {
+    test(`${c.name} 오류 → aria-describedby가 오류 요소를 가리키고 포커스가 그 입력으로 간다`, async ({
+      page,
+    }) => {
+      const slug = uniqueName(PREFIX, "focus");
+      await page.goto("/admin/posts/new");
+      await fillEditor(page, {
+        title: c.title ?? slug,
+        slug: c.slug ?? slug,
+      });
+      await c.setup(page);
+      await page.getByRole("button", { name: "발행하기", exact: true }).click();
+
+      const errorId = `${c.id}-error`;
+      await expect(page.locator(`#${errorId}`)).toBeVisible();
+      await expect(page).toHaveURL(/\/admin\/posts\/new$/);
+      const field = c.target ? c.target(page) : page.locator(`#${c.id}`);
+      await expect(field).toHaveAttribute("aria-invalid", "true");
+      await expect(field).toHaveAttribute(
+        "aria-describedby",
+        new RegExp(`(^|\\s)${errorId}$`),
+      );
+      await expect(c.focus ? c.focus(page) : field).toBeFocused();
+    });
+  }
+
+  test("빈 폼을 Enter로 제출하면 첫 오류 입력인 제목에 포커스가 간다", async ({
+    page,
+  }) => {
+    await page.goto("/admin/posts/new");
+    await page.getByLabel("제목").press("Enter");
+
+    await expect(page.locator("#post-title-error")).toBeVisible();
+    await expect(page.locator("#post-slug-error")).toBeVisible();
+    await expect(page.getByLabel("제목")).toBeFocused();
   });
 });
