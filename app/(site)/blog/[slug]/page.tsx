@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { CategoryBadge } from "@/components/blog/category-badge";
+import { PostPager } from "@/components/blog/post-pager";
 import { TagBadge } from "@/components/blog/tag-badge";
 import { MarkdownContent } from "@/components/markdown/markdown-content";
 import { formatDate } from "@/lib/format-date";
 import { buildPostMetadata } from "@/lib/post-metadata";
-import { getPostBySlug } from "@/lib/queries/posts";
+import { sortTags } from "@/lib/posts/sort-tags";
+import { getAdjacentPosts, getPostBySlug } from "@/lib/queries/posts";
 
 // params는 퍼센트 인코딩된 채로 전달되므로(한글 슬러그 등) 직접 디코딩한다.
 // 잘못된 인코딩(URIError)이면 원문을 그대로 쓴다.
@@ -34,32 +36,37 @@ async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
   const post = await getPostBySlug(decodeSlug(slug));
   if (!post) notFound();
 
+  // 이전·다음 글은 같은 'posts' 태그로 캐시되어 글 저장·삭제 직후 함께 갱신된다.
+  const { prev, next } = await getAdjacentPosts(post.published_at, post.id);
   const date = post.published_at ?? post.created_at;
 
   return (
-    <article className="space-y-6">
-      <header className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <CategoryBadge category={post.category} />
-          <time dateTime={date} className="text-sm text-muted-foreground">
-            {formatDate(date)}
-          </time>
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight break-words sm:text-3xl">
-          {post.title}
-        </h1>
-        {post.tags.length > 0 && (
-          <ul className="flex flex-wrap gap-1.5" aria-label="태그">
-            {post.tags.map((tag) => (
-              <li key={tag}>
-                <TagBadge tag={tag} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </header>
-      <MarkdownContent content={post.content} />
-    </article>
+    <div className="space-y-10">
+      <article className="space-y-6">
+        <header className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <CategoryBadge category={post.category} />
+            <time dateTime={date} className="text-sm text-muted-foreground">
+              {formatDate(date)}
+            </time>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight break-words sm:text-3xl">
+            {post.title}
+          </h1>
+          {post.tags.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5" aria-label="태그">
+              {sortTags(post.tags).map((tag) => (
+                <li key={tag}>
+                  <TagBadge tag={tag} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </header>
+        <MarkdownContent content={post.content} />
+      </article>
+      <PostPager prev={prev} next={next} />
+    </div>
   );
 }
 

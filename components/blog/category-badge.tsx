@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import { buildBlogHref } from "@/lib/posts/list-params";
 import { cn } from "@/lib/utils";
 
 interface CategoryBadgeProps {
@@ -14,7 +15,7 @@ export function CategoryBadge({ category, className }: CategoryBadgeProps) {
     <Badge
       variant="secondary"
       className={className && cn(className)}
-      render={<Link href={`/blog?category=${encodeURIComponent(category)}`} />}
+      render={<Link href={buildBlogHref({}, { category })} />}
     >
       {category}
     </Badge>

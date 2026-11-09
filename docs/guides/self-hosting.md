@@ -47,7 +47,7 @@ Supabase               인증·DB·스토리지 (원격)
 - **자동 로그인**을 켠다(시스템 설정 > 사용자 및 그룹 > 자동 로그인). Caddy(`brew services`)와 앱·runner는 모두 **사용자 LaunchAgent**라 로그인 세션이 있어야 재부팅 후 기동된다.
   - `sudo sysadminctl -autologin set -userName <서버 사용자> -password -`는 이 서버(macOS 27.2)에서 `SACSetAutoLoginPassword error:22`로 실패했고 `/etc/kcpassword`가 생기지 않았다. `autoLoginUser` 값만 남아 있어 설정된 것처럼 보이므로 **설정 값이 아니라 `/etc/kcpassword` 존재와 재부팅 후 `stat -f %Su /dev/console`이 서버 사용자인지로 확인한다.**
   - 모니터 없이 설정하려면 화면 공유가 필요하다. `homeserver` 같은 SSH 별칭은 VNC 주소로 쓸 수 없으므로 `vnc://<호스트>.local`을 쓴다.
-- 시스템 설정 > 에너지에서 "정전 후 자동으로 시동"을 켜 둔다(이 항목을 켰는지는 문서 작성 시점에 확인하지 않았다).
+- 정전 후 자동 시동을 켜 둔다. 1편에서 `sudo pmset -a autorestart 1`로 설정했고 `pmset -g`에서 `autorestart 1`로 확인했다(2026-11-07). 실제로 전원을 끊어 복구되는지는 시험하지 않았다.
 
 ### 2. Homebrew 패키지와 Node
 
@@ -109,7 +109,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.hkoikoi.web.plist
   - `hkoikoi.dev` (정식)
   - `www.hkoikoi.dev` (Caddy가 apex로 308 리다이렉트)
 - 라우트를 추가하면 DNS(Proxied CNAME)가 자동으로 생긴다. 라우트를 지우면 DNS도 사라진다.
-- Cloudflare는 프록시 응답의 `robots.txt` 앞에 AI 크롤러 차단 "Managed content"를 붙인다. 앱의 규칙(`Disallow: /admin`, `/auth`, `Sitemap:`)은 뒤에 그대로 남는다. 의도한 설정인지는 확인하지 못했다.
+- Cloudflare는 프록시 응답의 `robots.txt` 앞에 AI 크롤러 차단 "Managed content"를 붙인다. 앱의 규칙(`Disallow: /admin`, `/auth`, `Sitemap:`)은 뒤에 그대로 남는다. 따로 켠 설정이 아니라 Cloudflare에 기본으로 되어 있던 것이다(사용자 확인). 원치 않으면 Cloudflare 대시보드에서 바꾼다.
 
 ### 7. GitHub Actions runner
 
@@ -184,7 +184,7 @@ deploy/deploy.sh "$(git rev-parse HEAD)" ~/src
   스크립트의 롤백 분기와 같은 명령이지만 이 수동 절차 자체를 따로 시험하지는 않았다. 롤백 대상은 현재·직전 릴리스뿐이다(나머지는 정리 규칙으로 지워질 수 있다).
 
 - 되돌린 뒤에는 `main`을 같은 SHA로 되돌리는 PR을 올리지 않으면 다음 머지에서 다시 문제 코드가 배포된다.
-- **Vercel 롤백 경로는 없다.** 이전 후 Vercel 프로젝트는 삭제하기로 했다(사용자 결정, 삭제 완료 여부는 문서 작성 시점에 확인하지 못했다). DNS는 이미 홈 서버를 가리킨다.
+- **Vercel 롤백 경로는 없다.** 이전 후 Vercel 프로젝트를 삭제했다(사용자 보고, 2026-11-07). DNS는 이미 홈 서버를 가리킨다.
 
 ## 장애 대응
 
@@ -220,7 +220,7 @@ curl -s -o /dev/null -w "Caddy 8080: %{http_code}\n" -H "Host: hkoikoi.dev" http
 
 - **단일 인스턴스, 무중단 아님**: 배포·롤백·재시작마다 서비스가 1~3초 끊긴다. 롤백 리허설 중 응답을 약 3초 간격으로 33회 기록했을 때 롤백 재시작 순간에 502가 1번 나왔다. 간격이 길어 정확한 끊김 시간은 측정하지 못했다.
 - **재부팅하면 약 1분 가까이 끊긴다**: 15분 응답 기록(279회)의 재부팅 구간에서 Cloudflare 530이 13번(약 3초 간격이면 40초 안팎), 연결 실패가 1번 나왔다. 근사치다.
-- **정전·회선 단절 = 서비스 중단**: UPS와 이중 회선이 없다. 정전 후 자동 시동(에너지 설정)과 자동 로그인이 모두 켜져 있어야 스스로 복구한다.
+- **정전·회선 단절 = 서비스 중단**: UPS와 이중 회선이 없다. 정전 후 자동 시동(`pmset autorestart 1`)과 자동 로그인이 모두 켜져 있어야 스스로 복구한다. 두 설정은 확인했지만 실제 정전으로 시험하지는 않았다.
 - **Vercel 롤백 경로 없음**: 위 "롤백" 참고. 서버가 완전히 망가지면 새 서버에서 이 문서의 "서버 초기 설정"을 다시 따라 복구한다.
 - **디스크**: 릴리스 하나가 약 1GB(`node_modules`+`.next`)다. 현재·직전·최근 5개로 최대 약 7GB를 쓴다(서버 디스크 460GB 중 4% 사용 중).
 - **macOS 업데이트**: 재부팅을 일으키므로 직접 시점을 정해 위 재부팅 중단을 감수한다. 자동 업데이트의 자동 재시작은 확인하지 않았다.
@@ -237,4 +237,4 @@ curl -s -o /dev/null -w "Caddy 8080: %{http_code}\n" -H "Host: hkoikoi.dev" http
 - `deploy.sh` 리허설: 정상 배포, 헬스체크 실패 시 롤백(종료 코드 1, `current` 복구), 빌드 실패 시 `current` 불변, 릴리스 정리(현재·직전 보존).
 - CI: PR에서 `deploy` skipped, `main` 머지 후 `check`·`e2e-smoke`·`deploy` 성공, `current`가 새 SHA로 교체.
 - 운영(apex): 공개 경로 200, `www`→apex 308, sitemap·robots·og:image가 apex 절대 URL, 글 발행·삭제 직후 홈·`/blog`·상세·sitemap 즉시 반영, DB의 `e2e-` 행 0건.
-- 확인하지 못한 것: 동시에 두 번 push했을 때 deploy가 겹치지 않는지(설정으로만 보장), 수동 롤백 절차, "정전 후 자동 시동" 설정, macOS 자동 업데이트의 자동 재시작.
+- 확인하지 못한 것: 동시에 두 번 push했을 때 deploy가 겹치지 않는지(설정으로만 보장), 수동 롤백 절차, 실제 정전 후 자동 복구(설정 값만 확인), macOS 자동 업데이트의 자동 재시작.

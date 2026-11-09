@@ -1,5 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "e2e/*.setup.ts", // playwright.config.ts의 setup 프로젝트가 실행(knip 플러그인이 감지하지 못함)
+  ],
   "ignore": [
     // 생성·외부 파일: 영구 제외
     "components/ui/**", // shadcn CLI가 생성

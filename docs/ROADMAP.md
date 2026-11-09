@@ -556,24 +556,27 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 | 11   | 031 댓글                               | F024          | 낮음          | 기본안 없음 (방식에 따라 다름) | 021       |
 | 12   | 032 정적 섹션 DB 스키마·공개 조회 전환 | F025          | 낮음          | 있음 (테이블 3개·시드)         | 021       |
 | 13   | 033 정적 섹션 관리자 편집 UI           | F025          | 낮음          | 없음                           | 032       |
-| 14   | 034 Post-MVP 통합 회귀·배포 검증       | F015~F025     | 묶음 완료마다 | 없음                           | 대상 Task |
+| 14   | 045 글 본문 `##`~`####` 제목 색상 체계 | F026          | 낮음          | 없음                           | -         |
+| 15   | 046 편집기 모바일 탭 tabpanel 연결     | F006          | 낮음          | 없음                           | -         |
+| 16   | 034 Post-MVP 통합 회귀·배포 검증       | F015~F026     | 묶음 완료마다 | 없음                           | 대상 Task |
 
 - 순서 근거: (1) 스키마 변경이 없고 읽기만 하는 블로그 탐색 기능(022·023·026)을 먼저 해서 방문자 가치를 빨리 낸다. (2) 목록 기능은 **URL 상태 유틸·목록 쿼리 → 페이지네이션 → 검색(스키마 변경)** 순서로 쌓는다. 023이 `/blog`의 URL 상태(`category`, `tag`)와 조회 함수 시그니처를 정리하고, 024가 `page`, 025가 `q`를 더한다. (3) 관리자 작성 경험·운영 부채(027·029)는 탐색 묶음과 병렬로 진행할 수 있다. (4) 새 테이블·익명 쓰기·외부 서비스가 필요한 기능(030·031)은 남용 대책 결정이 필요해 뒤에 둔다. (5) 정적 섹션 DB 전환(032·033)은 규모가 가장 크고, 지금의 `data/*.ts` 방식으로도 운영에 문제가 없어 마지막에 둔다.
-- 병렬 가능: 022·023·026·027·028·029는 서로 독립이다. 030은 022(상세 하단 레이아웃) 뒤를 권장하며, 032→033은 순서 의존이다.
+- 병렬 가능: 022·023·026·027·028·029·045는 서로 독립이다. 030은 022(상세 하단 레이아웃) 뒤를 권장하며, 032→033은 순서 의존이다.
 
-- **Task 021: MVP 잔여 검증 및 운영 점검** - 우선순위
+- **Task 021: MVP 잔여 검증 및 운영 점검** ✅ - 완료 2026-11-09 (편집기 오류 `aria-describedby` 7개 필드와 제출 실패 뒤 포커스 이동은 `fix/editor-error-focus`에서 실행 확인)
   - 관련 기능: F001~F014 (MVP 완료 처리 때 이월한 미확인 항목)
   - 목표: MVP 완료 처리 때 근거가 부족했던 항목을 확인하고 운영 설정을 원래대로 돌려, Post-MVP 작업을 녹색 회귀(전체 e2e 통과)와 확인된 운영 설정에서 시작한다
   - 의존성: 없음
   - 관련 파일: `e2e/**`, `e2e/fixtures/admin.ts`, `playwright.config.ts`, `knip.jsonc`, `app/(site)/_components/latest-posts.tsx`, Supabase 대시보드(Authentication → Rate Limits, URL Configuration)
   - 수락 기준: 현재 `develop` 기준 `npm run check`·실제 env `npm run build`·`npm run knip`·전체 e2e가 통과하고, 운영에서 홈 최신 글·목록·상세·sitemap이 발행·제목 수정·초안 전환·슬러그 변경·삭제 직후 반영되며, Rate Limits·Auth URL 설정 값이 기록됨
-  - [ ] 현재 `develop`(PR #39 포함)에서 `npm run check`·`npm run knip`(Task 020의 sitemap 수정 뒤 미실행)과 실제 Supabase env로 `npm run build` 재실행, 빌드 표에서 `/`·`/blog`·`/sitemap.xml` 분류 기록
-  - [ ] 전체 e2e 재실행(실제 이력·로고·OG 이미지 교체 뒤 미실행, `visitor-flow` 포함). Rate Limit 대응은 파일 분할·6분 간격 실행 또는 일시 상향 후 원복
-  - [ ] Supabase Auth Rate Limits(token refreshes)가 기본값(150/5min)으로 원복됐는지, Site URL·Redirect URL이 `https://www.hkoikoi.dev` 기준인지 사용자 확인 결과를 기록(MCP로 읽을 수 없음)
-  - [ ] PR #39 운영 반영 확인: 테스트 글 발행·삭제 직후 홈 최신 글 영역 반영
-  - [ ] 운영에서 확인하지 못한 캐시 무효화 시나리오(제목 수정·초안 전환·슬러그 변경) 확인
-  - [ ] Task 019 이월: 편집기를 키보드만으로 조작(라벨·`aria-describedby`·포커스 순서), 이력 4종·`/volunteer`·`/activities` 모바일 Lighthouse 측정
-  - [ ] (선택) e2e 로그인 세션 재사용(Playwright `storageState`)으로 전체 실행의 로그인 횟수를 30회 미만으로 줄여, Rate Limit을 올리지 않고도 한 번에 통과하게 개선
+  - [x] 현재 `develop`(PR #39 포함)에서 `npm run check`·`npm run knip`(Task 020의 sitemap 수정 뒤 미실행)과 실제 Supabase env로 `npm run build` 재실행, 빌드 표에서 `/`·`/blog`·`/sitemap.xml` 분류 기록
+  - [x] 전체 e2e 재실행(실제 이력·로고·OG 이미지 교체 뒤 미실행, `visitor-flow` 포함). Rate Limit 대응은 파일 분할·6분 간격 실행 또는 일시 상향 후 원복
+  - [x] Supabase Auth Rate Limits(token refreshes)가 기본값(150/5min)으로 원복됐는지, Site URL·Redirect URL이 정식 호스트 `https://hkoikoi.dev` 기준인지 사용자 확인 결과를 기록(MCP로 읽을 수 없음)
+  - [x] PR #39 운영 반영 확인: 테스트 글 발행·삭제 직후 홈 최신 글 영역 반영
+  - [x] 운영에서 확인하지 못한 캐시 무효화 시나리오(제목 수정·초안 전환·슬러그 변경) 확인
+  - [x] Task 019 이월: 편집기를 키보드만으로 조작(라벨·포커스 순서·포커스 링·제목/URL 오류 연결), 이력 4종·`/volunteer`·`/activities` 모바일 Lighthouse 측정
+  - [x] Task 019 이월(잔여): 편집기 카테고리·태그·소개글·본문·썸네일의 오류 `aria-describedby`가 실제 오류 요소로 연결되는지 실행 확인 (2026-11-09, `fix/editor-error-focus`: `e2e/admin-posts.spec.ts`에 7개 필드 케이스와 빈 폼 Enter 케이스 추가, 전체 e2e 95/95 통과)
+  - [x] (선택) e2e 로그인 세션 재사용(Playwright `storageState`)으로 전체 실행의 로그인 횟수를 30회 미만으로 줄여, Rate Limit을 올리지 않고도 한 번에 통과하게 개선
   - 테스트 체크리스트:
     - 정상: 터미널 → `npm run check && npm run knip` → 종료 코드 0
     - 정상: Playwright MCP → 운영 `/` → 관리자가 테스트 글(`e2e-` 접두) 발행 직후 새로고침 → 최신 글 카드에 노출, 삭제 직후 사라짐
@@ -581,20 +584,28 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → 운영에서 발행 글을 임시 저장(초안 전환) → 공개 상세 not-found, `/blog`·홈·sitemap에서 제외
     - 엣지: Playwright MCP → 운영에서 슬러그 변경 → 이전 슬러그 not-found, 새 슬러그 정상, sitemap에 새 슬러그만
     - 엣지: 키보드만(Tab/Shift+Tab/Enter/Space) → 편집기 제목 → 슬러그 → 메타 필드 → 본문 → 이미지 버튼 → 하단 바 버튼 순회, 포커스 링 표시, 검증 오류가 입력과 연결되어 읽힘
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-11-09 (시각은 KST)
+    - 정적 검증: HEAD `6eb48ee`(`develop`과 동일, PR #39 포함)에서 `npm run check`(단위 테스트 254개)·`npm run knip` 종료 코드 0, 실제 Supabase env `npm run build` 성공. 빌드 표 분류는 `/` ◐ Partial Prerender(Revalidate 1d·Expire 1w), `/blog` ◐(1d·1w), `/sitemap.xml` ƒ Dynamic. 빌드 경고 `cacheComponents` 켠 채 `partialPrefetching` 미설정은 PR #47(`partialPrefetching: true`)로 해소했고 분류는 같았다.
+    - 전체 e2e: 첫 실행은 Rate Limit 회피를 위해 그룹으로 나눠 370초 간격으로 돌렸고 85건 중 84건 통과, 1건 실패였다. 실패는 `e2e/home.spec.ts`의 `getByText("Deploy")`가 대소문자 무시 부분 일치라 홈 최신 글 링크(`…auto-deploy-github-actions`)와 `#deployment` 태그에 걸린 것으로, 앱 결함이 아니라 테스트 취약성이다(PR #48에서 exact 일치로 수정). 이어서 로그아웃을 `signOut({ scope: "local" })`로 바꾸고(PR #49) 로그인 세션 재사용을 넣은(PR #50) 뒤 전체 `npx playwright test`를 분할 없이 한 번에 돌려 86개(setup 1개 포함) 통과, 약 49초, 429 없음. Supabase 로그의 같은 구간 `/auth/v1/token`(password grant)은 13건이다(틀린 비밀번호 테스트 포함, 성공·실패 구분은 못 함. 이전 약 44회는 코드를 읽고 센 값). 실행 후 `e2e-` 접두 글은 0건이고 `blog-images` 객체는 알려진 70바이트 고아 파일만 늘었다(34→41→48).
+    - 사용자 확인(Supabase 대시보드, MCP로 읽을 수 없어 사용자 보고 값): Authentication → Rate Limits의 token refreshes는 기본값 150/5min이다(상향 상태 아님). Site URL은 `https://hkoikoi.dev`, Redirect URLs는 `localhost:3000/**`, `https://www.hkoikoi.dev/**`, `https://hkoikoi.dev/**`다(사용자가 적은 표기 그대로). `www` 항목이 남아 있으나 앱은 `signInWithPassword`만 써서 영향이 없다(Task 039 기록 기준).
+    - 운영 캐시 반영(`https://hkoikoi.dev`, `e2e-prod-cache-1109a` 글, 쿠키 없는 curl로 확인): 발행 12:06:56 직후 홈·`/blog`·상세·sitemap에 노출. 제목 수정 12:07:32 직후 홈·`/blog`·상세에 새 제목(옛 제목 텍스트 0건은 12:08:08에 확인). 초안 전환 12:08:36·12:10:55 직후 상세가 not-found이고 `/blog`·홈·sitemap에서 제외. 재발행 12:09:30·12:11:12 직후 다시 노출. 슬러그 변경 12:10:19 직후 이전 슬러그 not-found, 새 슬러그 정상, sitemap·`/blog`·홈 링크에 새 슬러그만. 삭제 12:11:34 직후 홈·`/blog`·sitemap에서 사라지고 상세는 not-found(PR #39 선례 재현 안 됨). 삭제 뒤 DB의 `e2e-` 행 0건이고 실제 글은 바뀌지 않았다. not-found 판별은 `페이지를 찾을 수 없습니다` 문구가 정상 글에도 2건씩 들어 있어 쓸 수 없고, `<h1>`이 없고 `<title>`이 `hkoikoi.dev`뿐인지로 했다.
+    - 편집기 키보드(임시 Playwright 스펙, 저장 없이 실행, 실행 뒤 삭제): 데스크톱 `/admin/posts/new`의 Tab 정지점 16개가 DOM 순서와 일치(본문 바로가기 → 헤더 링크·로그아웃 → 제목 → URL → 카테고리 → 태그 → 소개글 → 썸네일 업로드 → 이미지 추가 → 본문 → 나가기 → 임시 저장 → 발행하기, 이미지 버튼이 본문보다 앞), Shift+Tab은 정확히 대칭, 모든 정지점에서 `:focus-visible`과 링이 보였다. 빈 폼을 Enter로 제출하면 제목·URL 입력의 `aria-describedby`가 실제 오류 요소(`post-title-error`, `post-slug-error`)를 가리켰다. 모바일(375px) 탭은 방향키로 포커스만 이동하고 Enter로 전환된다.
+    - 모바일 Lighthouse 13.6.0(운영 URL, 모바일 simulate, 11:58~12:00): 성능/접근성/모범사례/SEO — `/education` 87/98/100/100, `/career` 99/98/100/100, `/certifications` 88/98/100/100, `/languages` 88/98/100/91, `/volunteer` 94/98/100/100, `/activities` 98/98/100/100. 접근성 98은 6경로 모두 `heading-order`(`h3`) 때문이다. `/languages`는 3회 측정해 성능 88·92·86, SEO 91·100·100이었고 91은 `robots-txt` 감사가 한 번 실패한 것으로 재측정에서 재현되지 않았다(원인 미확인). "이력 4종"은 문서에 정의가 없어 헤더 "이력" 드롭다운(`/education`·`/career`·`/certifications`·`/languages`)으로 해석했다.
+    - 제한 사항·미확인: 편집기 카테고리·태그·소개글·본문·썸네일의 오류 `aria-describedby`는 코드상 id 일치만 확인했고 실행으로는 확인하지 못했다. 모바일 탭 트리거가 Tab 정지점인지는 첫 측정에서 건너뛰고 재측정에서는 `작성` 탭이 정지점이어서 일관되지 않으며 원인을 찾지 못했다. Lighthouse는 경로당 1회 측정이라 성능 점수 변동(±수 점)이 있다. 운영 캐시 확인은 curl 1회 호출 기준이며 브라우저 캐시는 확인하지 않았다.
+    - 새로 발견(수정하지 않음): (1) 빈 폼 제출 뒤 포커스가 `BODY`로 떨어진다(오류는 `role="alert"`로만 알림). → `fix/editor-error-focus`에서 수정: 서버 검증이 실패하면 `post-editor.tsx`가 첫 `aria-invalid` 입력으로 포커스를 옮기고, 모바일 미리보기 탭이면 작성 탭으로 되돌린 뒤 옮긴다. 썸네일 버튼에 `aria-invalid`를 추가했다. (2) 모바일 탭에 `tabpanel`·`aria-controls` 연결이 없다. (3) 개발 서버가 `/admin/posts`·`/admin/posts/new`에서 `Date.now()` 프리렌더 오류를 낸다(이전 e2e 로그에도 있었고 `npm run build`에는 없음, 원인 조사 안 함). (4) `app/admin/layout.tsx:35`의 `<main>` 안에 `new/page.tsx:10`이 또 `<main>`을 둔다(코드 읽기로만 확인). (5) CLAUDE.md의 e2e 문단(로그인 약 40번, Rate Limit 우회 절차)이 PR #50 이후 사실과 다르다.
 
-- **Task 022: 블로그 상세 이전/다음 글 내비게이션 구현**
+- **Task 022: 블로그 상세 이전/다음 글 내비게이션 구현** ✅ - 완료 2026-11-09 (동률 `published_at` 실제 DB 동작, 글 삭제 직후 인접 링크 변경, 데스크톱 2열 배치는 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F015(제안: 이전/다음 글 내비게이션), F006
   - 목표: 상세 하단에서 인접한 발행 글로 바로 이동해 연속 열람을 돕는다
   - 의존성: Task 021(권장). 스키마 변경 없음
   - 관련 파일: `lib/queries/posts.ts`(`getAdjacentPosts`), `lib/queries/posts.test.ts`, `components/blog/post-pager.tsx`(신규), `app/(site)/blog/[slug]/page.tsx`, `e2e/post-navigation.spec.ts`(신규)
   - 수락 기준: 상세 하단에 "이전 글"(더 오래된 글)·"다음 글"(더 최근 글) 링크가 제목과 함께 표시되고, 가장 오래된·가장 최근 글에서는 해당 쪽이 비어 있음. 초안은 포함되지 않고, 글 저장·삭제·발행 상태 변경 뒤 인접 링크가 즉시 바뀜
-  - [ ] 정렬 기준: 목록과 같은 `published_at desc`, 동률은 `id`로 결정(같은 시각 발행 글의 누락·순환 방지). "이전 = 더 오래된 글, 다음 = 더 최근 글"로 정하고 컴포넌트 주석에 적음
-  - [ ] `fetchAdjacentPosts(publishedAt, id)`: `'use cache'` + `cacheTag('posts')` + `cacheLife('max')`, `published = true` 명시, 양쪽 각 1건(비교 + 정렬 + `limit(1)`, 동률 조건은 PostgREST `or` 필터 `published_at.lt.<X>,and(published_at.eq.<X>,id.lt.<Y>)` — 값은 DB에서 온 timestamp·uuid라 사용자 입력이 아님), 컬럼은 `slug, title`만. 실패는 `failUncached`, 바깥 래퍼는 `{ prev: null, next: null }`
-  - [ ] `PostPager`(Server Component): `<nav aria-label="이전·다음 글">`, 한글 슬러그는 기존 링크와 같은 방식으로 인코딩, 모바일에서는 세로 배치·긴 제목 말줄임
-  - [ ] 상세 페이지에서 본문 조회 뒤 같은 `<Suspense>` 경계 안에서 렌더링(상세가 이미 `params`를 읽는 Suspense 안에 있는지 확인)
-  - [ ] 무효화: 기존 `invalidatePostTags`가 `posts`를 만료하므로 인접 글 제목 변경·삭제도 반영되는지 확인하고, 추가 태그가 필요 없으면 그 근거를 주석으로 남김
-  - [ ] 단위 테스트: 쿼리 인자(published 필터·정렬·동률 조건), 실패 시 빈 값
+  - [x] 정렬 기준: 목록과 같은 `published_at desc`, 동률은 `id`로 결정(같은 시각 발행 글의 누락·순환 방지). "이전 = 더 오래된 글, 다음 = 더 최근 글"로 정하고 컴포넌트 주석에 적음
+  - [x] `fetchAdjacentPosts(publishedAt, id)`: `'use cache'` + `cacheTag('posts')` + `cacheLife('max')`, `published = true` 명시, 양쪽 각 1건(비교 + 정렬 + `limit(1)`, 동률 조건은 PostgREST `or` 필터 `published_at.lt.<X>,and(published_at.eq.<X>,id.lt.<Y>)` — 값은 DB에서 온 timestamp·uuid라 사용자 입력이 아님), 컬럼은 `slug, title`만. 실패는 `failUncached`, 바깥 래퍼는 `{ prev: null, next: null }`
+  - [x] `PostPager`(Server Component): `<nav aria-label="이전·다음 글">`, 한글 슬러그는 기존 링크와 같은 방식으로 인코딩, 모바일에서는 세로 배치·긴 제목 말줄임
+  - [x] 상세 페이지에서 본문 조회 뒤 같은 `<Suspense>` 경계 안에서 렌더링(상세가 이미 `params`를 읽는 Suspense 안에 있는지 확인)
+  - [x] 무효화: 기존 `invalidatePostTags`가 `posts`를 만료하므로 인접 글 제목 변경·삭제도 반영되는지 확인하고, 추가 태그가 필요 없으면 그 근거를 주석으로 남김
+  - [x] 단위 테스트: 쿼리 인자(published 필터·정렬·동률 조건), 실패 시 빈 값
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 발행 글 3건(시드 `e2e-nav-`) 중 가운데 글 상세 → 이전 글 = 가장 오래된 글, 다음 글 = 가장 최근 글의 제목·링크, 클릭 시 이동
     - 정상: Playwright MCP → 관리자가 인접 글 제목 수정 → 비로그인 컨텍스트로 상세 새로고침 → 새 제목
@@ -602,9 +613,15 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → 가장 최근 글 → "다음 글" 없음, 가장 오래된 글 → "이전 글" 없음, 발행 글 1건뿐 → 내비게이션 미표시
     - 엣지: `posts.test.ts` → 같은 `published_at`의 두 글 → `id` 기준으로 서로를 가리킴(누락·순환 없음)
     - 엣지: Playwright MCP → 한글 슬러그 인접 글 링크 클릭 → 정상 상세
-  - 테스트 결과: (미수행)
+  - 테스트 결과 (2026-11-09):
+    - 자동 검사: `npm run check` 통과(vitest 33파일 269건 — `posts.test.ts` 26건(인접 글 9건), `post-pager.test.tsx` 6건 포함), `npm run build` 통과(`/blog/[slug]` `◐ Partial Prerender`, Revalidate 1d·Expire 1w, 프리렌더 오류 없음). `npm run knip`은 첫 실행에서 `AdjacentPost` 타입의 불필요한 export를 지적해 export를 제거한 뒤 통과했다.
+    - e2e: `e2e/post-navigation.spec.ts` 5건 통과, 전체 `npx playwright test` 100건이 2회 연속 통과. 실행 뒤 DB의 `e2e-` 글 0건(Supabase MCP로 확인), 이미지 업로드는 하지 않아 `blog-images` 고아 파일 없음. 확인한 시나리오: 가운데 글의 이전(더 오래된 글)·다음(더 최근 글) 제목·href와 클릭 이동, 한글 슬러그 인접 글 링크 클릭, 인접 글 제목 수정 뒤 쿠키 없는 컨텍스트 새로고침에 새 제목, 인접 글을 초안으로 바꾸면 초안을 건너뛰고 그다음 발행 글 표시.
+    - 개발 서버: 가운데 글에는 이전·다음이, 가장 최근 글에는 이전만 표시됐고 콘솔·서버 로그에 새 오류는 없었다. 375px에서 두 링크가 세로로 쌓이고 다음 글은 우측 정렬이었다. PostgREST `or` 필터는 `+`·`:`가 든 timestamptz를 인용 없이도 읽기 전용 curl로 정상 처리했다.
+    - 결정: 목록 쿼리(`getLatestPosts`, `getPublishedPosts`)에 `id desc` 보조 정렬을 더해 같은 `published_at` 글의 목록 순서와 이전·다음 순서를 맞췄다.
+    - 첫 전체 e2e 실행에서 병렬 스펙의 발행이 시드 글 사이에 끼어 1건 실패했다. 시드 직후 `/blog` 목록 순서로 연속 여부를 확인하고 아니면 다시 만들도록 고친 뒤 통과했다.
+    - 제한 사항·미확인: (1) 동률 `published_at`의 실제 DB 동작은 확인하지 못했다(편집기에 발행 시각 입력이 없어 e2e로 만들 수 없고, 단위 테스트는 `or` 필터 문자열의 `lt`·`gt` 대칭과 정렬 인자만 확인한다). (2) 실제 글이 DB에 있어 "가장 오래된 글에는 이전 글 없음"과 "발행 글 1건뿐이면 내비게이션 미표시"는 e2e로 재현하지 못했다(후자는 `PostPager`의 둘 다 null 단위 테스트로 대체). 가장 최근 글의 "다음 글 없음"도 병렬 스펙이 글을 발행할 수 있어 e2e에서는 시드 글이 아님만 확인한다. (3) 글 삭제 직후 인접 링크가 바뀌는지는 e2e로 확인하지 않았다(제목 수정·초안 전환만 확인, 삭제도 같은 `posts` 태그 만료를 쓴다). (4) 데스크톱 폭(`sm` 이상) 2열 배치는 눈으로 확인하지 못했다(클래스와 단위 테스트로만 확인). (5) 체크리스트의 Playwright MCP 대신 Playwright 스펙과 개발 서버 응답으로 확인했다.
 
-- **Task 023: 태그·카테고리 필터 탐색 및 태그 정렬 규칙 구축**
+- **Task 023: 태그·카테고리 필터 탐색 및 태그 정렬 규칙 구축** ✅ - 완료 2026-11-09 (JavaScript 비활성 동작, 다크 모드 육안, 태그 12개 초과 시 화면, 발행 글 수백 건 규모의 집계 비용은 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F016(제안: 태그·카테고리 필터 탐색과 정렬), F005
   - 목표: 카드·상세의 배지를 눌러야만 쓸 수 있던 필터를 `/blog` 상단의 카테고리·태그 목록(글 수 포함)에서 바로 고르게 하고, 영어·한글이 섞인 태그를 일관된 순서로 보여 준다
   - 스키마 확인 결과(2026-11-05, `supabase/migrations/20261026105752_create_posts.sql`·`20261028040654_add_posts_category_tags_length_checks.sql`): `category text not null default '일반'`(1~50자), `tags text[] not null default '{}'`(최대 10개, 요소 50자 이하) 컬럼과 `posts_tags_idx`(GIN)·`posts_category_idx` 인덱스가 이미 있고, 공개 조회도 `?category=&tag=`(정확 일치, AND)를 지원한다. **필터를 위한 스키마·마이그레이션 Task는 필요 없다.** 집계는 앱에서 먼저 하고, 발행 글이 수백 건을 넘어 집계 비용이 문제 되면 그때 집계 RPC(`security invoker`, 내부 `published = true`)를 마이그레이션으로 추가한다
@@ -612,17 +629,17 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 의존성: Task 021(권장). 스키마 변경 없음
   - 관련 파일: `lib/posts/sort-tags.ts`(+test), `lib/posts/list-params.ts`(+test), `lib/posts/taxonomy.ts`(+test, 집계 순수 함수), `lib/queries/posts.ts`(`getTaxonomy`), `app/(site)/blog/page.tsx`, `app/(site)/blog/_components/{taxonomy-filter,post-filter-bar}.tsx`, `e2e/blog-filter.spec.ts`(신규)
   - 수락 기준: `/blog` 상단에 카테고리 목록과 태그 목록이 글 수와 함께 표시되고, 선택 상태가 시각과 `aria-current`로 구분되며, 카테고리+태그 AND 조합·해제가 링크만으로(JavaScript 없이도) 동작. 태그·카테고리 목록은 아래 정렬 규칙을 따르고 서버·브라우저에서 같은 결과. 기존 `?category=&tag=` URL은 그대로 동작
-  - [ ] 태그 정렬 규칙(`sortTags`): 그룹 순서 **숫자·기호 → 영문 → 한글 → 기타 문자**. 영문 그룹은 `Intl.Collator('en', { sensitivity: 'base', numeric: true })`(대소문자 무시), 한글 그룹은 `Intl.Collator('ko', { numeric: true })`(가나다순), 비교 결과가 같으면(`React`/`react`) 코드포인트 순으로 결정. 근거:
+  - [x] 태그 정렬 규칙(`sortTags`): 그룹 순서 **숫자·기호 → 영문 → 한글 → 기타 문자**. 영문 그룹은 `Intl.Collator('en', { sensitivity: 'base', numeric: true })`(대소문자 무시), 한글 그룹은 `Intl.Collator('ko', { numeric: true })`(가나다순), 비교 결과가 같으면(`React`/`react`) 코드포인트 순으로 결정. 근거:
     - 이 블로그의 태그는 대부분 기술 고유명사(Next.js, React, Supabase 등)라 영문을 앞에 두면 자주 쓰는 태그가 먼저 보이고, 개발 블로그·문서의 흔한 배치와 같다
     - 로케일 기본값은 순서가 서로 다르다. 2026-11-05 Node 24에서 `Intl.Collator('ko')`는 한글을 영문보다 앞에, `Intl.Collator('en')`은 영문을 앞에 두었다. 로케일에 맡기지 않고 그룹 순서를 코드로 고정한다
     - 기본 `Array.prototype.sort()`는 코드포인트 순이라 대문자가 소문자보다 앞서고 기호가 사이에 끼어(`Next.js` → `_draft` → `nextjs`) 사람이 기대하는 순서가 아니다
     - 로케일을 명시하면 서버(Node ICU)와 브라우저 결과가 같아 하이드레이션 불일치가 없다
     - 한글을 앞에 두고 싶으면 그룹 순서 상수만 바꾼다(사용자 결정 시 이 항목 갱신)
-  - [ ] 정렬 적용 범위: `/blog` 상단의 태그·카테고리 목록에 적용. 카드·상세의 글별 태그는 작성자가 입력한 순서를 유지(작성 의도가 담긴 순서일 수 있음, 바꾸려면 같은 `sortTags` 재사용). 기본 카테고리 "일반"도 규칙대로 정렬(맨 앞 고정은 하지 않음)
-  - [ ] `getTaxonomy()`: 발행 글의 `category, tags`만 조회하는 `'use cache'` + `cacheTag('posts')` + `cacheLife('max')` 함수, 카테고리별·태그별 글 수는 순수 함수(`lib/posts/taxonomy.ts`)로 집계, 실패하면 빈 목록
-  - [ ] `lib/posts/list-params.ts`: `searchParams` → `{ category?, tag? }` 파싱(배열은 첫 값, 빈 값 무시, 50자 초과 무시, NFC 정규화)과 `buildBlogHref(current, patch)`(다른 조건 유지, 이후 추가될 `page`는 필터가 바뀌면 초기화). `app/(site)/blog/page.tsx`의 `first()`를 대체
-  - [ ] `TaxonomyFilter` UI: 카테고리 칩 줄, 태그 칩(많으면 상위 N개 + `details` "전체 태그"), 선택된 칩을 다시 누르면 해당 조건 해제, 글 수 표시, `aria-current="true"`. 기존 `PostFilterBar`(현재 필터·해제)는 유지하거나 통합. `searchParams`를 읽으므로 기존 Suspense 안에 둠. 0건 조합은 기존 빈 목록 안내 유지
-  - [ ] 결정 기록: 다중 태그 선택(`?tag=a&tag=b`)은 기본 미지원(단일 태그 유지). 대소문자만 다른 태그(`Next.js`/`next.js`)는 별개로 취급하고, 표기 흔들림을 줄이기 위해 편집기 태그 입력에 기존 태그 후보(`datalist`, 관리자 쿼리)를 제안하는 것은 선택 구현으로 둠
+  - [x] 정렬 적용 범위: `/blog` 상단의 태그·카테고리 목록에 적용. 기본 카테고리 "일반"도 규칙대로 정렬(맨 앞 고정은 하지 않음). **결정 변경(2026-11-09, 사용자 요청)**: 처음에는 카드·상세의 글별 태그를 작성자 입력 순서로 두기로 했으나, 필터 칩과 순서가 달라 보여 카드(`post-card.tsx`)와 상세 헤더(`blog/[slug]/page.tsx`)도 같은 `sortTags`로 정렬한다. 편집기에 입력한 순서와 DB 저장 순서는 바꾸지 않고 표시할 때만 정렬한다
+  - [x] `getTaxonomy()`: 발행 글의 `category, tags`만 조회하는 `'use cache'` + `cacheTag('posts')` + `cacheLife('max')` 함수, 카테고리별·태그별 글 수는 순수 함수(`lib/posts/taxonomy.ts`)로 집계, 실패하면 빈 목록
+  - [x] `lib/posts/list-params.ts`: `searchParams` → `{ category?, tag? }` 파싱(배열은 첫 값, 빈 값 무시, 50자 초과 무시, NFC 정규화)과 `buildBlogHref(current, patch)`(다른 조건 유지, 이후 추가될 `page`는 필터가 바뀌면 초기화). `app/(site)/blog/page.tsx`의 `first()`를 대체. 구현 메모: `page`는 아직 없어(Task 024) `buildBlogHref`에 필터 변경 시 `page`를 지울 확장 지점을 주석으로만 남겼다. 카드·상세의 배지는 기존처럼 그 조건 하나만 적용하는 링크(`buildBlogHref({}, {…})`)
+  - [x] `TaxonomyFilter` UI: 카테고리 칩 줄, 태그 칩(많으면 상위 N개 + `details` "전체 태그"), 선택된 칩을 다시 누르면 해당 조건 해제, 글 수 표시, `aria-current="true"`. 기존 `PostFilterBar`(현재 필터·해제)는 유지하거나 통합. `searchParams`를 읽으므로 기존 Suspense 안에 둠. 0건 조합은 기존 빈 목록 안내 유지. 구현 메모: "상위 N개"는 ROADMAP에 기준이 없어 **글 수 내림차순 상위 12개(동률은 정렬 규칙 순, 선택된 태그는 반드시 포함해 가장 글 수가 적은 마지막 칸과 교체)**로 해석했고(`splitTopTags`), 나머지는 `<details>` "전체 태그 (n)" 안에 정렬 순서로 둔다. `PostFilterBar`는 e2e(`visitor-flow`의 "현재 필터", `a11y`의 "필터 해제" 링크)가 직접 의존해 **통합하지 않고 유지**했다. 칩 접근성 이름은 `<이름>글 N개`이고 "필터 해제"라는 문구는 쓰지 않는다(`a11y.spec`의 링크 이름 검색과 겹침 방지)
+  - [x] 결정 기록: 다중 태그 선택(`?tag=a&tag=b`)은 기본 미지원(단일 태그 유지). 대소문자만 다른 태그(`Next.js`/`next.js`)는 별개로 취급하고, 표기 흔들림을 줄이기 위해 편집기 태그 입력에 기존 태그 후보(`datalist`, 관리자 쿼리)를 제안하는 것은 선택 구현으로 둠. 처리 결과: 다중 태그 미지원·대소문자 별개 취급은 구현에 반영했고(`countTaxonomy`는 대소문자만 다른 태그를 따로 센다), 편집기 태그 `datalist` 제안은 선택 구현이라 **하지 않았다**
   - 테스트 체크리스트:
     - 정상: `sort-tags.test.ts` → `['react', '회고', 'Next.js', 'AI', '가나다', '2026']` → `['2026', 'AI', 'Next.js', 'react', '가나다', '회고']`
     - 정상: Playwright MCP → `/blog` → 카테고리·태그 목록과 글 수 표시, 태그 칩 클릭 → `/blog?tag=<태그>`, 해당 글만, 칩 `aria-current`
@@ -632,27 +649,38 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: `sort-tags.test.ts` → `React`/`react` 동시 존재 → 항상 같은 순서, `v2`/`v10` → `v2`가 앞(numeric), 일본어·이모지 태그 → 맨 뒤 그룹
     - 엣지: Playwright MCP → 관리자가 새 태그로 글 발행 → 비로그인 `/blog` 새로고침 → 태그 목록에 즉시 추가, 글 삭제 뒤 글 수 0인 태그는 사라짐
     - 엣지: Playwright MCP → JavaScript 비활성 컨텍스트 → 칩 링크로 필터 적용·해제 동작
-  - 테스트 결과: (미수행)
+  - 테스트 결과 (2026-11-09):
+    - 자동 검사: `npm run check` 통과(vitest 36파일 311건 — `sort-tags.test.ts` 11건, `list-params.test.ts` 14건, `taxonomy.test.ts` 11건, `posts.test.ts`의 `getTaxonomy` 6건 포함), `npm run knip` 통과(중간에 `TaxonomyItem` 불필요 export를 지적해 정리), 실제 env `npm run build` 통과(`/blog` `◐ Partial Prerender`, Revalidate 1d·Expire 1w, 프리렌더 오류 없음).
+    - e2e: `e2e/blog-filter.spec.ts` 5건(로그인 setup 포함 6건 실행)과 `post-navigation`·`visitor-flow`·`a11y`를 함께 돌린 23건 통과. 확인한 시나리오: 태그 칩 클릭 → `?tag=`·해당 글만·글 수·`aria-current`, 태그 선택 상태에서 카테고리 칩 클릭 → 두 조건 AND, 선택 칩 재클릭 → 해당 조건만 해제, 맞지 않는 조합의 빈 목록 안내와 "필터 해제", `?tag=<51자>` → HTTP 400 미만·h1 표시·필터 무시·전체 목록, 새 태그로 발행 → 쿠키 없는 컨텍스트 `/blog` 새로고침에 칩 즉시 추가, 글 삭제 → 칩 사라짐. 글 수가 적은 태그는 "전체 태그" 접힘 안에 있어 스펙이 펼친 뒤 클릭한다. 관련 외 스펙과 전체 `npx playwright test`는 이번에 돌리지 않았다.
+    - 개발 서버(Playwright MCP): `/blog`에 카테고리 2개·태그 12개와 "전체 태그 (20)"이 글 수와 함께 표시됐고, 태그 칩 → `?tag=python`, 카테고리 칩 클릭 → `?category=…&tag=python` 9건과 `aria-current` 2개, 선택 카테고리 재클릭 → `?tag=python`만 남았다. 데스크톱·375px 스크린샷 육안 확인, 가로 넘침 없음(`scrollWidth` = `clientWidth`).
+    - 오류 경로: 셸 env로 잘못된 `NEXT_PUBLIC_SUPABASE_URL`을 준 개발 서버(포트 3100)에서 `/blog`는 HTTP 200, 필터 목록(`글 탐색` nav) 미표시, "아직 작성된 글이 없습니다" 안내, 오류 화면 없음, 서버 로그에는 `[getTaxonomy]`·`[getPublishedPosts]` `fetch failed`만 기록됐다.
+    - 제한 사항·미확인: (1) JavaScript 비활성 컨텍스트에서 칩 링크로 필터를 적용·해제하는 동작은 확인하지 못했다(칩은 `Link`와 `<details>`뿐이고 새 `'use client'`는 없다). (2) 다크 모드 육안 확인은 하지 않았다. (3) 태그가 12개를 넘을 때 선택 태그가 마지막 칸과 교체되는 동작은 단위 테스트(`splitTopTags`)로만 확인했고 화면에서는 보지 않았다. (4) 50자짜리 긴 카테고리명은 `max-w-full`만 적용했고 실제 줄바꿈은 확인하지 않았다. (5) 집계는 발행 글의 `category, tags`를 앱에서 세므로, 글이 수백 건을 넘으면 집계 RPC(`security invoker`, 내부 `published = true`)로 바꾸는 판단이 남아 있다(이번에는 구현하지 않음). (6) 카드·상세 태그 정렬은 `/blog` 카드 한 장의 순서만 직접 확인했고 상세 페이지 화면은 열어 보지 않았다.
 
-- **Task 024: 블로그 목록 페이지네이션 구현**
+- **Task 024: 블로그 목록 페이지네이션 구현** ✅ - 완료 2026-11-09 (실제 모바일 기기·Safari, 데스크톱 번호 목록 육안, 다크 모드, JavaScript 비활성 동작, 운영 canonical 호스트는 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F017(제안: 블로그 목록 페이지네이션), F005
   - 목표: 글이 늘어도 목록 응답 크기와 렌더링 비용을 일정하게 유지한다
   - 의존성: Task 023(`list-params`·`buildBlogHref`). 스키마 변경 없음(기존 `(published, published_at desc)` 인덱스 사용)
-  - 관련 파일: `lib/queries/posts.ts`, `lib/posts/list-params.ts`, `lib/posts/pagination.ts`(+test), `app/(site)/blog/page.tsx`, `app/(site)/blog/_components/pagination.tsx`(신규), `e2e/blog-pagination.spec.ts`(신규)
-  - 수락 기준: `/blog?page=n`이 페이지당 12개(상수)를 최신순으로 표시하고 필터와 함께 동작하며, 필터를 바꾸면 1페이지로 돌아감. 이전/다음·번호 링크가 총 페이지 수에 맞게 표시되고 잘못된 값·범위 밖 페이지는 오류 없이 처리. 홈 최신 3개·sitemap은 영향 없음
-  - [ ] 방식: 오프셋 기반(`range(from, to)` + `count: 'exact'`)을 기본으로 한다(1인 블로그 규모, 번호 링크·URL 공유가 쉬움). 커서 방식은 글이 수천 건이 되면 재검토
-  - [ ] `fetchPublishedPosts(category, tag, page)`가 `{ posts, total }`을 반환, 캐시 키에 page 포함, `cacheTag('posts')`. 정렬에 `id` 보조 정렬을 더해 페이지 경계의 중복·누락 방지
-  - [ ] `page` 파싱: 정수가 아니거나 1 미만이면 1, 마지막 페이지 초과는 빈 목록 안내 + 첫/마지막 페이지 링크(soft 404 선례와 일관되게 `notFound()`는 쓰지 않음)
-  - [ ] `Pagination`: `<nav aria-label="페이지">`, 현재 페이지 `aria-current="page"`, 링크는 `buildBlogHref`로 필터 유지, 모바일에서 번호 축약
-  - [ ] 메타데이터: 2페이지 이상은 title에 "(n페이지)", canonical은 자기 자신. sitemap에는 페이지 URL을 넣지 않음
+  - 관련 파일: `lib/queries/posts.ts`, `lib/posts/list-params.ts`, `lib/posts/pagination.ts`(+test), `lib/posts/page-size.ts`(+test, 신규), `lib/posts/list-metadata.ts`(+test, 신규), `app/(site)/blog/page.tsx`, `app/(site)/blog/_components/pagination.tsx`(+test, 신규), `e2e/blog-pagination.spec.ts`(신규), `e2e/blog-filter.spec.ts`(수정)
+  - 수락 기준: `/blog?page=n`이 페이지당 글을 최신순으로 표시하고(모바일 6개, 그 외 10개, 서버가 요청 헤더로 판별) 필터와 함께 동작하며, 필터를 바꾸면 1페이지로 돌아감. 이전/다음·번호 링크가 총 페이지 수에 맞게 표시되고 잘못된 값·범위 밖 페이지는 오류 없이 처리. 홈 최신 3개·sitemap은 영향 없음
+  - [x] 페이지 크기(2026-11-09 사용자 결정): 모바일 6개, 그 외 10개. 목록은 서버에서 DB를 잘라 가져오므로 CSS 미디어쿼리로는 나눌 수 없어 `lib/posts/page-size.ts`가 요청 헤더로 기기를 판별한다(`Sec-CH-UA-Mobile`이 `?1`·`?0`이면 그 값, 없으면 User-Agent의 `Mobi|iPhone|iPod`, 태블릿은 10개). 페이지 크기를 캐시 키에 넣고 총 페이지 수·번호 링크도 그 크기로 계산한다. 한계: 화면 너비가 아니라 요청 헤더로 판별하므로 데스크톱 브라우저 창을 좁혀도 10개다. 같은 `?page=n` URL이 기기마다 다른 글을 보여 주고(공유 링크·검색 크롤러 포함), 헤더 판별은 추정이다. 응답이 `User-Agent`에 따라 달라지므로 Caddy·Cloudflare가 HTML을 캐시하면 안 되는데 이 설정은 확인하지 않았다
+  - [x] 방식: 오프셋 기반(`range(from, to)` + `count: 'exact'`)을 기본으로 한다(1인 블로그 규모, 번호 링크·URL 공유가 쉬움). 커서 방식은 글이 수천 건이 되면 재검토
+  - [x] 조회 함수: 구현은 `getPublishedPostsPage({ category, tag, page, pageSize })`(안쪽 캐시 함수 `fetchPublishedPostsPage`)가 `{ posts, total }`을 반환하고, 캐시 키에 `page`·`pageSize` 포함, `cacheTag('posts')`, `id` 보조 정렬로 페이지 경계의 중복·누락을 막는다. 이름이 처음 계획한 `fetchPublishedPosts(category, tag, page)`와 달라진 이유는 sitemap이 쓰는 전체 조회 `getPublishedPosts`의 시그니처·동작을 바꾸지 않기 위해서다. 필터 조건은 `applyPostFilter`로 추출해 둘이 공유한다. **범위 밖 offset은 오류로 온다**: 운영 REST에 발행 글 18건 상태로 `range 9990-10001`을 요청하니 HTTP 416 `PGRST103`("An offset of 9990 was requested, but there are only 18 rows")에 `content-range: */18`이고 `count`는 오지 않았다(`0-11`은 206 `0-11/18`, `12-23`은 206 `12-17/18`). 그대로 두면 `?page=999`에서 마지막 페이지 링크를 만들 수 없어, `PGRST103`이면 오류로 보지 않고 head 요청으로 전체 글 수만 다시 세어 빈 목록과 함께 돌려준다(재집계가 실패하면 저장하지 않음)
+  - [x] `page` 파싱: 양의 정수 문자열만 받고 정수가 아니거나 1 미만이면 1(`page=1`도 URL에 쓰지 않음). 구현 메모: 임의의 큰 `page`마다 캐시 항목이 생기지 않도록 상한 10000을 두어 넘으면 10000으로 고정한다. 마지막 페이지 초과는 빈 목록 안내("없는 페이지입니다") + 첫/마지막 페이지 링크(soft 404 선례와 일관되게 `notFound()`는 쓰지 않고 HTTP 200). `buildBlogHref`는 `category`·`tag`가 바뀌면 `page`를 지우고 `page`만 바뀌면 필터를 유지한다
+  - [x] `Pagination`: `<nav aria-label="페이지">`, 현재 페이지 `aria-current="page"`, 링크는 `buildBlogHref`로 필터 유지, 모바일(sm 미만)에서는 번호 목록을 숨기고 이전/다음과 "현재 / 전체"만 표시(새 `'use client'` 없음). 마크업은 `ui-markup-specialist` 에이전트가 작성했고 새 shadcn 컴포넌트는 추가하지 않았다(`buttonVariants` 재사용). 첫 페이지의 "이전"·마지막 페이지의 "다음"은 `aria-disabled` span
+  - [x] 메타데이터: 2페이지 이상은 title에 "(n페이지)", canonical은 필터와 `page`를 포함한 자기 자신(`lib/posts/list-metadata.ts`의 `buildBlogListMetadata`), sitemap에는 페이지 URL을 넣지 않음. 구현 메모: `searchParams`를 읽는 `generateMetadata`는 `cacheComponents`에서 허용되며(`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/generate-metadata.md`의 "With Cache Components" 절), `/blog` 본문이 이미 `<Suspense>` 안에서 요청 시점 데이터를 읽으므로 에러 없이 메타데이터가 본문과 함께 스트리밍된다. 정적 셸에는 title이 들어가지 않는다. title은 `page` 값만으로 정하고 DB 조회·`headers()`는 쓰지 않는다
   - 테스트 체크리스트:
-    - 정상: Playwright MCP → 발행 글 13건(시드 `e2e-page-`) → `/blog` 12건, "다음" 클릭 → `?page=2`에 1건
-    - 정상: Playwright MCP → `?tag=x&page=2`에서 카테고리 칩 클릭 → URL에서 `page` 제거, 1페이지
-    - 오류: Playwright MCP → `?page=abc`·`?page=0`·`?page=-1` → 1페이지와 같은 결과
-    - 오류: Playwright MCP → `?page=999` → 빈 목록 안내와 첫/마지막 페이지 링크, 오류 화면 없음
-    - 엣지: Playwright MCP → 2페이지를 보는 중 관리자가 새 글 발행 → 새로고침 시 경계 글이 2페이지로 밀리고 중복 없음
-    - 엣지: `pagination.test.ts` → total 0·12·13 → 페이지 수 1(빈 안내)·1·2
-  - 테스트 결과: (미수행)
+    - 정상: `e2e/blog-pagination.spec.ts` → 고유 카테고리로 시드한 발행 글 11건 → 데스크톱 `/blog?category=…` 10건, "다음" 클릭 → `?page=2`에 1건. iPhone User-Agent 컨텍스트는 6건과 5건
+    - 정상: `?category=…&page=2`에서 태그 칩 클릭 → URL에서 `page` 제거, 1페이지(계획의 `?tag=x&page=2`에서 카테고리 칩 클릭과 같은 검증, 시드 글이 한 카테고리·한 태그라 태그 칩으로 확인)
+    - 오류: `?page=abc`·`?page=0`·`?page=-1` → 1페이지와 같은 결과
+    - 오류: `?page=999` → HTTP 200, 빈 목록 안내와 첫/마지막 페이지 링크, 오류 화면 없음
+    - 엣지: 2페이지를 보는 중 관리자가 새 글 발행 → 새로고침 시 경계 글이 2페이지로 밀리고 중복 없음
+    - 엣지: `pagination.test.ts` → 크기 10에서 total 0·10·11 → 페이지 수 1(빈 안내)·1·2, 크기 6에서 6·7·18 → 1·2·3
+  - 테스트 결과 (2026-11-09):
+    - 자동 검사: `npm run check` 통과(vitest 40파일 374건 — `pagination.test.ts`, `page-size.test.ts`, `list-metadata.test.ts`, `list-params.test.ts`의 `page` 케이스, `posts.test.ts`의 `getPublishedPostsPage` 10건, `pagination.test.tsx` 8건 포함), `npm run knip` 종료 코드 0, 실제 env `npm run build` 통과(`/blog` `◐ Partial Prerender`, Revalidate 1d·Expire 1w, 프리렌더 오류 없음).
+    - e2e: `e2e/blog-pagination.spec.ts` 8건(로그인 setup 포함 9건 실행)이 통과했고, 전체 `npx playwright test` 113건이 두 번 연속 통과했다. 스펙이 실제로 검증하는지 보려고 `DESKTOP_PAGE_SIZE`를 10에서 9로 바꾸자 데스크톱 시나리오가 실패했고 원복했다. 실행 뒤 Supabase MCP로 `title`·`category`가 `e2e-`로 시작하는 글을 세어 0건(남은 시드 없음)임을 확인했다. 전체 실행에서 기존 `e2e/blog-filter.spec.ts` 2건("51자 태그 값…", "새 태그로 발행하면…")이 실패했다: `/blog` 1페이지에 특정 시드 글이 보인다고 가정했는데, 병렬 스펙이 발행한 새 글에 시드 글이 2페이지로 밀렸다. 단일 실행에서는 통과해 전체 실행에서만 드러났다. 특정 시드 글 대신 글 카드·필터 칩이 그려졌는지 확인하도록 고쳤다.
+    - 개발 서버(운영 DB 발행 글 19건): curl로 데스크톱 UA는 `/blog` 10건, `?page=2` 9건(합계 19건, 중복 0), `?page=3`부터는 범위 밖 안내, iPhone UA는 1~4페이지가 6·6·6·1건(번호 링크 4개, 중복 0), `Sec-CH-UA-Mobile: ?1`+데스크톱 UA는 6건, `?0`+iPhone UA는 10건이다. Playwright MCP로 데스크톱(1280px)과 iPhone(390px) 컨텍스트에서 "다음 페이지" 클릭 이동, `aria-current`, `?page=abc`·`0`·`-1`이 1페이지와 같음, `?page=999`의 안내와 두 링크(`첫 페이지로 → /blog`, `마지막 페이지로 → /blog?page=2`), `?page=2`에서 카테고리 칩 클릭 시 `page` 제거를 확인했고 가로 넘침은 없었다(375px `scrollWidth` = `clientWidth`, 스크린샷 육안 확인: 이전·`2 / 2`·비활성 다음).
+    - 메타데이터: 에이전트가 프로덕션(`next start`)과 개발 서버 응답 HTML로 `/blog` `블로그 | hkoikoi.dev`·canonical `/blog`, `?page=2` `블로그 (2페이지) | hkoikoi.dev`·canonical `?page=2`, `?page=abc`는 `/blog`와 같음, `?category=개발&page=2` canonical에 두 값 포함을 확인했다. 일반 브라우저 UA에서 title은 `<head>` 밖(스트리밍)에 들어가고 `Twitterbot`은 `<head>` 안, `Googlebot` UA는 프로덕션에서 `<head>` 밖이었다(문서의 스트리밍 메타데이터 설명과 일치).
+    - 제한 사항·미확인: (1) 실제 모바일 기기와 Safari에서의 동작은 확인하지 못했다(User-Agent를 흉내 낸 컨텍스트로만 확인). 데스크톱 브라우저 창만 좁히면 10개가 나오는 것은 설계에 따른 동작이다. (2) 데스크톱(sm 이상) 번호 목록의 육안 확인은 하지 않았다(e2e가 링크 수·`aria-current`만 확인). (3) 다크 모드 육안 확인은 하지 않았다. (4) JavaScript 비활성 동작은 확인하지 못했다(링크와 서버 컴포넌트뿐이고 새 `'use client'`는 없다). (5) canonical의 운영 호스트(`https://hkoikoi.dev`)는 확인하지 않았다(로컬은 `NEXT_PUBLIC_SITE_URL` 미설정이라 `localhost`). (6) Googlebot이 `<head>` 밖 스트리밍 title·canonical로 색인하는지, 같은 `?page=n`이 기기마다 다른 글을 보여 주는 한계가 검색 노출에 미치는 영향은 확인하지 못했다. (7) Caddy·Cloudflare가 User-Agent에 따라 달라지는 HTML을 캐시하지 않는지 확인하지 않았다. (8) 개발 서버 첫 요청에서 `/blog`만 title이 `<head>` 안에 있던 현상의 원인은 확인하지 않았다(첫 컴파일 타이밍으로 추정). (9) `count: 'exact'`는 필터된 행 전체를 세므로 글이 수천 건이 되면 커서·추정 카운트를 재검토해야 한다.
 
 - **Task 025: 블로그 키워드 검색 구현**
   - 관련 기능: F018(제안: 블로그 키워드 검색), F005
@@ -845,8 +873,51 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → 섹션 항목 0건 → 공개 페이지 빈 안내
   - 테스트 결과: (미수행)
 
+- **Task 045: 글 본문 `##`·`###`·`####` 제목 색상 체계 구축** (번호는 Phase 7(035~044) 뒤에 이어 붙였고, 순서상 Task 034 앞에서 진행한다)
+  - 관련 기능: F026(제안: 글 본문 제목 색상), F006
+  - 목표: 글 본문의 `##`(h2)·`###`(h3)·`####`(h4) 제목 색을 사이트 브랜드 색(`--primary`) 하나에서 농도만 달리해 CSS 한 곳에서 정한다. 글마다 `<span style="color: …">`를 넣는 방식과 카테고리마다 다른 색은 쓰지 않는다
+  - 현재 상태(2026-11-09 DB 조회): 글 11편(`Mac mini 홈 서버 구축기` 7편, `코딩 테스트` 4편) 중 9편의 `##` 제목 52곳에 인라인 `<span style="color: …">`가 있었고 색은 카테고리마다 달랐다(구축기 6편 35곳 `#55DBDD`, 코딩 테스트 3편 17곳 `#ED7053`). 같은 날 사용자 요청으로 SQL로 모두 제거해 지금은 어떤 글에도 `<span`이 없고 제목 색도 없다(CSS 적용 전). `###`는 구축기 6편, `####`는 구축기 1편에 있고 색이 없다. `app/globals.css`의 `.post-content`에는 제목 색 규칙이 없고 `h1~h6 > code`의 색만 `inherit`로 지정돼 있다. 위 두 색은 브랜드 색이 아니다
+  - 결정 기록(사용자 결정, 2026-11-09): 기존 색을 이어 가지 않고 새로 정한다. 색은 브랜드 토큰 `--primary`에서 가져오고 `##`·`###`·`####`의 농도를 다르게 한다. 카테고리별 색 맵은 두지 않는다(코드 변경은 CSS와 미리보기 한 곳뿐). **단계별 농도 값은 사용자 결정 필요**(아래 기본안)
+  - 브랜드 색: `:root`는 `--primary: oklch(0.56 0.1404 32.0718)`, `.dark`는 `oklch(0.6995 0.1404 32.0718)`로 같은 색상·채도에 밝기만 다르다. 토큰이 테마에 따라 바뀌므로 제목 색도 라이트·다크 값을 따로 쓰지 않는다
+  - 농도 기본안: `--primary`를 `--foreground`와 섞어 만든다. `##` = `--primary` 100%, `###` = 80%, `####` = 60%(`color-mix(in oklab, var(--primary) 80%, var(--foreground))` 형태). 같은 색 계열에서 단계가 내려갈수록 중립 색에 가까워진다. 아래 대비는 oklab 보간과 선형 sRGB 휘도로 계산한 값이라 실제 브라우저 계산 색과 조금 다를 수 있다
+    - 라이트(배경 `--background` 기준): `##` 4.66:1, `###` 6.15:1, `####` 8.14:1
+    - 다크: `##` 6.17:1, `###` 7.62:1, `####` 9.32:1
+    - 본문 글자색(`--foreground`)은 라이트 16.32:1, 다크 16.03:1이라 `##`도 본문보다 뚜렷이 옅다
+  - 방식: `app/globals.css`에 `.post-content :is(h2, h3, h4)` 규칙과 단계별 색을 CSS 변수(`--post-h2`·`--post-h3`·`--post-h4`)로 정의한다. Tailwind `prose`의 제목 색(`--tw-prose-headings`, 다크는 `--tw-prose-invert-headings`)보다 우선해야 한다
+  - 의존성: 없음. 스키마 변경 없음
+  - 관련 파일: `app/globals.css`, `app/admin/posts/_components/markdown-preview.tsx`(Shadow DOM 미리보기), `docs/guides/styling-guide.md`
+  - 수락 기준: 상세와 편집기 미리보기에서 본문 `##`·`###`·`####`가 모두 `--primary` 계열 색으로 표시되고 `##`가 가장 진하며 단계가 내려갈수록 옅어짐. 라이트·다크 모두 배경 대비 4.5:1 이상. 기존 글의 `##` 인라인 색이 제거돼 모든 글이 같은 색 체계를 따름. `h1`·`h5` 이하와 제목 안 인라인 코드(`> code`의 `color: inherit`)는 기존대로
+  - [ ] 농도 값 결정: 기본안(100/80/60%)을 실제 화면에서 보고 단계 구분이 충분한지 확인한 뒤 확정. 구분이 약하면 `####`를 40~50%로 낮추거나 크기·굵기로 보완(대비는 모두 4.5:1 이상 유지)
+  - [ ] `globals.css`: 단계별 변수와 `.post-content :is(h2, h3, h4)` 규칙 추가. `prose`·`dark:prose-invert` 조합에서도 유지되는지 확인
+  - [ ] 적용 범위: 규칙은 반드시 `.post-content` 아래로 한정한다(`MarkdownContent`가 붙이는 래퍼이고 블로그 글 상세와 편집기 미리보기에서만 쓰임). 그냥 `h2`·`h3`·`h4`에 걸면 홈·이력·블로그 목록 카드·관리자 UI 제목까지 바뀐다
+  - [ ] 편집기 미리보기: 커스텀 프로퍼티는 Shadow DOM으로 상속되지만 `globals.css`의 규칙은 통과하지 않으므로, 미리보기에 주입하는 스타일에 같은 규칙을 넣는다. 관리자 UI 자체의 색이 바뀌지 않는지(격리 유지) 확인
+  - [x] 기존 글 정리(완료 2026-11-09, 사용자 요청): 인라인 `<span>`이 CSS보다 우선해 예전 색(`#55DBDD`·`#ED7053`)이 남으므로 SQL로 제목 줄의 `## <span style="color: …">제목</span>`을 `## 제목`으로 바꿨다. 대상은 9편·52곳(구축기 35, 코딩 테스트 17)이었고 모두 한 줄 형태였으며 `##` 밖의 span은 없었다. 적용 뒤 9편 모두 `<span`이 0개인 것을 확인했다. CSS보다 먼저 진행해서 CSS를 구현하기 전까지 제목 색이 없다. 원래 색은 카테고리마다 하나였다(위 색)
+  - [ ] 정리 뒤 반영: SQL 수정은 캐시를 만료시키지 않으므로 글마다 관리자 화면에서 저장하거나 재배포한다(`invalidatePostTags`는 Server Action에서만 호출됨). 운영 화면 반영은 확인하지 않았다
+  - [ ] 앞으로 제목에는 `<span>` 색을 넣지 않는다는 작성 규칙을 `styling-guide.md`에 기록(`docs/blog/` 원고 폴더는 2026-11-09 확인 시 비어 있어 정리할 원고는 없었다)
+  - [ ] `styling-guide.md`에 제목 색 체계(`--primary` 기반 3단계, 값, 대비)를 기록
+  - 테스트 체크리스트:
+    - 정상: Playwright MCP → `###`·`####`가 있는 구축기 글 상세 → `h2`·`h3`·`h4`의 계산된 `color`가 서로 다르고 `h2`가 가장 진함(`browser_evaluate`로 `getComputedStyle`), 코딩 테스트 글의 `h2`도 같은 색
+    - 정상: Playwright MCP → 다크 테마 전환 → 세 단계 모두 다크 `--primary` 계열, 배경 대비 4.5:1 이상
+    - 정상: 터미널 → SQL 정리 뒤 `select count(*) from posts where content ~ '(^|\n)#{2,4} <span'` → 0
+    - 오류: Playwright MCP → 본문에 `### <span style="color: red">제목</span>`를 직접 넣은 글(시드 `e2e-h3-`) → 글자는 빨간색(인라인 우선, 정리 대상은 기존 글뿐이라 새로 쓰면 수동 지정 가능)
+    - 엣지: Playwright MCP → 관리자 편집기 미리보기에 `##`·`###`·`####` 입력 → 상세와 같은 색, 편집기 UI 색은 변하지 않음
+    - 엣지: Playwright MCP → `### \`code\`` 형태 → 인라인 코드 글자색은 기존대로 주변을 따름
+    - 엣지: 터미널 → `npm run check && npm run knip` → 종료 코드 0
+  - 테스트 결과: (미수행)
+
+- **Task 046: 편집기 모바일 탭 tabpanel·aria-controls 연결** (번호는 Task 045 뒤에 이어 붙였고, 순서상 Task 034 앞에서 진행한다)
+  - 관련 기능: F006
+  - 목표: 편집기 모바일 탭(작성/미리보기)이 WAI-ARIA 탭 패턴을 따르도록 `role="tabpanel"`과 탭의 `aria-controls`를 연결한다
+  - 현재 상태(Task 021 검증, 2026-11-09): 모바일 탭에 `role="tabpanel"`이 0개이고 `TabsTrigger`에 `aria-controls`가 없다(`post-editor.tsx`는 `Tabs`·`TabsList`·`TabsTrigger`만 쓴다). 편집기가 두 패널을 항상 마운트해 입력값을 유지하는 설계라 `TabsContent`로 바로 바꿀 수 없다
+  - 보류 사유: 관리자 1인이 쓰는 화면이라 우선순위가 낮다. 코드는 고치지 않았다
+  - 방식 후보: 두 패널 래퍼에 `role="tabpanel"`·`id`·`aria-labelledby`를 직접 달고 탭에 `aria-controls`를 연결하거나, `TabsContent`에 `keepMounted`류 옵션이 있는지 Base UI 문서로 확인한다
+  - 의존성: 없음. 스키마 변경 없음
+  - 관련 파일: `app/admin/posts/_components/post-editor.tsx`, `components/ui/tabs.tsx`, `e2e/a11y.spec.ts`
+  - 수락 기준: 모바일 폭에서 탭마다 `aria-controls`가 실제 `tabpanel` id를 가리키고 `tabpanel`이 2개이며, 탭 전환 뒤에도 입력값이 유지됨
+  - 테스트 결과: (미수행)
+
 - **Task 034: Post-MVP 통합 회귀 테스트 및 배포 검증**
-  - 관련 기능: F015~F025(제안), F001~F014 회귀
+  - 관련 기능: F015~F026(제안), F001~F014 회귀
   - 목표: Post-MVP 묶음을 운영에 내기 전에 회귀와 운영 반영을 확인한다(권장: 탐색 묶음 022~026 완료 때 1회, 전체 완료 때 1회)
   - 의존성: 검증 대상 Task 완료
   - 관련 파일: `e2e/**`, `.github/workflows/ci.yml`, `README.md`, `docs/guides/project-structure.md`, `CLAUDE.md`
@@ -975,8 +1046,8 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] 사용자가 apex에서 로그인한 브라우저로 `e2e-prod-check` 글 발행·삭제 후 즉시 반영, DB 정리 확인
   - [x] Supabase Site URL을 `https://hkoikoi.dev`로 전환, Redirect URLs에 apex 추가(사용자가 대시보드에서 수행)
   - [ ] 전환 전 Vercel DNS 값 기록: 하지 못함. 작업 중에 apex가 이미 전환된 상태였다
-  - [ ] Vercel 프로젝트 유지(롤백 경로): 사용자가 삭제하기로 결정, 삭제 완료 여부는 확인하지 못함
-  - 테스트 결과: 2026-11-07 apex는 Cloudflare 프록시(터널) 뒤에서 홈 서버가 서빙(`via: 1.1 Caddy`, `x-powered-by: Next.js`)하고 `www`는 처음에 DNS 레코드가 없었다. 사용자가 `www` 터널 라우트를 추가한 뒤 `https://www…/blog?tag=a` → 308 `https://hkoikoi.dev/blog?tag=a`, `-L`로 200(작업 PC의 로컬 DNS 캐시 때문에 `--resolve`로 우회해 확인). sitemap URL 17개·robots `Sitemap:`·og:image 모두 `https://hkoikoi.dev`. 공개 15개 경로(+sitemap·robots·og 이미지) 200, 없는 경로 404, 비로그인 `/admin/posts` → `/auth/login`, 썸네일 4개 렌더링, 실제 페이지 이동 구간 콘솔 오류·경고 0건. `e2e-prod-check` 발행 직후 홈·`/blog`·상세·sitemap에 즉시 나타나고 삭제 직후 모두 즉시 사라졌으며 DB의 `e2e-` 행 0건(글 7개). Cloudflare가 프록시 응답의 `robots.txt` 앞에 AI 크롤러 차단 "Managed content"를 붙이는 것을 발견했고 의도한 설정인지는 확인하지 못했다. Supabase 대시보드 값은 MCP로 읽을 수 없어 사용자 보고를 따랐다.
+  - [ ] Vercel 프로젝트 유지(롤백 경로): 하지 않음. 사용자가 이전 후 삭제했다(사용자 보고)
+  - 테스트 결과: 2026-11-07 apex는 Cloudflare 프록시(터널) 뒤에서 홈 서버가 서빙(`via: 1.1 Caddy`, `x-powered-by: Next.js`)하고 `www`는 처음에 DNS 레코드가 없었다. 사용자가 `www` 터널 라우트를 추가한 뒤 `https://www…/blog?tag=a` → 308 `https://hkoikoi.dev/blog?tag=a`, `-L`로 200(작업 PC의 로컬 DNS 캐시 때문에 `--resolve`로 우회해 확인). sitemap URL 17개·robots `Sitemap:`·og:image 모두 `https://hkoikoi.dev`. 공개 15개 경로(+sitemap·robots·og 이미지) 200, 없는 경로 404, 비로그인 `/admin/posts` → `/auth/login`, 썸네일 4개 렌더링, 실제 페이지 이동 구간 콘솔 오류·경고 0건. `e2e-prod-check` 발행 직후 홈·`/blog`·상세·sitemap에 즉시 나타나고 삭제 직후 모두 즉시 사라졌으며 DB의 `e2e-` 행 0건(글 7개). Cloudflare가 프록시 응답의 `robots.txt` 앞에 AI 크롤러 차단 "Managed content"를 붙이는 것을 발견했고, 사용자 확인 결과 따로 켠 설정이 아니라 Cloudflare 기본값이었다. Supabase 대시보드 값은 MCP로 읽을 수 없어 사용자 보고를 따랐다.
 
 - **Task 044: 배포 문서화와 ROADMAP 갱신**
   - 관련 기능: 없음(문서)
@@ -988,7 +1059,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] `project-structure.md`에 `deploy/`·CI deploy job 반영, README 배포 절차를 홈 서버 기준으로 갱신, `CLAUDE.md`에 배포 절 추가·CI 설명 수정
   - [x] 이 Phase 7 추가
   - [ ] 가이드를 처음부터 따라 새 서버를 재현해 보기: 하지 않음(수행한 절차를 문서화했을 뿐 재현 시험은 없음)
-  - 테스트 결과: 2026-11-07 `npm run check`(typecheck·lint·prettier 통과, Vitest 32 파일 / 254개) 통과. 문서만 변경해 `npm run build`·`knip`·e2e는 실행하지 않았다. `project-structure.md`의 `deploy/` 구조는 저장소의 실제 파일(`deploy.sh`, `launchd/dev.hkoikoi.web.plist`, `caddy/Caddyfile`)과 대조했다. 가이드의 명령은 Task 035~043에서 서버에 실제로 실행한 것이고, 확인하지 못한 항목(수동 롤백 절차, 동시 push, "정전 후 자동 시동" 설정, macOS 자동 업데이트의 자동 재시작)은 가이드에 그렇게 적었다.
+  - 테스트 결과: 2026-11-07 `npm run check`(typecheck·lint·prettier 통과, Vitest 32 파일 / 254개) 통과. 문서만 변경해 `npm run build`·`knip`·e2e는 실행하지 않았다. `project-structure.md`의 `deploy/` 구조는 저장소의 실제 파일(`deploy.sh`, `launchd/dev.hkoikoi.web.plist`, `caddy/Caddyfile`)과 대조했다. 가이드의 명령은 Task 035~043에서 서버에 실제로 실행한 것이고, 확인하지 못한 항목(수동 롤백 절차, 동시 push, 실제 정전 후 자동 복구, macOS 자동 업데이트의 자동 재시작)은 가이드에 그렇게 적었다. 정전 후 자동 시동 설정은 이후 서버의 `pmset -g`에서 `autorestart 1`로 확인했고(1편 설정), 실제로 전원을 끊어 복구되는지는 시험하지 않았다.
   - 후속 확인 필요: 블로그 구축기 1~3편은 글을 수정하지 않았다. 자동 로그인(재부팅 후 서비스 기동에 필요)과 정식 호스트가 apex로 정해진 점은 글에 반영되지 않았을 수 있어 사용자 확인이 필요하다.
 
 ## 기능 ID 매핑
@@ -1029,6 +1100,7 @@ MVP 전체 회귀·운영 배포 검증(F001~F014)은 Task 020, 이월된 잔여
 | F023    | 글 조회수                           | 조회수                              | 030       |
 | F024    | 블로그 댓글                         | 댓글                                | 031       |
 | F025    | 정적 섹션 DB 저장·관리자 편집       | 학력·경력 등 정적 섹션의 DB 저장... | 032, 033  |
+| F026    | 글 본문 제목(`##`~`####`) 색상      | (추가 요청)                         | 045       |
 
 ## 의존성과 병렬 진행
 

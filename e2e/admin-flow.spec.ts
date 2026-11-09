@@ -6,7 +6,7 @@ import {
   createPost,
   fillEditor,
   hasAdmin,
-  login,
+  loginWithForm,
   rowOf,
   uniqueName,
 } from "./fixtures/admin";
@@ -29,7 +29,8 @@ test.describe("관리자 여정", () => {
     });
 
     await test.step("로그인", async () => {
-      await login(page);
+      // 이 테스트는 마지막에 로그아웃하므로 공유 세션이 아닌 새 세션으로 로그인한다.
+      await loginWithForm(page);
       await expect(
         page.getByRole("heading", { level: 1, name: "글 관리" }),
       ).toBeVisible();

@@ -30,4 +30,10 @@ describe("logout", () => {
     expect(redirect).toHaveBeenCalledWith("/");
     expect(order).toEqual(["signOut", "redirect"]);
   });
+
+  it("현재 세션만 끊도록 scope를 local로 지정한다", async () => {
+    await logout();
+
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
 });

@@ -17,7 +17,7 @@ export function PublicationItem({
 
   return (
     <li className={cn("space-y-1 py-4", className)}>
-      <h3 className="font-medium break-words">
+      <h2 className="font-medium break-words">
         {link ? (
           <a
             href={link}
@@ -32,7 +32,7 @@ export function PublicationItem({
         ) : (
           title
         )}
-      </h3>
+      </h2>
       <p className="text-sm break-words text-muted-foreground">{authors}</p>
       <p className="text-sm break-words text-muted-foreground">
         {venue} · {year}
