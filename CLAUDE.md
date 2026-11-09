@@ -58,6 +58,7 @@ Next.js App Router + Supabase. `src/` 없이 루트에 `app/`, `components/`, `l
 - Supabase advisor 보안 경고 `auth_leaked_password_protection`은 Pro 플랜 미사용으로 예외 수용했다. 완화책으로 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수를 적용했다. 새 advisor 경고가 생기면 이 항목과 별개로 처리한다.
 - `knip.jsonc`에는 지금 영구 제외(생성·외부 파일)만 있고 임시 예외는 없다. 임시 예외를 추가하면 각 항목에 제거 조건을 주석으로 적는다.
 - e2e 관리자 로그인은 `setup` 프로젝트(`e2e/auth.setup.ts`)가 1회만 하고 세션 쿠키를 `e2e/.auth/admin.json`(git 제외)에 저장한다. `e2e/fixtures/admin.ts`의 `login()`은 이 쿠키를 재사용하고, 새 세션이 필요한 테스트(로그아웃 검증 등)만 `loginWithForm()`으로 폼 로그인한다. 모든 테스트가 같은 세션을 공유하므로 그 세션을 로그아웃하는 테스트에서 `login()`을 쓰면 안 된다. 이전에는 로그인을 약 40번 해서 Supabase Auth `/auth/v1/token`의 IP당 버스트 한도(30건)에 걸렸지만, 지금은 전체 `npx playwright test`가 대시보드 한도 조정이나 파일 분할 없이 한 번에 통과한다(`/token` 요청 13건). 이 원격은 `main PRODUCTION` 프로젝트다.
+- 개발 서버에서 로그인 상태로 `/admin/posts`, `/admin/posts/new`를 열면 `Next.js encountered the unstable value Date.now() while prerendering` 오류가 콘솔에 찍힌다(스택은 `app/admin/layout.tsx`의 `<AdminGuard>`). `requireAdmin()`의 `supabase.auth.getClaims()`가 호출하는 `@supabase/auth-js`가 만료 판정에 `Date.now()`를 쓰기 때문으로 추정한다(앱 코드에는 해당 호출이 없고 스택이 그 아래로 내려가지 않아 직접 확인하지는 못했다). 개발 서버 로그에만 나고 빌드와 운영 동작에는 영향이 없어, 보안 가드 구조를 바꾸지 않고 예외로 수용했다.
 - `blog-images` 버킷에는 select 정책이 없어(list API 노출 방지) 업로드한 파일을 앱·e2e에서 삭제할 수 없고, SQL 삭제도 `storage.protect_delete()` 트리거가 막는다. 고아 파일은 정리하지 않는 것으로 수용했고, `npm run test:e2e`를 돌릴 때마다 테스트 이미지(70바이트)가 남는다.
 
 ## 문서와 에이전트 설정
