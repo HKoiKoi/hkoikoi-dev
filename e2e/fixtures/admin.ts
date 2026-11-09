@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+
 import { expect, type Browser, type Page } from "@playwright/test";
 
 const adminEmail = process.env.E2E_ADMIN_EMAIL ?? "";
@@ -5,11 +7,31 @@ const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? "";
 export const hasAdmin = Boolean(adminEmail && adminPassword);
 export const BASE_URL = "http://localhost:3000";
 
-export async function login(page: Page) {
+// auth.setup.ts가 로그인 뒤 저장하는 세션 파일. 세션 토큰이 들어 있어 git에서 제외한다.
+export const ADMIN_STATE = "e2e/.auth/admin.json";
+
+// 폼으로 새로 로그인한다. 새 세션이 필요할 때만 쓴다(로그아웃 검증 등). 호출마다
+// Supabase Auth /token 요청이 한 번 나가므로 일반 테스트는 login()을 쓴다.
+export async function loginWithForm(page: Page) {
   await page.goto("/auth/login");
   await page.getByLabel("이메일").fill(adminEmail);
   await page.getByLabel("비밀번호").fill(adminPassword);
   await page.getByRole("button", { name: "로그인", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/posts$/);
+}
+
+// auth.setup.ts가 저장한 관리자 세션 쿠키를 이 컨텍스트에 넣고 /admin/posts로 간다.
+// 모든 테스트가 같은 세션을 공유하므로 이 세션을 로그아웃하는 테스트는 쓰면 안 된다.
+export async function login(page: Page) {
+  if (!existsSync(ADMIN_STATE)) {
+    await loginWithForm(page);
+    return;
+  }
+  const { cookies } = JSON.parse(readFileSync(ADMIN_STATE, "utf8")) as {
+    cookies: Parameters<ReturnType<Page["context"]>["addCookies"]>[0];
+  };
+  await page.context().addCookies(cookies);
+  await page.goto("/admin/posts");
   await expect(page).toHaveURL(/\/admin\/posts$/);
 }
 
