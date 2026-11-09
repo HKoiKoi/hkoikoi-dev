@@ -4,10 +4,11 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/content/page-header";
 import { PostListSkeleton } from "@/components/blog/post-list-skeleton";
 import { parseListParams } from "@/lib/posts/list-params";
-import { getPublishedPosts } from "@/lib/queries/posts";
+import { getPublishedPosts, getTaxonomy } from "@/lib/queries/posts";
 
 import { PostFilterBar } from "./_components/post-filter-bar";
 import { PostList } from "./_components/post-list";
+import { TaxonomyFilter } from "./_components/taxonomy-filter";
 
 export const metadata: Metadata = {
   title: "블로그",
@@ -20,10 +21,14 @@ async function FilteredPosts({
 }: Pick<PageProps<"/blog">, "searchParams">) {
   const params = await searchParams;
   const { category, tag } = parseListParams(params);
-  const posts = await getPublishedPosts({ category, tag });
+  const [posts, taxonomy] = await Promise.all([
+    getPublishedPosts({ category, tag }),
+    getTaxonomy(),
+  ]);
 
   return (
     <>
+      <TaxonomyFilter taxonomy={taxonomy} current={{ category, tag }} />
       <PostFilterBar category={category} tag={tag} />
       <PostList posts={posts} filtered={Boolean(category || tag)} />
     </>
