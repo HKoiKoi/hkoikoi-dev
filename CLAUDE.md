@@ -26,7 +26,7 @@ npx vitest run -t "테스트 이름"            # 이름으로 필터
 npx playwright test e2e/routes.spec.ts    # 단일 e2e 파일
 ```
 
-- 단위 테스트는 대상 파일 옆에 `*.test.ts(x)`로 두고, e2e는 `e2e/*.spec.ts`(`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`), 공용 헬퍼는 `e2e/fixtures/admin.ts`. Vitest는 `e2e`, `.agents`를 제외한다.
+- 단위 테스트는 대상 파일 옆에 `*.test.ts(x)`로 두고, e2e는 `e2e/*.spec.ts`(`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`), 공용 헬퍼는 `e2e/fixtures/admin.ts`. Vitest는 `e2e`, `.agents`를 제외한다.
 - Git 훅(Husky): `pre-commit`은 lint-staged(eslint --fix --max-warnings=0 + prettier), `commit-msg`는 commitlint, `pre-push`는 `typecheck && lint`. `--no-verify`는 settings에서 deny되어 있다.
 - 커밋 메시지는 컨벤셔널 형식 `타입: 제목` / `타입(scope): 제목`, 제목은 한국어 허용, 헤더 100자 이내.
 - CI(`.github/workflows/ci.yml`)는 typecheck → lint → format:check → test → build 순서로 실행하며 빌드에는 placeholder Supabase 환경변수를 주입한다. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`만 돌린다. `main` push에서는 둘이 통과한 뒤 `deploy` job이 홈 서버의 self-hosted runner(`[self-hosted, macOS, homeserver]`)에서 `deploy/deploy.sh`를 실행한다(PR에서는 skipped). 나머지 E2E(관리자 계정·DB 쓰기 필요)와 knip은 CI에서 실행하지 않으므로 로컬에서 돌린다.
@@ -57,7 +57,7 @@ Next.js App Router + Supabase. `src/` 없이 루트에 `app/`, `components/`, `l
 
 - Supabase advisor 보안 경고 `auth_leaked_password_protection`은 Pro 플랜 미사용으로 예외 수용했다. 완화책으로 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수를 적용했다. 새 advisor 경고가 생기면 이 항목과 별개로 처리한다.
 - `knip.jsonc`에는 지금 영구 제외(생성·외부 파일)만 있고 임시 예외는 없다. 임시 예외를 추가하면 각 항목에 제거 조건을 주석으로 적는다.
-- 전체 e2e(`npm run test:e2e`)는 관리자 로그인을 약 40번 해서 Supabase Auth `/auth/v1/token`의 IP당 버스트 한도(30건)에 걸린다. 기본 한도(token refreshes 150/5min)에서는 약 37번째 로그인부터 429가 나 로그인이 필요한 테스트가 실패한다. 전체를 한 번에 돌리려면 대시보드(Authentication → Rate Limits)에서 token refreshes를 500/5min 정도로 올리고("sign-ups and sign-ins" 항목은 `/token`에 효과가 없었다) 끝나면 되돌린다. 올리지 않으면 파일을 나눠 6분 이상 간격으로 돌린다. 이 원격은 `main PRODUCTION` 프로젝트다.
+- e2e 관리자 로그인은 `setup` 프로젝트(`e2e/auth.setup.ts`)가 1회만 하고 세션 쿠키를 `e2e/.auth/admin.json`(git 제외)에 저장한다. `e2e/fixtures/admin.ts`의 `login()`은 이 쿠키를 재사용하고, 새 세션이 필요한 테스트(로그아웃 검증 등)만 `loginWithForm()`으로 폼 로그인한다. 모든 테스트가 같은 세션을 공유하므로 그 세션을 로그아웃하는 테스트에서 `login()`을 쓰면 안 된다. 이전에는 로그인을 약 40번 해서 Supabase Auth `/auth/v1/token`의 IP당 버스트 한도(30건)에 걸렸지만, 지금은 전체 `npx playwright test`가 대시보드 한도 조정이나 파일 분할 없이 한 번에 통과한다(`/token` 요청 13건). 이 원격은 `main PRODUCTION` 프로젝트다.
 - `blog-images` 버킷에는 select 정책이 없어(list API 노출 방지) 업로드한 파일을 앱·e2e에서 삭제할 수 없고, SQL 삭제도 `storage.protect_delete()` 트리거가 막는다. 고아 파일은 정리하지 않는 것으로 수용했고, `npm run test:e2e`를 돌릴 때마다 테스트 이미지(70바이트)가 남는다.
 
 ## 문서와 에이전트 설정
