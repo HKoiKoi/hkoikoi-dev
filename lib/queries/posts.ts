@@ -37,6 +37,8 @@ async function fetchLatestPosts(
     // RLS와 별개로 공개 글만 조회하도록 이중 방어한다.
     .eq("published", true)
     .order("published_at", { ascending: false })
+    // 같은 시각 발행 글의 순서가 pager(인접 글)와 어긋나지 않게 id로 고정한다.
+    .order("id", { ascending: false })
     .limit(limit);
 
   if (error) return failUncached(error.message);
@@ -76,9 +78,10 @@ async function fetchPublishedPosts(
   // tags는 text[]이므로 배열 포함 연산자로 비교한다.
   if (tag) query = query.contains("tags", [tag]);
 
-  const { data, error } = await query.order("published_at", {
-    ascending: false,
-  });
+  const { data, error } = await query
+    .order("published_at", { ascending: false })
+    // 같은 시각 발행 글의 순서가 pager(인접 글)와 어긋나지 않게 id로 고정한다.
+    .order("id", { ascending: false });
 
   if (error) return failUncached(error.message);
   return { ok: true, data: data ?? [] };
@@ -119,6 +122,87 @@ async function fetchPostBySlug(
 
   if (error) return failUncached(error.message);
   return { ok: true, data };
+}
+
+/** 이전·다음 글 링크용 최소 정보 */
+type AdjacentPost = Pick<Post, "slug" | "title">;
+
+export type AdjacentPosts = {
+  /** 더 오래된 글 */
+  prev: AdjacentPost | null;
+  /** 더 최근 글 */
+  next: AdjacentPost | null;
+};
+
+const EMPTY_ADJACENT: AdjacentPosts = { prev: null, next: null };
+
+/*
+ * 인접 글은 목록과 같은 정렬(published_at desc, 동률은 id desc)을 기준으로 한다.
+ * 무효화는 'posts' 태그 하나로 충분하다. 글 저장·삭제·발행 변경은 invalidatePostTags가
+ * updateTag('posts')를 호출하고, 인접 글 조회도 같은 'posts' 태그를 달기 때문에
+ * 이웃 글의 제목 수정·삭제·초안 전환이 모든 상세 페이지의 pager에 즉시 반영된다.
+ * publishedAt·id는 DB에서 온 timestamptz·uuid라 or 필터 문자열에 그대로 넣어도 안전하다
+ * (PostgREST에서 '+', ':'가 든 값이 인용 없이 동작함을 확인했다).
+ */
+async function fetchAdjacentPosts(
+  publishedAt: string,
+  id: string,
+): Promise<CacheResult<AdjacentPosts>> {
+  "use cache";
+  cacheTag("posts");
+  cacheLife("max");
+
+  const supabase = createPublicClient();
+  const [older, newer] = await Promise.all([
+    supabase
+      .from("posts")
+      .select("slug, title")
+      .eq("published", true)
+      .or(
+        `published_at.lt.${publishedAt},and(published_at.eq.${publishedAt},id.lt.${id})`,
+      )
+      .order("published_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(1),
+    supabase
+      .from("posts")
+      .select("slug, title")
+      .eq("published", true)
+      .or(
+        `published_at.gt.${publishedAt},and(published_at.eq.${publishedAt},id.gt.${id})`,
+      )
+      .order("published_at", { ascending: true })
+      .order("id", { ascending: true })
+      .limit(1),
+  ]);
+
+  if (older.error) return failUncached(older.error.message);
+  if (newer.error) return failUncached(newer.error.message);
+  return {
+    ok: true,
+    data: { prev: older.data?.[0] ?? null, next: newer.data?.[0] ?? null },
+  };
+}
+
+/** 이전(더 오래된)·다음(더 최근) 공개 글. 없거나 오류면 해당 쪽이 null */
+export async function getAdjacentPosts(
+  publishedAt: string | null,
+  id: string,
+): Promise<AdjacentPosts> {
+  // 발행 시각이 없으면 비교 기준이 없다.
+  if (!publishedAt) return EMPTY_ADJACENT;
+
+  try {
+    const result = await fetchAdjacentPosts(publishedAt, id);
+    if (result.ok) return result.data;
+    console.error("[getAdjacentPosts]", result.message);
+    return EMPTY_ADJACENT;
+  } catch (error) {
+    // 프리렌더 중단 같은 Next.js 내부 신호는 삼키지 않고 다시 던진다.
+    unstable_rethrow(error);
+    console.error("[getAdjacentPosts]", error);
+    return EMPTY_ADJACENT;
+  }
 }
 
 /** slug로 공개 글 하나 조회. 없거나 오류면 null */
