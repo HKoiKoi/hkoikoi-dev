@@ -17,10 +17,15 @@ import {
   getLatestPosts,
   getPostBySlug,
   getPublishedPosts,
+  getPublishedPostsPage,
   getTaxonomy,
 } from "./posts";
 
-type Result = { data: unknown; error: { message: string } | null };
+type Result = {
+  data: unknown;
+  error: { message: string; code?: string } | null;
+  count?: number | null;
+};
 
 // 체이닝 가능하고 await하면 result로 풀리는 가짜 쿼리 빌더
 function newBuilder(result: Result) {
@@ -33,6 +38,7 @@ function newBuilder(result: Result) {
     contains: vi.fn(),
     order: vi.fn(),
     limit: vi.fn(),
+    range: vi.fn(),
     maybeSingle: vi.fn(() => Promise.resolve(result)),
     then: (
       resolve: (value: Result) => unknown,
@@ -48,6 +54,7 @@ function newBuilder(result: Result) {
     "contains",
     "order",
     "limit",
+    "range",
   ] as const) {
     builder[key].mockReturnValue(builder);
   }
@@ -208,6 +215,186 @@ describe("getPublishedPosts", () => {
     });
 
     await expect(getPublishedPosts()).resolves.toEqual([]);
+    expect(errorSpy).toHaveBeenCalled();
+  });
+});
+
+describe("getPublishedPostsPage", () => {
+  it("count와 range로 한 페이지만 조회하고 content는 select하지 않는다", async () => {
+    const rows = [{ id: "1" }];
+    const { builder, from } = createBuilder({
+      data: rows,
+      error: null,
+      count: 30,
+    });
+
+    await expect(
+      getPublishedPostsPage({ page: 2, pageSize: 10 }),
+    ).resolves.toEqual({
+      posts: rows,
+      total: 30,
+    });
+
+    expect(from).toHaveBeenCalledWith("posts");
+    const [columns, options] = builder.select.mock.calls[0] as [
+      string,
+      unknown,
+    ];
+    expect(columns).not.toContain("content");
+    expect(options).toEqual({ count: "exact" });
+    expect(builder.eq).toHaveBeenCalledWith("published", true);
+    expect(builder.range).toHaveBeenCalledWith(10, 19);
+  });
+
+  it("page를 생략하면 1페이지(0~9)를 조회한다", async () => {
+    const { builder } = createBuilder({ data: [], error: null, count: 0 });
+
+    await getPublishedPostsPage({ pageSize: 10 });
+
+    expect(builder.range).toHaveBeenCalledWith(0, 9);
+  });
+
+  it("pageSize가 6이면 6개 단위로 range를 잡는다", async () => {
+    const { builder } = createBuilder({ data: [], error: null, count: 0 });
+
+    await getPublishedPostsPage({ page: 3, pageSize: 6 });
+
+    expect(builder.range).toHaveBeenCalledWith(12, 17);
+  });
+
+  it("최신순에 id 보조 정렬을 건다", async () => {
+    const { builder } = createBuilder({ data: [], error: null, count: 0 });
+
+    await getPublishedPostsPage({ page: 1, pageSize: 10 });
+
+    expect(builder.order).toHaveBeenNthCalledWith(1, "published_at", {
+      ascending: false,
+    });
+    expect(builder.order).toHaveBeenNthCalledWith(2, "id", {
+      ascending: false,
+    });
+  });
+
+  it("category와 tag 필터를 적용한다", async () => {
+    const { builder } = createBuilder({ data: [], error: null, count: 0 });
+
+    await getPublishedPostsPage({
+      category: "개발",
+      tag: "nextjs",
+      page: 1,
+      pageSize: 10,
+    });
+
+    expect(builder.eq).toHaveBeenCalledWith("category", "개발");
+    expect(builder.contains).toHaveBeenCalledWith("tags", ["nextjs"]);
+  });
+
+  it("data·count가 null이면 빈 목록과 0을 반환한다", async () => {
+    createBuilder({ data: null, error: null, count: null });
+
+    await expect(
+      getPublishedPostsPage({ page: 1, pageSize: 10 }),
+    ).resolves.toEqual({
+      posts: [],
+      total: 0,
+    });
+  });
+
+  it("posts 태그를 붙이고 수명을 줄이지 않는다", async () => {
+    createBuilder({ data: [], error: null, count: 0 });
+
+    await getPublishedPostsPage({ page: 1, pageSize: 10 });
+
+    expect(cacheTagMock).toHaveBeenCalledWith("posts");
+    expect(cacheLifeMock).toHaveBeenCalledTimes(1);
+    expect(cacheLifeMock).toHaveBeenCalledWith("max");
+  });
+
+  it("범위 밖 페이지(PGRST103)는 head 요청으로 전체 글 수를 다시 세어 빈 목록과 함께 반환한다", async () => {
+    const outOfRange = newBuilder({
+      data: null,
+      error: { message: "Requested range not satisfiable", code: "PGRST103" },
+    });
+    const counted = newBuilder({ data: null, error: null, count: 18 });
+    const from = vi
+      .fn()
+      .mockReturnValueOnce(outOfRange)
+      .mockReturnValueOnce(counted);
+    createClientMock.mockReturnValue({ from });
+
+    await expect(
+      getPublishedPostsPage({ category: "개발", page: 999, pageSize: 10 }),
+    ).resolves.toEqual({ posts: [], total: 18 });
+
+    expect(counted.select).toHaveBeenCalledWith("id", {
+      count: "exact",
+      head: true,
+    });
+    expect(counted.eq).toHaveBeenCalledWith("published", true);
+    expect(counted.eq).toHaveBeenCalledWith("category", "개발");
+    expect(counted.range).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(cacheLifeMock).toHaveBeenCalledTimes(1);
+    expect(cacheLifeMock).toHaveBeenCalledWith("max");
+  });
+
+  it("범위 밖 재조회가 실패하면 빈 결과를 반환하고 저장하지 않는다", async () => {
+    const outOfRange = newBuilder({
+      data: null,
+      error: { message: "range", code: "PGRST103" },
+    });
+    const counted = newBuilder({
+      data: null,
+      error: { message: "boom" },
+    });
+    const from = vi
+      .fn()
+      .mockReturnValueOnce(outOfRange)
+      .mockReturnValueOnce(counted);
+    createClientMock.mockReturnValue({ from });
+
+    await expect(
+      getPublishedPostsPage({ page: 999, pageSize: 10 }),
+    ).resolves.toEqual({
+      posts: [],
+      total: 0,
+    });
+    expect(errorSpy).toHaveBeenCalled();
+    expect(cacheLifeMock).toHaveBeenCalledWith({
+      stale: 0,
+      revalidate: 0,
+      expire: 0,
+    });
+  });
+
+  it("그 밖의 오류는 빈 결과와 로그를 남기고 수명을 0으로 줄인다", async () => {
+    createBuilder({ data: null, error: { message: "boom", code: "42501" } });
+
+    await expect(
+      getPublishedPostsPage({ page: 1, pageSize: 10 }),
+    ).resolves.toEqual({
+      posts: [],
+      total: 0,
+    });
+    expect(errorSpy).toHaveBeenCalledWith("[getPublishedPostsPage]", "boom");
+    expect(cacheLifeMock).toHaveBeenCalledWith({
+      stale: 0,
+      revalidate: 0,
+      expire: 0,
+    });
+  });
+
+  it("클라이언트 생성이 던져도 빈 결과를 반환한다", async () => {
+    createClientMock.mockImplementation(() => {
+      throw new Error("no env");
+    });
+
+    await expect(
+      getPublishedPostsPage({ page: 1, pageSize: 10 }),
+    ).resolves.toEqual({
+      posts: [],
+      total: 0,
+    });
     expect(errorSpy).toHaveBeenCalled();
   });
 });

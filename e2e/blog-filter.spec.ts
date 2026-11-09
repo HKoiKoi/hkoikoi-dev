@@ -170,9 +170,13 @@ test.describe("블로그 태그·카테고리 필터", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "블로그" }),
     ).toBeVisible();
-    // 필터가 무시되므로 시드 글이 모두 보이고 현재 필터 표시는 없다.
-    await expect(postLink(page, POST_A)).toBeVisible();
-    await expect(postLink(page, POST_C)).toBeVisible();
+    // 필터가 무시되므로 전체 목록이 보이고 현재 필터 표시와 빈 목록 안내는 없다.
+    // 목록이 페이지로 나뉘어 병렬 스펙이 발행한 새 글에 시드 글이 2페이지로 밀릴 수 있으므로
+    // 특정 시드 글 대신 글 카드가 있다는 것만 확인한다.
+    await expect(
+      page.locator('a[href^="/blog/"]:not([href^="/blog?"])').first(),
+    ).toBeVisible();
+    await expect(page.getByText("조건에 맞는 글이 없습니다")).toHaveCount(0);
     await expect(page.getByText("현재 필터")).toHaveCount(0);
   });
 
@@ -204,7 +208,9 @@ test.describe("블로그 태그·카테고리 필터", () => {
 
       // 글 수가 0이 된 태그는 목록에서 사라진다.
       await visitor.reload();
-      await expect(postLink(visitor, POST_A)).toBeVisible();
+      // 목록이 다 그려진 뒤에 칩이 없음을 확인한다. 목록이 페이지로 나뉘어 병렬 스펙의 새 글에
+      // 시드 글이 2페이지로 밀릴 수 있으므로 특정 시드 글 대신 필터 목록이 그려졌는지 기다린다.
+      await expect(await tagChip(visitor, TAG_SHARED)).toBeVisible();
       await expect(chip(visitor, TAG_NEW)).toHaveCount(0);
     } finally {
       await visitorContext.close();

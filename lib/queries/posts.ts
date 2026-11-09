@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
+import { getPageRange } from "@/lib/posts/pagination";
 import {
   countTaxonomy,
   EMPTY_TAXONOMY,
@@ -27,6 +28,25 @@ function failUncached(message: string): { ok: false; message: string } {
  */
 
 type PostFilter = { category?: string; tag?: string };
+
+/** 목록 한 페이지와 필터에 맞는 전체 글 수 */
+export type PostsPage = { posts: PostSummary[]; total: number };
+
+const EMPTY_PAGE: PostsPage = { posts: [], total: 0 };
+
+// 전체 조회와 페이징 조회가 같은 필터를 쓰도록 한 곳에서 건다.
+function applyPostFilter<
+  Q extends {
+    eq(column: "category", value: string): Q;
+    contains(column: "tags", value: string[]): Q;
+  },
+>(query: Q, { category, tag }: PostFilter): Q {
+  let filtered = query;
+  if (category) filtered = filtered.eq("category", category);
+  // tags는 text[]이므로 배열 포함 연산자로 비교한다.
+  if (tag) filtered = filtered.contains("tags", [tag]);
+  return filtered;
+}
 
 async function fetchLatestPosts(
   limit: number,
@@ -74,14 +94,10 @@ async function fetchPublishedPosts(
   cacheLife("max");
 
   const supabase = createPublicClient();
-  let query = supabase
-    .from("posts")
-    .select(SUMMARY_COLUMNS)
-    .eq("published", true);
-
-  if (category) query = query.eq("category", category);
-  // tags는 text[]이므로 배열 포함 연산자로 비교한다.
-  if (tag) query = query.contains("tags", [tag]);
+  const query = applyPostFilter(
+    supabase.from("posts").select(SUMMARY_COLUMNS).eq("published", true),
+    { category, tag },
+  );
 
   const { data, error } = await query
     .order("published_at", { ascending: false })
@@ -107,6 +123,73 @@ export async function getPublishedPosts({
     unstable_rethrow(error);
     console.error("[getPublishedPosts]", error);
     return [];
+  }
+}
+
+/*
+ * 페이지 번호와 크기(기기별 6·10)가 인자라 (category, tag, page, pageSize)마다 캐시 항목이 따로 생기고,
+ * 무효화는 'posts' 태그 하나로 한다.
+ * 정렬에 id 보조 정렬을 두어 페이지 경계에서 같은 발행 시각의 글이 중복되거나 빠지지 않게 한다.
+ * 글 수보다 큰 offset은 PostgREST가 416(PGRST103)로 거절하고 count도 주지 않는다. 이때는 오류로 보지 않고
+ * head 요청으로 전체 글 수만 다시 세어 빈 목록과 함께 돌려준다(페이지 컴포넌트가 안내를 보여 준다).
+ */
+async function fetchPublishedPostsPage(
+  category: string | undefined,
+  tag: string | undefined,
+  page: number,
+  pageSize: number,
+): Promise<CacheResult<PostsPage>> {
+  "use cache";
+  cacheTag("posts");
+  cacheLife("max");
+
+  const supabase = createPublicClient();
+  const filter = { category, tag };
+  const { from, to } = getPageRange(page, pageSize);
+
+  const { data, count, error } = await applyPostFilter(
+    supabase
+      .from("posts")
+      .select(SUMMARY_COLUMNS, { count: "exact" })
+      .eq("published", true),
+    filter,
+  )
+    .order("published_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(from, to);
+
+  if (error?.code === "PGRST103") {
+    const counted = await applyPostFilter(
+      supabase
+        .from("posts")
+        .select("id", { count: "exact", head: true })
+        .eq("published", true),
+      filter,
+    );
+    if (counted.error) return failUncached(counted.error.message);
+    return { ok: true, data: { posts: [], total: counted.count ?? 0 } };
+  }
+  if (error) return failUncached(error.message);
+  return { ok: true, data: { posts: data ?? [], total: count ?? 0 } };
+}
+
+/** 블로그 목록의 한 페이지(본문 제외)와 전체 글 수. 오류면 빈 목록과 0 */
+export async function getPublishedPostsPage({
+  category,
+  tag,
+  page = 1,
+  pageSize,
+}: PostFilter & { page?: number; pageSize: number }): Promise<PostsPage> {
+  try {
+    const result = await fetchPublishedPostsPage(category, tag, page, pageSize);
+    if (result.ok) return result.data;
+    console.error("[getPublishedPostsPage]", result.message);
+    return EMPTY_PAGE;
+  } catch (error) {
+    // 프리렌더 중단 같은 Next.js 내부 신호는 삼키지 않고 다시 던진다.
+    unstable_rethrow(error);
+    console.error("[getPublishedPostsPage]", error);
+    return EMPTY_PAGE;
   }
 }
 
