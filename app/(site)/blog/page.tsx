@@ -6,6 +6,10 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/content/page-header";
 import { EmptyState } from "@/components/content/empty-state";
 import { PostListSkeleton } from "@/components/blog/post-list-skeleton";
+import {
+  BLOG_DESCRIPTION,
+  buildBlogListMetadata,
+} from "@/lib/posts/list-metadata";
 import { buildBlogHref, parseListParams } from "@/lib/posts/list-params";
 import { getPageSize } from "@/lib/posts/page-size";
 import { getTotalPages } from "@/lib/posts/pagination";
@@ -16,10 +20,13 @@ import { PostFilterBar } from "./_components/post-filter-bar";
 import { PostList } from "./_components/post-list";
 import { TaxonomyFilter } from "./_components/taxonomy-filter";
 
-export const metadata: Metadata = {
-  title: "블로그",
-  description: "개발과 일상에 대한 글을 모아둔 블로그입니다.",
-};
+// searchParams를 읽으므로 메타데이터는 요청 시점에 평가된다. 본문도 Suspense 안에서 요청 시점
+// 데이터를 읽어 정적 셸은 그대로이고 메타데이터는 본문과 함께 스트리밍된다. DB 조회는 하지 않는다.
+export async function generateMetadata({
+  searchParams,
+}: PageProps<"/blog">): Promise<Metadata> {
+  return buildBlogListMetadata(parseListParams(await searchParams));
+}
 
 // 마지막 페이지보다 큰 page로 들어온 경우의 안내. notFound() 대신 200으로 안내와 이동 링크를 준다.
 function PageOutOfRange({
@@ -85,10 +92,7 @@ async function FilteredPosts({
 export default function BlogPage(props: PageProps<"/blog">) {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-12">
-      <PageHeader
-        title="블로그"
-        description="개발과 일상에 대한 글을 모아둔 블로그입니다."
-      />
+      <PageHeader title="블로그" description={BLOG_DESCRIPTION} />
       <Suspense fallback={<PostListSkeleton />}>
         <FilteredPosts searchParams={props.searchParams} />
       </Suspense>
