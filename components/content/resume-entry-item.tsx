@@ -34,7 +34,7 @@ export function ResumeEntryItem({
     <li className={className}>
       <Card className="relative gap-2 border-l-4 border-l-primary px-5 shadow-sm transition-shadow hover:shadow-md">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-          <h3 className="text-base font-semibold break-words">
+          <h2 className="text-base font-semibold break-words">
             {link ? (
               <a
                 href={link}
@@ -52,7 +52,7 @@ export function ResumeEntryItem({
             ) : (
               title
             )}
-          </h3>
+          </h2>
           {period && (
             <Badge variant="secondary" className="w-fit shrink-0">
               {period}
