@@ -21,7 +21,7 @@ async function AdminPostsContent() {
   const posts = await getAdminPosts();
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">글 관리</h1>
         <Link href="/admin/posts/new" className={buttonVariants()}>
@@ -29,6 +29,6 @@ async function AdminPostsContent() {
         </Link>
       </div>
       <PostTable posts={posts} />
-    </main>
+    </div>
   );
 }

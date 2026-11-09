@@ -18,11 +18,11 @@ async function AdminPostEditContent({
   if (!initialPost) notFound();
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <h1 className="text-2xl font-semibold">글 수정</h1>
       {/* 다른 글로 이동해도 이전 글의 입력 상태가 남지 않도록 id를 key로 쓴다. */}
       <PostEditor key={initialPost.id} initialPost={initialPost} />
-    </main>
+    </div>
   );
 }
 
