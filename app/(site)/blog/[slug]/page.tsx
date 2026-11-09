@@ -8,6 +8,7 @@ import { TagBadge } from "@/components/blog/tag-badge";
 import { MarkdownContent } from "@/components/markdown/markdown-content";
 import { formatDate } from "@/lib/format-date";
 import { buildPostMetadata } from "@/lib/post-metadata";
+import { sortTags } from "@/lib/posts/sort-tags";
 import { getAdjacentPosts, getPostBySlug } from "@/lib/queries/posts";
 
 // params는 퍼센트 인코딩된 채로 전달되므로(한글 슬러그 등) 직접 디코딩한다.
@@ -54,7 +55,7 @@ async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
           </h1>
           {post.tags.length > 0 && (
             <ul className="flex flex-wrap gap-1.5" aria-label="태그">
-              {post.tags.map((tag) => (
+              {sortTags(post.tags).map((tag) => (
                 <li key={tag}>
                   <TagBadge tag={tag} />
                 </li>

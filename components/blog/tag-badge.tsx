@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { TechBadge } from "@/components/content/tech-badge";
+import { buildBlogHref } from "@/lib/posts/list-params";
 
 interface TagBadgeProps {
   tag: string;
@@ -12,7 +13,7 @@ export function TagBadge({ tag, className }: TagBadgeProps) {
   return (
     <TechBadge className={className}>
       <Link
-        href={`/blog?tag=${encodeURIComponent(tag)}`}
+        href={buildBlogHref({}, { tag })}
         className="rounded-full outline-none after:absolute after:inset-0 after:z-30 after:rounded-full after:content-[''] focus-visible:after:ring-[3px] focus-visible:after:ring-ring"
       >
         #{tag}

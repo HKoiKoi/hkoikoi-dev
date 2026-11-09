@@ -1,5 +1,10 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
+import {
+  countTaxonomy,
+  EMPTY_TAXONOMY,
+  type Taxonomy,
+} from "@/lib/posts/taxonomy";
 import { POST_COLUMNS, SUMMARY_COLUMNS } from "@/lib/queries/columns";
 import { createPublicClient } from "@/lib/supabase/public";
 import type { Post, PostSummary } from "@/lib/types/post";
@@ -102,6 +107,41 @@ export async function getPublishedPosts({
     unstable_rethrow(error);
     console.error("[getPublishedPosts]", error);
     return [];
+  }
+}
+
+/*
+ * 카테고리·태그 목록은 발행 글의 category, tags 두 컬럼만 읽어 앱에서 집계한다.
+ * 집계 결과(직렬화 가능한 평범한 객체)를 캐시하고 'posts' 태그로 무효화한다.
+ * 발행 글이 수백 건을 넘어 집계 비용이 문제 되면 집계 RPC로 바꾼다(ROADMAP Task 023).
+ */
+async function fetchTaxonomy(): Promise<CacheResult<Taxonomy>> {
+  "use cache";
+  cacheTag("posts");
+  cacheLife("max");
+
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("category, tags")
+    .eq("published", true);
+
+  if (error) return failUncached(error.message);
+  return { ok: true, data: countTaxonomy(data ?? []) };
+}
+
+/** 블로그 목록 상단용 카테고리·태그별 글 수. 오류면 빈 목록 */
+export async function getTaxonomy(): Promise<Taxonomy> {
+  try {
+    const result = await fetchTaxonomy();
+    if (result.ok) return result.data;
+    console.error("[getTaxonomy]", result.message);
+    return EMPTY_TAXONOMY;
+  } catch (error) {
+    // 프리렌더 중단 같은 Next.js 내부 신호는 삼키지 않고 다시 던진다.
+    unstable_rethrow(error);
+    console.error("[getTaxonomy]", error);
+    return EMPTY_TAXONOMY;
   }
 }
 

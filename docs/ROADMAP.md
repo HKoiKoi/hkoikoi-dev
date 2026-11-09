@@ -621,7 +621,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 첫 전체 e2e 실행에서 병렬 스펙의 발행이 시드 글 사이에 끼어 1건 실패했다. 시드 직후 `/blog` 목록 순서로 연속 여부를 확인하고 아니면 다시 만들도록 고친 뒤 통과했다.
     - 제한 사항·미확인: (1) 동률 `published_at`의 실제 DB 동작은 확인하지 못했다(편집기에 발행 시각 입력이 없어 e2e로 만들 수 없고, 단위 테스트는 `or` 필터 문자열의 `lt`·`gt` 대칭과 정렬 인자만 확인한다). (2) 실제 글이 DB에 있어 "가장 오래된 글에는 이전 글 없음"과 "발행 글 1건뿐이면 내비게이션 미표시"는 e2e로 재현하지 못했다(후자는 `PostPager`의 둘 다 null 단위 테스트로 대체). 가장 최근 글의 "다음 글 없음"도 병렬 스펙이 글을 발행할 수 있어 e2e에서는 시드 글이 아님만 확인한다. (3) 글 삭제 직후 인접 링크가 바뀌는지는 e2e로 확인하지 않았다(제목 수정·초안 전환만 확인, 삭제도 같은 `posts` 태그 만료를 쓴다). (4) 데스크톱 폭(`sm` 이상) 2열 배치는 눈으로 확인하지 못했다(클래스와 단위 테스트로만 확인). (5) 체크리스트의 Playwright MCP 대신 Playwright 스펙과 개발 서버 응답으로 확인했다.
 
-- **Task 023: 태그·카테고리 필터 탐색 및 태그 정렬 규칙 구축**
+- **Task 023: 태그·카테고리 필터 탐색 및 태그 정렬 규칙 구축** ✅ - 완료 2026-11-09 (JavaScript 비활성 동작, 다크 모드 육안, 태그 12개 초과 시 화면, 발행 글 수백 건 규모의 집계 비용은 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F016(제안: 태그·카테고리 필터 탐색과 정렬), F005
   - 목표: 카드·상세의 배지를 눌러야만 쓸 수 있던 필터를 `/blog` 상단의 카테고리·태그 목록(글 수 포함)에서 바로 고르게 하고, 영어·한글이 섞인 태그를 일관된 순서로 보여 준다
   - 스키마 확인 결과(2026-11-05, `supabase/migrations/20261026105752_create_posts.sql`·`20261028040654_add_posts_category_tags_length_checks.sql`): `category text not null default '일반'`(1~50자), `tags text[] not null default '{}'`(최대 10개, 요소 50자 이하) 컬럼과 `posts_tags_idx`(GIN)·`posts_category_idx` 인덱스가 이미 있고, 공개 조회도 `?category=&tag=`(정확 일치, AND)를 지원한다. **필터를 위한 스키마·마이그레이션 Task는 필요 없다.** 집계는 앱에서 먼저 하고, 발행 글이 수백 건을 넘어 집계 비용이 문제 되면 그때 집계 RPC(`security invoker`, 내부 `published = true`)를 마이그레이션으로 추가한다
@@ -629,17 +629,17 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 의존성: Task 021(권장). 스키마 변경 없음
   - 관련 파일: `lib/posts/sort-tags.ts`(+test), `lib/posts/list-params.ts`(+test), `lib/posts/taxonomy.ts`(+test, 집계 순수 함수), `lib/queries/posts.ts`(`getTaxonomy`), `app/(site)/blog/page.tsx`, `app/(site)/blog/_components/{taxonomy-filter,post-filter-bar}.tsx`, `e2e/blog-filter.spec.ts`(신규)
   - 수락 기준: `/blog` 상단에 카테고리 목록과 태그 목록이 글 수와 함께 표시되고, 선택 상태가 시각과 `aria-current`로 구분되며, 카테고리+태그 AND 조합·해제가 링크만으로(JavaScript 없이도) 동작. 태그·카테고리 목록은 아래 정렬 규칙을 따르고 서버·브라우저에서 같은 결과. 기존 `?category=&tag=` URL은 그대로 동작
-  - [ ] 태그 정렬 규칙(`sortTags`): 그룹 순서 **숫자·기호 → 영문 → 한글 → 기타 문자**. 영문 그룹은 `Intl.Collator('en', { sensitivity: 'base', numeric: true })`(대소문자 무시), 한글 그룹은 `Intl.Collator('ko', { numeric: true })`(가나다순), 비교 결과가 같으면(`React`/`react`) 코드포인트 순으로 결정. 근거:
+  - [x] 태그 정렬 규칙(`sortTags`): 그룹 순서 **숫자·기호 → 영문 → 한글 → 기타 문자**. 영문 그룹은 `Intl.Collator('en', { sensitivity: 'base', numeric: true })`(대소문자 무시), 한글 그룹은 `Intl.Collator('ko', { numeric: true })`(가나다순), 비교 결과가 같으면(`React`/`react`) 코드포인트 순으로 결정. 근거:
     - 이 블로그의 태그는 대부분 기술 고유명사(Next.js, React, Supabase 등)라 영문을 앞에 두면 자주 쓰는 태그가 먼저 보이고, 개발 블로그·문서의 흔한 배치와 같다
     - 로케일 기본값은 순서가 서로 다르다. 2026-11-05 Node 24에서 `Intl.Collator('ko')`는 한글을 영문보다 앞에, `Intl.Collator('en')`은 영문을 앞에 두었다. 로케일에 맡기지 않고 그룹 순서를 코드로 고정한다
     - 기본 `Array.prototype.sort()`는 코드포인트 순이라 대문자가 소문자보다 앞서고 기호가 사이에 끼어(`Next.js` → `_draft` → `nextjs`) 사람이 기대하는 순서가 아니다
     - 로케일을 명시하면 서버(Node ICU)와 브라우저 결과가 같아 하이드레이션 불일치가 없다
     - 한글을 앞에 두고 싶으면 그룹 순서 상수만 바꾼다(사용자 결정 시 이 항목 갱신)
-  - [ ] 정렬 적용 범위: `/blog` 상단의 태그·카테고리 목록에 적용. 카드·상세의 글별 태그는 작성자가 입력한 순서를 유지(작성 의도가 담긴 순서일 수 있음, 바꾸려면 같은 `sortTags` 재사용). 기본 카테고리 "일반"도 규칙대로 정렬(맨 앞 고정은 하지 않음)
-  - [ ] `getTaxonomy()`: 발행 글의 `category, tags`만 조회하는 `'use cache'` + `cacheTag('posts')` + `cacheLife('max')` 함수, 카테고리별·태그별 글 수는 순수 함수(`lib/posts/taxonomy.ts`)로 집계, 실패하면 빈 목록
-  - [ ] `lib/posts/list-params.ts`: `searchParams` → `{ category?, tag? }` 파싱(배열은 첫 값, 빈 값 무시, 50자 초과 무시, NFC 정규화)과 `buildBlogHref(current, patch)`(다른 조건 유지, 이후 추가될 `page`는 필터가 바뀌면 초기화). `app/(site)/blog/page.tsx`의 `first()`를 대체
-  - [ ] `TaxonomyFilter` UI: 카테고리 칩 줄, 태그 칩(많으면 상위 N개 + `details` "전체 태그"), 선택된 칩을 다시 누르면 해당 조건 해제, 글 수 표시, `aria-current="true"`. 기존 `PostFilterBar`(현재 필터·해제)는 유지하거나 통합. `searchParams`를 읽으므로 기존 Suspense 안에 둠. 0건 조합은 기존 빈 목록 안내 유지
-  - [ ] 결정 기록: 다중 태그 선택(`?tag=a&tag=b`)은 기본 미지원(단일 태그 유지). 대소문자만 다른 태그(`Next.js`/`next.js`)는 별개로 취급하고, 표기 흔들림을 줄이기 위해 편집기 태그 입력에 기존 태그 후보(`datalist`, 관리자 쿼리)를 제안하는 것은 선택 구현으로 둠
+  - [x] 정렬 적용 범위: `/blog` 상단의 태그·카테고리 목록에 적용. 기본 카테고리 "일반"도 규칙대로 정렬(맨 앞 고정은 하지 않음). **결정 변경(2026-11-09, 사용자 요청)**: 처음에는 카드·상세의 글별 태그를 작성자 입력 순서로 두기로 했으나, 필터 칩과 순서가 달라 보여 카드(`post-card.tsx`)와 상세 헤더(`blog/[slug]/page.tsx`)도 같은 `sortTags`로 정렬한다. 편집기에 입력한 순서와 DB 저장 순서는 바꾸지 않고 표시할 때만 정렬한다
+  - [x] `getTaxonomy()`: 발행 글의 `category, tags`만 조회하는 `'use cache'` + `cacheTag('posts')` + `cacheLife('max')` 함수, 카테고리별·태그별 글 수는 순수 함수(`lib/posts/taxonomy.ts`)로 집계, 실패하면 빈 목록
+  - [x] `lib/posts/list-params.ts`: `searchParams` → `{ category?, tag? }` 파싱(배열은 첫 값, 빈 값 무시, 50자 초과 무시, NFC 정규화)과 `buildBlogHref(current, patch)`(다른 조건 유지, 이후 추가될 `page`는 필터가 바뀌면 초기화). `app/(site)/blog/page.tsx`의 `first()`를 대체. 구현 메모: `page`는 아직 없어(Task 024) `buildBlogHref`에 필터 변경 시 `page`를 지울 확장 지점을 주석으로만 남겼다. 카드·상세의 배지는 기존처럼 그 조건 하나만 적용하는 링크(`buildBlogHref({}, {…})`)
+  - [x] `TaxonomyFilter` UI: 카테고리 칩 줄, 태그 칩(많으면 상위 N개 + `details` "전체 태그"), 선택된 칩을 다시 누르면 해당 조건 해제, 글 수 표시, `aria-current="true"`. 기존 `PostFilterBar`(현재 필터·해제)는 유지하거나 통합. `searchParams`를 읽으므로 기존 Suspense 안에 둠. 0건 조합은 기존 빈 목록 안내 유지. 구현 메모: "상위 N개"는 ROADMAP에 기준이 없어 **글 수 내림차순 상위 12개(동률은 정렬 규칙 순, 선택된 태그는 반드시 포함해 가장 글 수가 적은 마지막 칸과 교체)**로 해석했고(`splitTopTags`), 나머지는 `<details>` "전체 태그 (n)" 안에 정렬 순서로 둔다. `PostFilterBar`는 e2e(`visitor-flow`의 "현재 필터", `a11y`의 "필터 해제" 링크)가 직접 의존해 **통합하지 않고 유지**했다. 칩 접근성 이름은 `<이름>글 N개`이고 "필터 해제"라는 문구는 쓰지 않는다(`a11y.spec`의 링크 이름 검색과 겹침 방지)
+  - [x] 결정 기록: 다중 태그 선택(`?tag=a&tag=b`)은 기본 미지원(단일 태그 유지). 대소문자만 다른 태그(`Next.js`/`next.js`)는 별개로 취급하고, 표기 흔들림을 줄이기 위해 편집기 태그 입력에 기존 태그 후보(`datalist`, 관리자 쿼리)를 제안하는 것은 선택 구현으로 둠. 처리 결과: 다중 태그 미지원·대소문자 별개 취급은 구현에 반영했고(`countTaxonomy`는 대소문자만 다른 태그를 따로 센다), 편집기 태그 `datalist` 제안은 선택 구현이라 **하지 않았다**
   - 테스트 체크리스트:
     - 정상: `sort-tags.test.ts` → `['react', '회고', 'Next.js', 'AI', '가나다', '2026']` → `['2026', 'AI', 'Next.js', 'react', '가나다', '회고']`
     - 정상: Playwright MCP → `/blog` → 카테고리·태그 목록과 글 수 표시, 태그 칩 클릭 → `/blog?tag=<태그>`, 해당 글만, 칩 `aria-current`
@@ -649,7 +649,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: `sort-tags.test.ts` → `React`/`react` 동시 존재 → 항상 같은 순서, `v2`/`v10` → `v2`가 앞(numeric), 일본어·이모지 태그 → 맨 뒤 그룹
     - 엣지: Playwright MCP → 관리자가 새 태그로 글 발행 → 비로그인 `/blog` 새로고침 → 태그 목록에 즉시 추가, 글 삭제 뒤 글 수 0인 태그는 사라짐
     - 엣지: Playwright MCP → JavaScript 비활성 컨텍스트 → 칩 링크로 필터 적용·해제 동작
-  - 테스트 결과: (미수행)
+  - 테스트 결과 (2026-11-09):
+    - 자동 검사: `npm run check` 통과(vitest 36파일 311건 — `sort-tags.test.ts` 11건, `list-params.test.ts` 14건, `taxonomy.test.ts` 11건, `posts.test.ts`의 `getTaxonomy` 6건 포함), `npm run knip` 통과(중간에 `TaxonomyItem` 불필요 export를 지적해 정리), 실제 env `npm run build` 통과(`/blog` `◐ Partial Prerender`, Revalidate 1d·Expire 1w, 프리렌더 오류 없음).
+    - e2e: `e2e/blog-filter.spec.ts` 5건(로그인 setup 포함 6건 실행)과 `post-navigation`·`visitor-flow`·`a11y`를 함께 돌린 23건 통과. 확인한 시나리오: 태그 칩 클릭 → `?tag=`·해당 글만·글 수·`aria-current`, 태그 선택 상태에서 카테고리 칩 클릭 → 두 조건 AND, 선택 칩 재클릭 → 해당 조건만 해제, 맞지 않는 조합의 빈 목록 안내와 "필터 해제", `?tag=<51자>` → HTTP 400 미만·h1 표시·필터 무시·전체 목록, 새 태그로 발행 → 쿠키 없는 컨텍스트 `/blog` 새로고침에 칩 즉시 추가, 글 삭제 → 칩 사라짐. 글 수가 적은 태그는 "전체 태그" 접힘 안에 있어 스펙이 펼친 뒤 클릭한다. 관련 외 스펙과 전체 `npx playwright test`는 이번에 돌리지 않았다.
+    - 개발 서버(Playwright MCP): `/blog`에 카테고리 2개·태그 12개와 "전체 태그 (20)"이 글 수와 함께 표시됐고, 태그 칩 → `?tag=python`, 카테고리 칩 클릭 → `?category=…&tag=python` 9건과 `aria-current` 2개, 선택 카테고리 재클릭 → `?tag=python`만 남았다. 데스크톱·375px 스크린샷 육안 확인, 가로 넘침 없음(`scrollWidth` = `clientWidth`).
+    - 오류 경로: 셸 env로 잘못된 `NEXT_PUBLIC_SUPABASE_URL`을 준 개발 서버(포트 3100)에서 `/blog`는 HTTP 200, 필터 목록(`글 탐색` nav) 미표시, "아직 작성된 글이 없습니다" 안내, 오류 화면 없음, 서버 로그에는 `[getTaxonomy]`·`[getPublishedPosts]` `fetch failed`만 기록됐다.
+    - 제한 사항·미확인: (1) JavaScript 비활성 컨텍스트에서 칩 링크로 필터를 적용·해제하는 동작은 확인하지 못했다(칩은 `Link`와 `<details>`뿐이고 새 `'use client'`는 없다). (2) 다크 모드 육안 확인은 하지 않았다. (3) 태그가 12개를 넘을 때 선택 태그가 마지막 칸과 교체되는 동작은 단위 테스트(`splitTopTags`)로만 확인했고 화면에서는 보지 않았다. (4) 50자짜리 긴 카테고리명은 `max-w-full`만 적용했고 실제 줄바꿈은 확인하지 않았다. (5) 집계는 발행 글의 `category, tags`를 앱에서 세므로, 글이 수백 건을 넘으면 집계 RPC(`security invoker`, 내부 `published = true`)로 바꾸는 판단이 남아 있다(이번에는 구현하지 않음). (6) 카드·상세 태그 정렬은 `/blog` 카드 한 장의 순서만 직접 확인했고 상세 페이지 화면은 열어 보지 않았다.
 
 - **Task 024: 블로그 목록 페이지네이션 구현**
   - 관련 기능: F017(제안: 블로그 목록 페이지네이션), F005
