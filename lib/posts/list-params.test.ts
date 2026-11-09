@@ -38,7 +38,45 @@ describe("parseListParams", () => {
   });
 
   it("알 수 없는 키는 무시한다", () => {
-    expect(parseListParams({ page: "2", q: "x" })).toEqual({});
+    expect(parseListParams({ q: "x", sort: "old" })).toEqual({});
+  });
+
+  describe("page", () => {
+    it("2 이상의 정수를 읽는다", () => {
+      expect(parseListParams({ page: "2" })).toEqual({ page: 2 });
+      expect(parseListParams({ page: " 15 " })).toEqual({ page: 15 });
+    });
+
+    it("1페이지는 기본값이라 결과에 넣지 않는다", () => {
+      expect(parseListParams({ page: "1" })).toEqual({});
+      expect(parseListParams({ page: "01" })).toEqual({});
+    });
+
+    it("정수가 아니거나 1 미만이면 무시한다", () => {
+      for (const page of ["abc", "0", "-1", "1.5", "", "2abc", "1e3", "NaN"]) {
+        expect(parseListParams({ page })).toEqual({});
+      }
+    });
+
+    it("배열이면 첫 값을 사용한다", () => {
+      expect(parseListParams({ page: ["3", "5"] })).toEqual({ page: 3 });
+      expect(parseListParams({ page: [] })).toEqual({});
+    });
+
+    it("상한(10000)을 넘으면 상한으로 고정한다", () => {
+      expect(parseListParams({ page: "10000" })).toEqual({ page: 10000 });
+      expect(parseListParams({ page: "10001" })).toEqual({ page: 10000 });
+      expect(parseListParams({ page: "9".repeat(30) })).toEqual({
+        page: 10000,
+      });
+    });
+
+    it("필터와 함께 읽는다", () => {
+      expect(parseListParams({ tag: "react", page: "2" })).toEqual({
+        tag: "react",
+        page: 2,
+      });
+    });
   });
 });
 
@@ -89,5 +127,59 @@ describe("buildBlogHref", () => {
     expect(parsed).toEqual({ tag });
     expect(href).not.toContain(" ");
     expect(href).not.toContain("&  ");
+  });
+
+  describe("page", () => {
+    it("page만 바꾸면 필터를 유지한다", () => {
+      expect(
+        buildBlogHref({ category: "개발", tag: "react" }, { page: 2 }),
+      ).toBe(`/blog?category=${encodeURIComponent("개발")}&tag=react&page=2`);
+    });
+
+    it("page를 지정하지 않으면 현재 page를 유지한다", () => {
+      expect(buildBlogHref({ page: 3 })).toBe("/blog?page=3");
+    });
+
+    it("1페이지와 undefined는 쿼리에 쓰지 않는다", () => {
+      expect(buildBlogHref({ tag: "react", page: 3 }, { page: 1 })).toBe(
+        "/blog?tag=react",
+      );
+      expect(buildBlogHref({ page: 3 }, { page: undefined })).toBe("/blog");
+    });
+
+    it("category가 바뀌면 page를 지운다", () => {
+      expect(
+        buildBlogHref({ tag: "react", page: 3 }, { category: "개발" }),
+      ).toBe(`/blog?category=${encodeURIComponent("개발")}&tag=react`);
+    });
+
+    it("tag가 바뀌거나 해제돼도 page를 지운다", () => {
+      expect(buildBlogHref({ tag: "a", page: 3 }, { tag: "b" })).toBe(
+        "/blog?tag=b",
+      );
+      expect(buildBlogHref({ tag: "a", page: 3 }, { tag: undefined })).toBe(
+        "/blog",
+      );
+    });
+
+    it("같은 값으로 필터를 다시 지정해도 page를 지운다", () => {
+      expect(buildBlogHref({ tag: "a", page: 3 }, { tag: "a" })).toBe(
+        "/blog?tag=a",
+      );
+    });
+
+    it("patch에 필터와 page가 함께 있으면 page를 따른다", () => {
+      expect(buildBlogHref({ page: 3 }, { tag: "a", page: 2 })).toBe(
+        "/blog?tag=a&page=2",
+      );
+    });
+
+    it("parseListParams로 되돌릴 수 있다", () => {
+      const href = buildBlogHref({ category: "개발" }, { page: 4 });
+      const parsed = parseListParams(
+        Object.fromEntries(new URL(href, "http://x").searchParams),
+      );
+      expect(parsed).toEqual({ category: "개발", page: 4 });
+    });
   });
 });
