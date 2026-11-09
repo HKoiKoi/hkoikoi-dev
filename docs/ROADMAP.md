@@ -661,14 +661,15 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 목표: 글이 늘어도 목록 응답 크기와 렌더링 비용을 일정하게 유지한다
   - 의존성: Task 023(`list-params`·`buildBlogHref`). 스키마 변경 없음(기존 `(published, published_at desc)` 인덱스 사용)
   - 관련 파일: `lib/queries/posts.ts`, `lib/posts/list-params.ts`, `lib/posts/pagination.ts`(+test), `app/(site)/blog/page.tsx`, `app/(site)/blog/_components/pagination.tsx`(신규), `e2e/blog-pagination.spec.ts`(신규)
-  - 수락 기준: `/blog?page=n`이 페이지당 12개(상수)를 최신순으로 표시하고 필터와 함께 동작하며, 필터를 바꾸면 1페이지로 돌아감. 이전/다음·번호 링크가 총 페이지 수에 맞게 표시되고 잘못된 값·범위 밖 페이지는 오류 없이 처리. 홈 최신 3개·sitemap은 영향 없음
+  - 수락 기준: `/blog?page=n`이 페이지당 글을 최신순으로 표시하고(모바일 6개, 그 외 10개, 서버가 요청 헤더로 판별) 필터와 함께 동작하며, 필터를 바꾸면 1페이지로 돌아감. 이전/다음·번호 링크가 총 페이지 수에 맞게 표시되고 잘못된 값·범위 밖 페이지는 오류 없이 처리. 홈 최신 3개·sitemap은 영향 없음
+  - [ ] 페이지 크기(2026-11-09 사용자 결정): 모바일 6개, 그 외 10개. 목록은 서버에서 DB를 잘라 가져오므로 CSS 미디어쿼리로는 나눌 수 없어 `lib/posts/page-size.ts`가 요청 헤더로 기기를 판별한다(`Sec-CH-UA-Mobile`이 `?1`·`?0`이면 그 값, 없으면 User-Agent의 `Mobi|iPhone|iPod`, 태블릿은 10개). 페이지 크기를 캐시 키에 넣고 총 페이지 수·번호 링크도 그 크기로 계산한다. 한계: 같은 `?page=n` URL이 기기마다 다른 글을 보여 주고(공유 링크·검색 크롤러 포함), 헤더 판별은 추정이다
   - [ ] 방식: 오프셋 기반(`range(from, to)` + `count: 'exact'`)을 기본으로 한다(1인 블로그 규모, 번호 링크·URL 공유가 쉬움). 커서 방식은 글이 수천 건이 되면 재검토
   - [ ] `fetchPublishedPosts(category, tag, page)`가 `{ posts, total }`을 반환, 캐시 키에 page 포함, `cacheTag('posts')`. 정렬에 `id` 보조 정렬을 더해 페이지 경계의 중복·누락 방지
   - [ ] `page` 파싱: 정수가 아니거나 1 미만이면 1, 마지막 페이지 초과는 빈 목록 안내 + 첫/마지막 페이지 링크(soft 404 선례와 일관되게 `notFound()`는 쓰지 않음)
   - [ ] `Pagination`: `<nav aria-label="페이지">`, 현재 페이지 `aria-current="page"`, 링크는 `buildBlogHref`로 필터 유지, 모바일에서 번호 축약
   - [ ] 메타데이터: 2페이지 이상은 title에 "(n페이지)", canonical은 자기 자신. sitemap에는 페이지 URL을 넣지 않음
   - 테스트 체크리스트:
-    - 정상: Playwright MCP → 발행 글 13건(시드 `e2e-page-`) → `/blog` 12건, "다음" 클릭 → `?page=2`에 1건
+    - 정상: Playwright MCP → 발행 글 11건 이상이 되게 시드(`e2e-page-`) → 데스크톱 `/blog` 10건, "다음" 클릭 → `?page=2`에 나머지, iPhone User-Agent 컨텍스트는 `/blog` 6건
     - 정상: Playwright MCP → `?tag=x&page=2`에서 카테고리 칩 클릭 → URL에서 `page` 제거, 1페이지
     - 오류: Playwright MCP → `?page=abc`·`?page=0`·`?page=-1` → 1페이지와 같은 결과
     - 오류: Playwright MCP → `?page=999` → 빈 목록 안내와 첫/마지막 페이지 링크, 오류 화면 없음
