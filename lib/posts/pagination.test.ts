@@ -1,46 +1,46 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  getPageItems,
-  getPageRange,
-  getTotalPages,
-  POSTS_PER_PAGE,
-} from "./pagination";
-
-describe("POSTS_PER_PAGE", () => {
-  it("페이지당 12개다", () => {
-    expect(POSTS_PER_PAGE).toBe(12);
-  });
-});
+import { getPageItems, getPageRange, getTotalPages } from "./pagination";
 
 describe("getTotalPages", () => {
   it("글이 없어도 1페이지다", () => {
-    expect(getTotalPages(0)).toBe(1);
+    expect(getTotalPages(0, 10)).toBe(1);
+    expect(getTotalPages(0, 6)).toBe(1);
   });
 
-  it("12건은 1페이지, 13건은 2페이지다", () => {
-    expect(getTotalPages(12)).toBe(1);
-    expect(getTotalPages(13)).toBe(2);
+  it("페이지 크기 10: 10건은 1페이지, 11건은 2페이지다", () => {
+    expect(getTotalPages(10, 10)).toBe(1);
+    expect(getTotalPages(11, 10)).toBe(2);
   });
 
-  it("24건은 2페이지, 25건은 3페이지다", () => {
-    expect(getTotalPages(24)).toBe(2);
-    expect(getTotalPages(25)).toBe(3);
+  it("페이지 크기 10: 20건은 2페이지, 21건은 3페이지다", () => {
+    expect(getTotalPages(20, 10)).toBe(2);
+    expect(getTotalPages(21, 10)).toBe(3);
+  });
+
+  it("페이지 크기 6: 6건은 1페이지, 7건은 2페이지, 18건은 3페이지다", () => {
+    expect(getTotalPages(6, 6)).toBe(1);
+    expect(getTotalPages(7, 6)).toBe(2);
+    expect(getTotalPages(18, 6)).toBe(3);
   });
 });
 
 describe("getPageRange", () => {
-  it("1페이지는 0~11이다", () => {
-    expect(getPageRange(1)).toEqual({ from: 0, to: 11 });
+  it("페이지 크기 10: 1페이지는 0~9, 2페이지는 10~19다", () => {
+    expect(getPageRange(1, 10)).toEqual({ from: 0, to: 9 });
+    expect(getPageRange(2, 10)).toEqual({ from: 10, to: 19 });
   });
 
-  it("2페이지는 12~23이다", () => {
-    expect(getPageRange(2)).toEqual({ from: 12, to: 23 });
+  it("페이지 크기 6: 1페이지는 0~5, 3페이지는 12~17이다", () => {
+    expect(getPageRange(1, 6)).toEqual({ from: 0, to: 5 });
+    expect(getPageRange(3, 6)).toEqual({ from: 12, to: 17 });
   });
 
   it("범위 길이는 항상 페이지 크기와 같다", () => {
-    const { from, to } = getPageRange(5);
-    expect(to - from + 1).toBe(POSTS_PER_PAGE);
+    for (const size of [6, 10]) {
+      const { from, to } = getPageRange(5, size);
+      expect(to - from + 1).toBe(size);
+    }
   });
 });
 

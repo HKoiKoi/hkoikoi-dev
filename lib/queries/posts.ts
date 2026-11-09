@@ -127,7 +127,8 @@ export async function getPublishedPosts({
 }
 
 /*
- * 페이지 번호가 인자라 (category, tag, page)마다 캐시 항목이 따로 생기고, 무효화는 'posts' 태그 하나로 한다.
+ * 페이지 번호와 크기(기기별 6·10)가 인자라 (category, tag, page, pageSize)마다 캐시 항목이 따로 생기고,
+ * 무효화는 'posts' 태그 하나로 한다.
  * 정렬에 id 보조 정렬을 두어 페이지 경계에서 같은 발행 시각의 글이 중복되거나 빠지지 않게 한다.
  * 글 수보다 큰 offset은 PostgREST가 416(PGRST103)로 거절하고 count도 주지 않는다. 이때는 오류로 보지 않고
  * head 요청으로 전체 글 수만 다시 세어 빈 목록과 함께 돌려준다(페이지 컴포넌트가 안내를 보여 준다).
@@ -136,6 +137,7 @@ async function fetchPublishedPostsPage(
   category: string | undefined,
   tag: string | undefined,
   page: number,
+  pageSize: number,
 ): Promise<CacheResult<PostsPage>> {
   "use cache";
   cacheTag("posts");
@@ -143,7 +145,7 @@ async function fetchPublishedPostsPage(
 
   const supabase = createPublicClient();
   const filter = { category, tag };
-  const { from, to } = getPageRange(page);
+  const { from, to } = getPageRange(page, pageSize);
 
   const { data, count, error } = await applyPostFilter(
     supabase
@@ -176,9 +178,10 @@ export async function getPublishedPostsPage({
   category,
   tag,
   page = 1,
-}: PostFilter & { page?: number } = {}): Promise<PostsPage> {
+  pageSize,
+}: PostFilter & { page?: number; pageSize: number }): Promise<PostsPage> {
   try {
-    const result = await fetchPublishedPostsPage(category, tag, page);
+    const result = await fetchPublishedPostsPage(category, tag, page, pageSize);
     if (result.ok) return result.data;
     console.error("[getPublishedPostsPage]", result.message);
     return EMPTY_PAGE;

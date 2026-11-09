@@ -228,7 +228,9 @@ describe("getPublishedPostsPage", () => {
       count: 30,
     });
 
-    await expect(getPublishedPostsPage({ page: 2 })).resolves.toEqual({
+    await expect(
+      getPublishedPostsPage({ page: 2, pageSize: 10 }),
+    ).resolves.toEqual({
       posts: rows,
       total: 30,
     });
@@ -241,21 +243,29 @@ describe("getPublishedPostsPage", () => {
     expect(columns).not.toContain("content");
     expect(options).toEqual({ count: "exact" });
     expect(builder.eq).toHaveBeenCalledWith("published", true);
-    expect(builder.range).toHaveBeenCalledWith(12, 23);
+    expect(builder.range).toHaveBeenCalledWith(10, 19);
   });
 
-  it("page를 생략하면 1페이지(0~11)를 조회한다", async () => {
+  it("page를 생략하면 1페이지(0~9)를 조회한다", async () => {
     const { builder } = createBuilder({ data: [], error: null, count: 0 });
 
-    await getPublishedPostsPage();
+    await getPublishedPostsPage({ pageSize: 10 });
 
-    expect(builder.range).toHaveBeenCalledWith(0, 11);
+    expect(builder.range).toHaveBeenCalledWith(0, 9);
+  });
+
+  it("pageSize가 6이면 6개 단위로 range를 잡는다", async () => {
+    const { builder } = createBuilder({ data: [], error: null, count: 0 });
+
+    await getPublishedPostsPage({ page: 3, pageSize: 6 });
+
+    expect(builder.range).toHaveBeenCalledWith(12, 17);
   });
 
   it("최신순에 id 보조 정렬을 건다", async () => {
     const { builder } = createBuilder({ data: [], error: null, count: 0 });
 
-    await getPublishedPostsPage({ page: 1 });
+    await getPublishedPostsPage({ page: 1, pageSize: 10 });
 
     expect(builder.order).toHaveBeenNthCalledWith(1, "published_at", {
       ascending: false,
@@ -268,7 +278,12 @@ describe("getPublishedPostsPage", () => {
   it("category와 tag 필터를 적용한다", async () => {
     const { builder } = createBuilder({ data: [], error: null, count: 0 });
 
-    await getPublishedPostsPage({ category: "개발", tag: "nextjs", page: 1 });
+    await getPublishedPostsPage({
+      category: "개발",
+      tag: "nextjs",
+      page: 1,
+      pageSize: 10,
+    });
 
     expect(builder.eq).toHaveBeenCalledWith("category", "개발");
     expect(builder.contains).toHaveBeenCalledWith("tags", ["nextjs"]);
@@ -277,7 +292,9 @@ describe("getPublishedPostsPage", () => {
   it("data·count가 null이면 빈 목록과 0을 반환한다", async () => {
     createBuilder({ data: null, error: null, count: null });
 
-    await expect(getPublishedPostsPage({ page: 1 })).resolves.toEqual({
+    await expect(
+      getPublishedPostsPage({ page: 1, pageSize: 10 }),
+    ).resolves.toEqual({
       posts: [],
       total: 0,
     });
@@ -286,7 +303,7 @@ describe("getPublishedPostsPage", () => {
   it("posts 태그를 붙이고 수명을 줄이지 않는다", async () => {
     createBuilder({ data: [], error: null, count: 0 });
 
-    await getPublishedPostsPage({ page: 1 });
+    await getPublishedPostsPage({ page: 1, pageSize: 10 });
 
     expect(cacheTagMock).toHaveBeenCalledWith("posts");
     expect(cacheLifeMock).toHaveBeenCalledTimes(1);
@@ -306,7 +323,7 @@ describe("getPublishedPostsPage", () => {
     createClientMock.mockReturnValue({ from });
 
     await expect(
-      getPublishedPostsPage({ category: "개발", page: 999 }),
+      getPublishedPostsPage({ category: "개발", page: 999, pageSize: 10 }),
     ).resolves.toEqual({ posts: [], total: 18 });
 
     expect(counted.select).toHaveBeenCalledWith("id", {
@@ -336,7 +353,9 @@ describe("getPublishedPostsPage", () => {
       .mockReturnValueOnce(counted);
     createClientMock.mockReturnValue({ from });
 
-    await expect(getPublishedPostsPage({ page: 999 })).resolves.toEqual({
+    await expect(
+      getPublishedPostsPage({ page: 999, pageSize: 10 }),
+    ).resolves.toEqual({
       posts: [],
       total: 0,
     });
@@ -351,7 +370,9 @@ describe("getPublishedPostsPage", () => {
   it("그 밖의 오류는 빈 결과와 로그를 남기고 수명을 0으로 줄인다", async () => {
     createBuilder({ data: null, error: { message: "boom", code: "42501" } });
 
-    await expect(getPublishedPostsPage({ page: 1 })).resolves.toEqual({
+    await expect(
+      getPublishedPostsPage({ page: 1, pageSize: 10 }),
+    ).resolves.toEqual({
       posts: [],
       total: 0,
     });
@@ -368,7 +389,9 @@ describe("getPublishedPostsPage", () => {
       throw new Error("no env");
     });
 
-    await expect(getPublishedPostsPage({ page: 1 })).resolves.toEqual({
+    await expect(
+      getPublishedPostsPage({ page: 1, pageSize: 10 }),
+    ).resolves.toEqual({
       posts: [],
       total: 0,
     });

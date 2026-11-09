@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -6,6 +7,7 @@ import { PageHeader } from "@/components/content/page-header";
 import { EmptyState } from "@/components/content/empty-state";
 import { PostListSkeleton } from "@/components/blog/post-list-skeleton";
 import { buildBlogHref, parseListParams } from "@/lib/posts/list-params";
+import { getPageSize } from "@/lib/posts/page-size";
 import { getTotalPages } from "@/lib/posts/pagination";
 import { getPublishedPostsPage, getTaxonomy } from "@/lib/queries/posts";
 
@@ -55,11 +57,13 @@ async function FilteredPosts({
 }: Pick<PageProps<"/blog">, "searchParams">) {
   const params = await searchParams;
   const { category, tag, page = 1 } = parseListParams(params);
+  // 모바일 6개·그 외 10개. 같은 ?page=n이어도 기기에 따라 담기는 글이 다르다.
+  const pageSize = getPageSize(await headers());
   const [{ posts, total }, taxonomy] = await Promise.all([
-    getPublishedPostsPage({ category, tag, page }),
+    getPublishedPostsPage({ category, tag, page, pageSize }),
     getTaxonomy(),
   ]);
-  const totalPages = getTotalPages(total);
+  const totalPages = getTotalPages(total, pageSize);
   const filter = { category, tag };
 
   return (
