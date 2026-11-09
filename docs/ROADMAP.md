@@ -562,19 +562,20 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 - 순서 근거: (1) 스키마 변경이 없고 읽기만 하는 블로그 탐색 기능(022·023·026)을 먼저 해서 방문자 가치를 빨리 낸다. (2) 목록 기능은 **URL 상태 유틸·목록 쿼리 → 페이지네이션 → 검색(스키마 변경)** 순서로 쌓는다. 023이 `/blog`의 URL 상태(`category`, `tag`)와 조회 함수 시그니처를 정리하고, 024가 `page`, 025가 `q`를 더한다. (3) 관리자 작성 경험·운영 부채(027·029)는 탐색 묶음과 병렬로 진행할 수 있다. (4) 새 테이블·익명 쓰기·외부 서비스가 필요한 기능(030·031)은 남용 대책 결정이 필요해 뒤에 둔다. (5) 정적 섹션 DB 전환(032·033)은 규모가 가장 크고, 지금의 `data/*.ts` 방식으로도 운영에 문제가 없어 마지막에 둔다.
 - 병렬 가능: 022·023·026·027·028·029·045는 서로 독립이다. 030은 022(상세 하단 레이아웃) 뒤를 권장하며, 032→033은 순서 의존이다.
 
-- **Task 021: MVP 잔여 검증 및 운영 점검** - 우선순위
+- **Task 021: MVP 잔여 검증 및 운영 점검** ✅ - 완료 2026-11-09 (편집기 카테고리·태그·소개글·본문·썸네일의 오류 `aria-describedby`는 코드상 일치만 확인하고 실행으로는 확인하지 못함)
   - 관련 기능: F001~F014 (MVP 완료 처리 때 이월한 미확인 항목)
   - 목표: MVP 완료 처리 때 근거가 부족했던 항목을 확인하고 운영 설정을 원래대로 돌려, Post-MVP 작업을 녹색 회귀(전체 e2e 통과)와 확인된 운영 설정에서 시작한다
   - 의존성: 없음
   - 관련 파일: `e2e/**`, `e2e/fixtures/admin.ts`, `playwright.config.ts`, `knip.jsonc`, `app/(site)/_components/latest-posts.tsx`, Supabase 대시보드(Authentication → Rate Limits, URL Configuration)
   - 수락 기준: 현재 `develop` 기준 `npm run check`·실제 env `npm run build`·`npm run knip`·전체 e2e가 통과하고, 운영에서 홈 최신 글·목록·상세·sitemap이 발행·제목 수정·초안 전환·슬러그 변경·삭제 직후 반영되며, Rate Limits·Auth URL 설정 값이 기록됨
-  - [ ] 현재 `develop`(PR #39 포함)에서 `npm run check`·`npm run knip`(Task 020의 sitemap 수정 뒤 미실행)과 실제 Supabase env로 `npm run build` 재실행, 빌드 표에서 `/`·`/blog`·`/sitemap.xml` 분류 기록
-  - [ ] 전체 e2e 재실행(실제 이력·로고·OG 이미지 교체 뒤 미실행, `visitor-flow` 포함). Rate Limit 대응은 파일 분할·6분 간격 실행 또는 일시 상향 후 원복
-  - [ ] Supabase Auth Rate Limits(token refreshes)가 기본값(150/5min)으로 원복됐는지, Site URL·Redirect URL이 `https://www.hkoikoi.dev` 기준인지 사용자 확인 결과를 기록(MCP로 읽을 수 없음)
-  - [ ] PR #39 운영 반영 확인: 테스트 글 발행·삭제 직후 홈 최신 글 영역 반영
-  - [ ] 운영에서 확인하지 못한 캐시 무효화 시나리오(제목 수정·초안 전환·슬러그 변경) 확인
-  - [ ] Task 019 이월: 편집기를 키보드만으로 조작(라벨·`aria-describedby`·포커스 순서), 이력 4종·`/volunteer`·`/activities` 모바일 Lighthouse 측정
-  - [ ] (선택) e2e 로그인 세션 재사용(Playwright `storageState`)으로 전체 실행의 로그인 횟수를 30회 미만으로 줄여, Rate Limit을 올리지 않고도 한 번에 통과하게 개선
+  - [x] 현재 `develop`(PR #39 포함)에서 `npm run check`·`npm run knip`(Task 020의 sitemap 수정 뒤 미실행)과 실제 Supabase env로 `npm run build` 재실행, 빌드 표에서 `/`·`/blog`·`/sitemap.xml` 분류 기록
+  - [x] 전체 e2e 재실행(실제 이력·로고·OG 이미지 교체 뒤 미실행, `visitor-flow` 포함). Rate Limit 대응은 파일 분할·6분 간격 실행 또는 일시 상향 후 원복
+  - [x] Supabase Auth Rate Limits(token refreshes)가 기본값(150/5min)으로 원복됐는지, Site URL·Redirect URL이 정식 호스트 `https://hkoikoi.dev` 기준인지 사용자 확인 결과를 기록(MCP로 읽을 수 없음)
+  - [x] PR #39 운영 반영 확인: 테스트 글 발행·삭제 직후 홈 최신 글 영역 반영
+  - [x] 운영에서 확인하지 못한 캐시 무효화 시나리오(제목 수정·초안 전환·슬러그 변경) 확인
+  - [x] Task 019 이월: 편집기를 키보드만으로 조작(라벨·포커스 순서·포커스 링·제목/URL 오류 연결), 이력 4종·`/volunteer`·`/activities` 모바일 Lighthouse 측정
+  - [ ] Task 019 이월(잔여): 편집기 카테고리·태그·소개글·본문·썸네일의 오류 `aria-describedby`가 실제 오류 요소로 연결되는지 실행 확인(코드상 id 일치만 확인, 미실행)
+  - [x] (선택) e2e 로그인 세션 재사용(Playwright `storageState`)으로 전체 실행의 로그인 횟수를 30회 미만으로 줄여, Rate Limit을 올리지 않고도 한 번에 통과하게 개선
   - 테스트 체크리스트:
     - 정상: 터미널 → `npm run check && npm run knip` → 종료 코드 0
     - 정상: Playwright MCP → 운영 `/` → 관리자가 테스트 글(`e2e-` 접두) 발행 직후 새로고침 → 최신 글 카드에 노출, 삭제 직후 사라짐
@@ -582,7 +583,15 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Playwright MCP → 운영에서 발행 글을 임시 저장(초안 전환) → 공개 상세 not-found, `/blog`·홈·sitemap에서 제외
     - 엣지: Playwright MCP → 운영에서 슬러그 변경 → 이전 슬러그 not-found, 새 슬러그 정상, sitemap에 새 슬러그만
     - 엣지: 키보드만(Tab/Shift+Tab/Enter/Space) → 편집기 제목 → 슬러그 → 메타 필드 → 본문 → 이미지 버튼 → 하단 바 버튼 순회, 포커스 링 표시, 검증 오류가 입력과 연결되어 읽힘
-  - 테스트 결과: (미수행)
+  - 테스트 결과: 2026-11-09 (시각은 KST)
+    - 정적 검증: HEAD `6eb48ee`(`develop`과 동일, PR #39 포함)에서 `npm run check`(단위 테스트 254개)·`npm run knip` 종료 코드 0, 실제 Supabase env `npm run build` 성공. 빌드 표 분류는 `/` ◐ Partial Prerender(Revalidate 1d·Expire 1w), `/blog` ◐(1d·1w), `/sitemap.xml` ƒ Dynamic. 빌드 경고 `cacheComponents` 켠 채 `partialPrefetching` 미설정은 PR #47(`partialPrefetching: true`)로 해소했고 분류는 같았다.
+    - 전체 e2e: 첫 실행은 Rate Limit 회피를 위해 그룹으로 나눠 370초 간격으로 돌렸고 85건 중 84건 통과, 1건 실패였다. 실패는 `e2e/home.spec.ts`의 `getByText("Deploy")`가 대소문자 무시 부분 일치라 홈 최신 글 링크(`…auto-deploy-github-actions`)와 `#deployment` 태그에 걸린 것으로, 앱 결함이 아니라 테스트 취약성이다(PR #48에서 exact 일치로 수정). 이어서 로그아웃을 `signOut({ scope: "local" })`로 바꾸고(PR #49) 로그인 세션 재사용을 넣은(PR #50) 뒤 전체 `npx playwright test`를 분할 없이 한 번에 돌려 86개(setup 1개 포함) 통과, 약 49초, 429 없음. Supabase 로그의 같은 구간 `/auth/v1/token`(password grant)은 13건이다(틀린 비밀번호 테스트 포함, 성공·실패 구분은 못 함. 이전 약 44회는 코드를 읽고 센 값). 실행 후 `e2e-` 접두 글은 0건이고 `blog-images` 객체는 알려진 70바이트 고아 파일만 늘었다(34→41→48).
+    - 사용자 확인(Supabase 대시보드, MCP로 읽을 수 없어 사용자 보고 값): Authentication → Rate Limits의 token refreshes는 기본값 150/5min이다(상향 상태 아님). Site URL은 `https://hkoikoi.dev`, Redirect URLs는 `localhost:3000/**`, `https://www.hkoikoi.dev/**`, `https://hkoikoi.dev/**`다(사용자가 적은 표기 그대로). `www` 항목이 남아 있으나 앱은 `signInWithPassword`만 써서 영향이 없다(Task 039 기록 기준).
+    - 운영 캐시 반영(`https://hkoikoi.dev`, `e2e-prod-cache-1109a` 글, 쿠키 없는 curl로 확인): 발행 12:06:56 직후 홈·`/blog`·상세·sitemap에 노출. 제목 수정 12:07:32 직후 홈·`/blog`·상세에 새 제목(옛 제목 텍스트 0건은 12:08:08에 확인). 초안 전환 12:08:36·12:10:55 직후 상세가 not-found이고 `/blog`·홈·sitemap에서 제외. 재발행 12:09:30·12:11:12 직후 다시 노출. 슬러그 변경 12:10:19 직후 이전 슬러그 not-found, 새 슬러그 정상, sitemap·`/blog`·홈 링크에 새 슬러그만. 삭제 12:11:34 직후 홈·`/blog`·sitemap에서 사라지고 상세는 not-found(PR #39 선례 재현 안 됨). 삭제 뒤 DB의 `e2e-` 행 0건이고 실제 글은 바뀌지 않았다. not-found 판별은 `페이지를 찾을 수 없습니다` 문구가 정상 글에도 2건씩 들어 있어 쓸 수 없고, `<h1>`이 없고 `<title>`이 `hkoikoi.dev`뿐인지로 했다.
+    - 편집기 키보드(임시 Playwright 스펙, 저장 없이 실행, 실행 뒤 삭제): 데스크톱 `/admin/posts/new`의 Tab 정지점 16개가 DOM 순서와 일치(본문 바로가기 → 헤더 링크·로그아웃 → 제목 → URL → 카테고리 → 태그 → 소개글 → 썸네일 업로드 → 이미지 추가 → 본문 → 나가기 → 임시 저장 → 발행하기, 이미지 버튼이 본문보다 앞), Shift+Tab은 정확히 대칭, 모든 정지점에서 `:focus-visible`과 링이 보였다. 빈 폼을 Enter로 제출하면 제목·URL 입력의 `aria-describedby`가 실제 오류 요소(`post-title-error`, `post-slug-error`)를 가리켰다. 모바일(375px) 탭은 방향키로 포커스만 이동하고 Enter로 전환된다.
+    - 모바일 Lighthouse 13.6.0(운영 URL, 모바일 simulate, 11:58~12:00): 성능/접근성/모범사례/SEO — `/education` 87/98/100/100, `/career` 99/98/100/100, `/certifications` 88/98/100/100, `/languages` 88/98/100/91, `/volunteer` 94/98/100/100, `/activities` 98/98/100/100. 접근성 98은 6경로 모두 `heading-order`(`h3`) 때문이다. `/languages`는 3회 측정해 성능 88·92·86, SEO 91·100·100이었고 91은 `robots-txt` 감사가 한 번 실패한 것으로 재측정에서 재현되지 않았다(원인 미확인). "이력 4종"은 문서에 정의가 없어 헤더 "이력" 드롭다운(`/education`·`/career`·`/certifications`·`/languages`)으로 해석했다.
+    - 제한 사항·미확인: 편집기 카테고리·태그·소개글·본문·썸네일의 오류 `aria-describedby`는 코드상 id 일치만 확인했고 실행으로는 확인하지 못했다. 모바일 탭 트리거가 Tab 정지점인지는 첫 측정에서 건너뛰고 재측정에서는 `작성` 탭이 정지점이어서 일관되지 않으며 원인을 찾지 못했다. Lighthouse는 경로당 1회 측정이라 성능 점수 변동(±수 점)이 있다. 운영 캐시 확인은 curl 1회 호출 기준이며 브라우저 캐시는 확인하지 않았다.
+    - 새로 발견(수정하지 않음): (1) 빈 폼 제출 뒤 포커스가 `BODY`로 떨어진다(오류는 `role="alert"`로만 알림). (2) 모바일 탭에 `tabpanel`·`aria-controls` 연결이 없다. (3) 개발 서버가 `/admin/posts`·`/admin/posts/new`에서 `Date.now()` 프리렌더 오류를 낸다(이전 e2e 로그에도 있었고 `npm run build`에는 없음, 원인 조사 안 함). (4) `app/admin/layout.tsx:35`의 `<main>` 안에 `new/page.tsx:10`이 또 `<main>`을 둔다(코드 읽기로만 확인). (5) CLAUDE.md의 e2e 문단(로그인 약 40번, Rate Limit 우회 절차)이 PR #50 이후 사실과 다르다.
 
 - **Task 022: 블로그 상세 이전/다음 글 내비게이션 구현**
   - 관련 기능: F015(제안: 이전/다음 글 내비게이션), F006
