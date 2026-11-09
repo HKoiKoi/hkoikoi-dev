@@ -44,7 +44,7 @@ hkoikoi-dev/
 │   ├── types/              # 도메인 타입 (post, profile, resume)
 │   ├── schemas/            # post.ts(zod 입력 스키마, POST_LIMITS, parseTags) + 테스트
 │   ├── queries/            # posts.ts(공개 글 조회), admin-posts.ts(관리자 조회), columns.ts(공용 select 컬럼), 서버 전용 + 테스트
-│   ├── posts/ projects/ publications/   # slugify·form-data·published-at·sort-tags·list-params·taxonomy 등 순수 함수와 옆의 테스트
+│   ├── posts/ projects/ publications/   # slugify·form-data·published-at·sort-tags·list-params·taxonomy·pagination·page-size·list-metadata 등 순수 함수와 옆의 테스트
 │   ├── site-config.ts      # 사이트 이름, 내비게이션 항목
 │   ├── site-url.ts         # NEXT_PUBLIC_SITE_URL 기준 절대 URL(getSiteUrl, absoluteUrl) + 테스트
 │   ├── post-metadata.ts    # 글 상세 메타데이터(OG·twitter·없는 글 noindex) 순수 함수 + 테스트
@@ -96,7 +96,7 @@ app/
 │   ├── _components/        # latest-posts.tsx (메인의 최신 글)
 │   ├── education/ career/ certifications/ languages/   # 이력
 │   ├── volunteer/ activities/ projects/ publications/
-│   └── blog/               # /blog, /blog/[slug], _components/ (taxonomy-filter 카테고리·태그 칩, post-filter-bar 현재 필터, post-list)
+│   └── blog/               # /blog, /blog/[slug], _components/ (taxonomy-filter 카테고리·태그 칩, post-filter-bar 현재 필터, post-list, pagination 페이지 이동)
 ├── admin/                  # 관리자 영역 (로그인 필요)
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
 │   ├── actions.ts          # logout Server Action (+ actions.test.ts)
@@ -167,7 +167,7 @@ lib/
 ├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
 ├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getTaxonomy / getPostBySlug('use cache' + cacheTag, public 클라이언트), admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
 ├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), rehype-sanitize-style.ts(`<style>` CSS 내용 검사), plugins.ts(remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
-├── posts/                 # slugify.ts, form-data.ts, published-at.ts, sort-tags.ts(태그 정렬 규칙), list-params.ts(/blog URL 상태 파싱·href), taxonomy.ts(카테고리·태그 집계와 상위 태그 분리) (+ 테스트)
+├── posts/                 # slugify.ts, form-data.ts, published-at.ts, sort-tags.ts(태그 정렬 규칙), list-params.ts(/blog URL 상태 파싱·href), taxonomy.ts(카테고리·태그 집계와 상위 태그 분리), pagination.ts(총 페이지 수·range·번호 목록 계산), page-size.ts(요청 헤더로 기기 판별: 모바일 6개·그 외 10개), list-metadata.ts(/blog title·canonical) (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
 ├── auth/                  # is-admin.ts, is-admin-path.ts, require-admin.ts (+ 테스트)
 ├── site-config.ts         # siteConfig, navItems
@@ -284,7 +284,7 @@ import { cn } from "@/lib/utils";
 ### 테스트 배치
 
 - 단위/컴포넌트 테스트: 대상 파일 옆의 `*.test.ts(x)` (예: `lib/format-date.test.ts`). 환경은 jsdom이고 `vitest.setup.ts`가 `jest-dom` 매처와 `cleanup`을 설정합니다.
-- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`, `blog-filter`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
+- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`, `blog-filter`, `blog-pagination`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
 - E2E 관리자 로그인: `setup` 프로젝트(`e2e/auth.setup.ts`)가 1회 로그인해 세션을 `e2e/.auth/admin.json`(git 제외)에 저장하고, `login()`이 이 쿠키를 재사용합니다. 새 세션이 필요한 테스트만 `loginWithForm()`을 씁니다. 로그인 횟수는 Supabase Auth `/token`의 IP당 버스트 한도(30건)와 직결되므로 일반 테스트에서 폼 로그인을 늘리지 않습니다.
 - 커버리지는 `app/`, `components/`, `lib/`를 대상으로 하되 `components/ui/**`는 제외합니다.
 - Server Component(async)는 Vitest로 직접 렌더링하기 어렵습니다. 로직은 함수로 분리해 단위 테스트하고, 화면 흐름은 E2E로 검증합니다.

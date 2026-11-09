@@ -656,26 +656,31 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류 경로: 셸 env로 잘못된 `NEXT_PUBLIC_SUPABASE_URL`을 준 개발 서버(포트 3100)에서 `/blog`는 HTTP 200, 필터 목록(`글 탐색` nav) 미표시, "아직 작성된 글이 없습니다" 안내, 오류 화면 없음, 서버 로그에는 `[getTaxonomy]`·`[getPublishedPosts]` `fetch failed`만 기록됐다.
     - 제한 사항·미확인: (1) JavaScript 비활성 컨텍스트에서 칩 링크로 필터를 적용·해제하는 동작은 확인하지 못했다(칩은 `Link`와 `<details>`뿐이고 새 `'use client'`는 없다). (2) 다크 모드 육안 확인은 하지 않았다. (3) 태그가 12개를 넘을 때 선택 태그가 마지막 칸과 교체되는 동작은 단위 테스트(`splitTopTags`)로만 확인했고 화면에서는 보지 않았다. (4) 50자짜리 긴 카테고리명은 `max-w-full`만 적용했고 실제 줄바꿈은 확인하지 않았다. (5) 집계는 발행 글의 `category, tags`를 앱에서 세므로, 글이 수백 건을 넘으면 집계 RPC(`security invoker`, 내부 `published = true`)로 바꾸는 판단이 남아 있다(이번에는 구현하지 않음). (6) 카드·상세 태그 정렬은 `/blog` 카드 한 장의 순서만 직접 확인했고 상세 페이지 화면은 열어 보지 않았다.
 
-- **Task 024: 블로그 목록 페이지네이션 구현**
+- **Task 024: 블로그 목록 페이지네이션 구현** ✅ - 완료 2026-11-09 (실제 모바일 기기·Safari, 데스크톱 번호 목록 육안, 다크 모드, JavaScript 비활성 동작, 운영 canonical 호스트는 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F017(제안: 블로그 목록 페이지네이션), F005
   - 목표: 글이 늘어도 목록 응답 크기와 렌더링 비용을 일정하게 유지한다
   - 의존성: Task 023(`list-params`·`buildBlogHref`). 스키마 변경 없음(기존 `(published, published_at desc)` 인덱스 사용)
-  - 관련 파일: `lib/queries/posts.ts`, `lib/posts/list-params.ts`, `lib/posts/pagination.ts`(+test), `app/(site)/blog/page.tsx`, `app/(site)/blog/_components/pagination.tsx`(신규), `e2e/blog-pagination.spec.ts`(신규)
+  - 관련 파일: `lib/queries/posts.ts`, `lib/posts/list-params.ts`, `lib/posts/pagination.ts`(+test), `lib/posts/page-size.ts`(+test, 신규), `lib/posts/list-metadata.ts`(+test, 신규), `app/(site)/blog/page.tsx`, `app/(site)/blog/_components/pagination.tsx`(+test, 신규), `e2e/blog-pagination.spec.ts`(신규), `e2e/blog-filter.spec.ts`(수정)
   - 수락 기준: `/blog?page=n`이 페이지당 글을 최신순으로 표시하고(모바일 6개, 그 외 10개, 서버가 요청 헤더로 판별) 필터와 함께 동작하며, 필터를 바꾸면 1페이지로 돌아감. 이전/다음·번호 링크가 총 페이지 수에 맞게 표시되고 잘못된 값·범위 밖 페이지는 오류 없이 처리. 홈 최신 3개·sitemap은 영향 없음
-  - [ ] 페이지 크기(2026-11-09 사용자 결정): 모바일 6개, 그 외 10개. 목록은 서버에서 DB를 잘라 가져오므로 CSS 미디어쿼리로는 나눌 수 없어 `lib/posts/page-size.ts`가 요청 헤더로 기기를 판별한다(`Sec-CH-UA-Mobile`이 `?1`·`?0`이면 그 값, 없으면 User-Agent의 `Mobi|iPhone|iPod`, 태블릿은 10개). 페이지 크기를 캐시 키에 넣고 총 페이지 수·번호 링크도 그 크기로 계산한다. 한계: 같은 `?page=n` URL이 기기마다 다른 글을 보여 주고(공유 링크·검색 크롤러 포함), 헤더 판별은 추정이다
-  - [ ] 방식: 오프셋 기반(`range(from, to)` + `count: 'exact'`)을 기본으로 한다(1인 블로그 규모, 번호 링크·URL 공유가 쉬움). 커서 방식은 글이 수천 건이 되면 재검토
-  - [ ] `fetchPublishedPosts(category, tag, page)`가 `{ posts, total }`을 반환, 캐시 키에 page 포함, `cacheTag('posts')`. 정렬에 `id` 보조 정렬을 더해 페이지 경계의 중복·누락 방지
-  - [ ] `page` 파싱: 정수가 아니거나 1 미만이면 1, 마지막 페이지 초과는 빈 목록 안내 + 첫/마지막 페이지 링크(soft 404 선례와 일관되게 `notFound()`는 쓰지 않음)
-  - [ ] `Pagination`: `<nav aria-label="페이지">`, 현재 페이지 `aria-current="page"`, 링크는 `buildBlogHref`로 필터 유지, 모바일에서 번호 축약
-  - [ ] 메타데이터: 2페이지 이상은 title에 "(n페이지)", canonical은 자기 자신. sitemap에는 페이지 URL을 넣지 않음
+  - [x] 페이지 크기(2026-11-09 사용자 결정): 모바일 6개, 그 외 10개. 목록은 서버에서 DB를 잘라 가져오므로 CSS 미디어쿼리로는 나눌 수 없어 `lib/posts/page-size.ts`가 요청 헤더로 기기를 판별한다(`Sec-CH-UA-Mobile`이 `?1`·`?0`이면 그 값, 없으면 User-Agent의 `Mobi|iPhone|iPod`, 태블릿은 10개). 페이지 크기를 캐시 키에 넣고 총 페이지 수·번호 링크도 그 크기로 계산한다. 한계: 화면 너비가 아니라 요청 헤더로 판별하므로 데스크톱 브라우저 창을 좁혀도 10개다. 같은 `?page=n` URL이 기기마다 다른 글을 보여 주고(공유 링크·검색 크롤러 포함), 헤더 판별은 추정이다. 응답이 `User-Agent`에 따라 달라지므로 Caddy·Cloudflare가 HTML을 캐시하면 안 되는데 이 설정은 확인하지 않았다
+  - [x] 방식: 오프셋 기반(`range(from, to)` + `count: 'exact'`)을 기본으로 한다(1인 블로그 규모, 번호 링크·URL 공유가 쉬움). 커서 방식은 글이 수천 건이 되면 재검토
+  - [x] 조회 함수: 구현은 `getPublishedPostsPage({ category, tag, page, pageSize })`(안쪽 캐시 함수 `fetchPublishedPostsPage`)가 `{ posts, total }`을 반환하고, 캐시 키에 `page`·`pageSize` 포함, `cacheTag('posts')`, `id` 보조 정렬로 페이지 경계의 중복·누락을 막는다. 이름이 처음 계획한 `fetchPublishedPosts(category, tag, page)`와 달라진 이유는 sitemap이 쓰는 전체 조회 `getPublishedPosts`의 시그니처·동작을 바꾸지 않기 위해서다. 필터 조건은 `applyPostFilter`로 추출해 둘이 공유한다. **범위 밖 offset은 오류로 온다**: 운영 REST에 발행 글 18건 상태로 `range 9990-10001`을 요청하니 HTTP 416 `PGRST103`("An offset of 9990 was requested, but there are only 18 rows")에 `content-range: */18`이고 `count`는 오지 않았다(`0-11`은 206 `0-11/18`, `12-23`은 206 `12-17/18`). 그대로 두면 `?page=999`에서 마지막 페이지 링크를 만들 수 없어, `PGRST103`이면 오류로 보지 않고 head 요청으로 전체 글 수만 다시 세어 빈 목록과 함께 돌려준다(재집계가 실패하면 저장하지 않음)
+  - [x] `page` 파싱: 양의 정수 문자열만 받고 정수가 아니거나 1 미만이면 1(`page=1`도 URL에 쓰지 않음). 구현 메모: 임의의 큰 `page`마다 캐시 항목이 생기지 않도록 상한 10000을 두어 넘으면 10000으로 고정한다. 마지막 페이지 초과는 빈 목록 안내("없는 페이지입니다") + 첫/마지막 페이지 링크(soft 404 선례와 일관되게 `notFound()`는 쓰지 않고 HTTP 200). `buildBlogHref`는 `category`·`tag`가 바뀌면 `page`를 지우고 `page`만 바뀌면 필터를 유지한다
+  - [x] `Pagination`: `<nav aria-label="페이지">`, 현재 페이지 `aria-current="page"`, 링크는 `buildBlogHref`로 필터 유지, 모바일(sm 미만)에서는 번호 목록을 숨기고 이전/다음과 "현재 / 전체"만 표시(새 `'use client'` 없음). 마크업은 `ui-markup-specialist` 에이전트가 작성했고 새 shadcn 컴포넌트는 추가하지 않았다(`buttonVariants` 재사용). 첫 페이지의 "이전"·마지막 페이지의 "다음"은 `aria-disabled` span
+  - [x] 메타데이터: 2페이지 이상은 title에 "(n페이지)", canonical은 필터와 `page`를 포함한 자기 자신(`lib/posts/list-metadata.ts`의 `buildBlogListMetadata`), sitemap에는 페이지 URL을 넣지 않음. 구현 메모: `searchParams`를 읽는 `generateMetadata`는 `cacheComponents`에서 허용되며(`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/generate-metadata.md`의 "With Cache Components" 절), `/blog` 본문이 이미 `<Suspense>` 안에서 요청 시점 데이터를 읽으므로 에러 없이 메타데이터가 본문과 함께 스트리밍된다. 정적 셸에는 title이 들어가지 않는다. title은 `page` 값만으로 정하고 DB 조회·`headers()`는 쓰지 않는다
   - 테스트 체크리스트:
-    - 정상: Playwright MCP → 발행 글 11건 이상이 되게 시드(`e2e-page-`) → 데스크톱 `/blog` 10건, "다음" 클릭 → `?page=2`에 나머지, iPhone User-Agent 컨텍스트는 `/blog` 6건
-    - 정상: Playwright MCP → `?tag=x&page=2`에서 카테고리 칩 클릭 → URL에서 `page` 제거, 1페이지
-    - 오류: Playwright MCP → `?page=abc`·`?page=0`·`?page=-1` → 1페이지와 같은 결과
-    - 오류: Playwright MCP → `?page=999` → 빈 목록 안내와 첫/마지막 페이지 링크, 오류 화면 없음
-    - 엣지: Playwright MCP → 2페이지를 보는 중 관리자가 새 글 발행 → 새로고침 시 경계 글이 2페이지로 밀리고 중복 없음
-    - 엣지: `pagination.test.ts` → total 0·12·13 → 페이지 수 1(빈 안내)·1·2
-  - 테스트 결과: (미수행)
+    - 정상: `e2e/blog-pagination.spec.ts` → 고유 카테고리로 시드한 발행 글 11건 → 데스크톱 `/blog?category=…` 10건, "다음" 클릭 → `?page=2`에 1건. iPhone User-Agent 컨텍스트는 6건과 5건
+    - 정상: `?category=…&page=2`에서 태그 칩 클릭 → URL에서 `page` 제거, 1페이지(계획의 `?tag=x&page=2`에서 카테고리 칩 클릭과 같은 검증, 시드 글이 한 카테고리·한 태그라 태그 칩으로 확인)
+    - 오류: `?page=abc`·`?page=0`·`?page=-1` → 1페이지와 같은 결과
+    - 오류: `?page=999` → HTTP 200, 빈 목록 안내와 첫/마지막 페이지 링크, 오류 화면 없음
+    - 엣지: 2페이지를 보는 중 관리자가 새 글 발행 → 새로고침 시 경계 글이 2페이지로 밀리고 중복 없음
+    - 엣지: `pagination.test.ts` → 크기 10에서 total 0·10·11 → 페이지 수 1(빈 안내)·1·2, 크기 6에서 6·7·18 → 1·2·3
+  - 테스트 결과 (2026-11-09):
+    - 자동 검사: `npm run check` 통과(vitest 40파일 374건 — `pagination.test.ts`, `page-size.test.ts`, `list-metadata.test.ts`, `list-params.test.ts`의 `page` 케이스, `posts.test.ts`의 `getPublishedPostsPage` 10건, `pagination.test.tsx` 8건 포함), `npm run knip` 종료 코드 0, 실제 env `npm run build` 통과(`/blog` `◐ Partial Prerender`, Revalidate 1d·Expire 1w, 프리렌더 오류 없음).
+    - e2e: `e2e/blog-pagination.spec.ts` 8건(로그인 setup 포함 9건 실행)이 통과했고, 전체 `npx playwright test` 113건이 두 번 연속 통과했다. 스펙이 실제로 검증하는지 보려고 `DESKTOP_PAGE_SIZE`를 10에서 9로 바꾸자 데스크톱 시나리오가 실패했고 원복했다. 실행 뒤 Supabase MCP로 `title`·`category`가 `e2e-`로 시작하는 글을 세어 0건(남은 시드 없음)임을 확인했다. 전체 실행에서 기존 `e2e/blog-filter.spec.ts` 2건("51자 태그 값…", "새 태그로 발행하면…")이 실패했다: `/blog` 1페이지에 특정 시드 글이 보인다고 가정했는데, 병렬 스펙이 발행한 새 글에 시드 글이 2페이지로 밀렸다. 단일 실행에서는 통과해 전체 실행에서만 드러났다. 특정 시드 글 대신 글 카드·필터 칩이 그려졌는지 확인하도록 고쳤다.
+    - 개발 서버(운영 DB 발행 글 19건): curl로 데스크톱 UA는 `/blog` 10건, `?page=2` 9건(합계 19건, 중복 0), `?page=3`부터는 범위 밖 안내, iPhone UA는 1~4페이지가 6·6·6·1건(번호 링크 4개, 중복 0), `Sec-CH-UA-Mobile: ?1`+데스크톱 UA는 6건, `?0`+iPhone UA는 10건이다. Playwright MCP로 데스크톱(1280px)과 iPhone(390px) 컨텍스트에서 "다음 페이지" 클릭 이동, `aria-current`, `?page=abc`·`0`·`-1`이 1페이지와 같음, `?page=999`의 안내와 두 링크(`첫 페이지로 → /blog`, `마지막 페이지로 → /blog?page=2`), `?page=2`에서 카테고리 칩 클릭 시 `page` 제거를 확인했고 가로 넘침은 없었다(375px `scrollWidth` = `clientWidth`, 스크린샷 육안 확인: 이전·`2 / 2`·비활성 다음).
+    - 메타데이터: 에이전트가 프로덕션(`next start`)과 개발 서버 응답 HTML로 `/blog` `블로그 | hkoikoi.dev`·canonical `/blog`, `?page=2` `블로그 (2페이지) | hkoikoi.dev`·canonical `?page=2`, `?page=abc`는 `/blog`와 같음, `?category=개발&page=2` canonical에 두 값 포함을 확인했다. 일반 브라우저 UA에서 title은 `<head>` 밖(스트리밍)에 들어가고 `Twitterbot`은 `<head>` 안, `Googlebot` UA는 프로덕션에서 `<head>` 밖이었다(문서의 스트리밍 메타데이터 설명과 일치).
+    - 제한 사항·미확인: (1) 실제 모바일 기기와 Safari에서의 동작은 확인하지 못했다(User-Agent를 흉내 낸 컨텍스트로만 확인). 데스크톱 브라우저 창만 좁히면 10개가 나오는 것은 설계에 따른 동작이다. (2) 데스크톱(sm 이상) 번호 목록의 육안 확인은 하지 않았다(e2e가 링크 수·`aria-current`만 확인). (3) 다크 모드 육안 확인은 하지 않았다. (4) JavaScript 비활성 동작은 확인하지 못했다(링크와 서버 컴포넌트뿐이고 새 `'use client'`는 없다). (5) canonical의 운영 호스트(`https://hkoikoi.dev`)는 확인하지 않았다(로컬은 `NEXT_PUBLIC_SITE_URL` 미설정이라 `localhost`). (6) Googlebot이 `<head>` 밖 스트리밍 title·canonical로 색인하는지, 같은 `?page=n`이 기기마다 다른 글을 보여 주는 한계가 검색 노출에 미치는 영향은 확인하지 못했다. (7) Caddy·Cloudflare가 User-Agent에 따라 달라지는 HTML을 캐시하지 않는지 확인하지 않았다. (8) 개발 서버 첫 요청에서 `/blog`만 title이 `<head>` 안에 있던 현상의 원인은 확인하지 않았다(첫 컴파일 타이밍으로 추정). (9) `count: 'exact'`는 필터된 행 전체를 세므로 글이 수천 건이 되면 커서·추정 카운트를 재검토해야 한다.
 
 - **Task 025: 블로그 키워드 검색 구현**
   - 관련 기능: F018(제안: 블로그 키워드 검색), F005
