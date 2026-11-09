@@ -2,7 +2,7 @@
 
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { savePost } from "@/app/admin/posts/actions";
 import { FieldError } from "@/app/admin/posts/_components/field-error";
 import { ImageUploadButton } from "@/app/admin/posts/_components/image-upload-button";
@@ -49,6 +49,27 @@ export function PostEditor({ initialPost }: PostEditorProps) {
   // 모바일(lg 미만) 전용 탭 선택값. 두 패널은 항상 마운트되고 CSS로만 숨겨 입력값이 유지된다.
   const [mobileTab, setMobileTab] = useState<"write" | "preview">("write");
 
+  const formRef = useRef<HTMLFormElement>(null);
+  // 오류 후 모바일 미리보기 탭에서 작성 탭으로 돌아온 다음 포커스를 옮기기 위한 표시.
+  const pendingFocusRef = useRef(false);
+
+  // 저장 버튼은 처리 중 disabled가 되어 포커스를 잃으므로, 서버 검증이 실패하면 첫 오류 입력으로 옮긴다.
+  useEffect(() => {
+    if (Object.keys(state.fieldErrors ?? {}).length === 0) return;
+    pendingFocusRef.current = true;
+    // 미리보기 탭에서는 입력이 display:none이라 포커스할 수 없으므로 작성 탭으로 되돌린다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMobileTab("write");
+  }, [state]);
+
+  useEffect(() => {
+    if (!pendingFocusRef.current || mobileTab !== "write") return;
+    pendingFocusRef.current = false;
+    formRef.current
+      ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+      ?.focus();
+  }, [state, mobileTab]);
+
   const isEdit = Boolean(initialPost);
   const isUploading = uploadingCount > 0 || thumbnailBusy;
 
@@ -65,7 +86,7 @@ export function PostEditor({ initialPost }: PostEditorProps) {
         </TabsList>
       </Tabs>
 
-      <form className="grid gap-6" action={formAction} noValidate>
+      <form ref={formRef} className="grid gap-6" action={formAction} noValidate>
         {initialPost && (
           <input type="hidden" name="id" value={initialPost.id} />
         )}

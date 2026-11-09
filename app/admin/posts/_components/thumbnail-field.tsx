@@ -82,6 +82,7 @@ export function ThumbnailField({
           variant="outline"
           size="sm"
           disabled={uploading}
+          aria-invalid={!!message}
           aria-describedby={message ? "post-thumbnail-error" : undefined}
           onClick={() => inputRef.current?.click()}
         >
