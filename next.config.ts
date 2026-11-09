@@ -33,6 +33,7 @@ function getSupabaseImagePatterns(): URL[] {
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  partialPrefetching: true,
   images: { remotePatterns: getSupabaseImagePatterns() },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
