@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatDate } from "@/lib/format-date";
+import { sortTags } from "@/lib/posts/sort-tags";
 import type { PostSummary } from "@/lib/types/post";
 import { cn } from "@/lib/utils";
 
@@ -75,7 +76,7 @@ export function PostCard({ post, className }: PostCardProps) {
       {tags.length > 0 && (
         <CardContent>
           <ul className="flex flex-wrap gap-1.5" aria-label="태그">
-            {tags.map((tag) => (
+            {sortTags(tags).map((tag) => (
               <li key={tag}>
                 <TagBadge tag={tag} />
               </li>
