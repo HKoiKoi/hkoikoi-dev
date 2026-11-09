@@ -285,6 +285,7 @@ import { cn } from "@/lib/utils";
 
 - 단위/컴포넌트 테스트: 대상 파일 옆의 `*.test.ts(x)` (예: `lib/format-date.test.ts`). 환경은 jsdom이고 `vitest.setup.ts`가 `jest-dom` 매처와 `cleanup`을 설정합니다.
 - E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
+- E2E 관리자 로그인: `setup` 프로젝트(`e2e/auth.setup.ts`)가 1회 로그인해 세션을 `e2e/.auth/admin.json`(git 제외)에 저장하고, `login()`이 이 쿠키를 재사용합니다. 새 세션이 필요한 테스트만 `loginWithForm()`을 씁니다. 로그인 횟수는 Supabase Auth `/token`의 IP당 버스트 한도(30건)와 직결되므로 일반 테스트에서 폼 로그인을 늘리지 않습니다.
 - 커버리지는 `app/`, `components/`, `lib/`를 대상으로 하되 `components/ui/**`는 제외합니다.
 - Server Component(async)는 Vitest로 직접 렌더링하기 어렵습니다. 로직은 함수로 분리해 단위 테스트하고, 화면 흐름은 E2E로 검증합니다.
 
