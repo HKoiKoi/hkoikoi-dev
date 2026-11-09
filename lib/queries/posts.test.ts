@@ -12,15 +12,23 @@ vi.mock("next/cache", () => ({
   cacheLife: cacheLifeMock,
 }));
 
-import { getLatestPosts, getPostBySlug, getPublishedPosts } from "./posts";
+import {
+  getAdjacentPosts,
+  getLatestPosts,
+  getPostBySlug,
+  getPublishedPosts,
+} from "./posts";
 
 type Result = { data: unknown; error: { message: string } | null };
 
 // 체이닝 가능하고 await하면 result로 풀리는 가짜 쿼리 빌더
-function createBuilder(result: Result) {
+function newBuilder(result: Result) {
   const builder = {
     select: vi.fn(),
     eq: vi.fn(),
+    or: vi.fn(),
+    gt: vi.fn(),
+    lt: vi.fn(),
     contains: vi.fn(),
     order: vi.fn(),
     limit: vi.fn(),
@@ -30,12 +38,38 @@ function createBuilder(result: Result) {
       reject?: (reason: unknown) => unknown,
     ) => Promise.resolve(result).then(resolve, reject),
   };
-  for (const key of ["select", "eq", "contains", "order", "limit"] as const) {
+  for (const key of [
+    "select",
+    "eq",
+    "or",
+    "gt",
+    "lt",
+    "contains",
+    "order",
+    "limit",
+  ] as const) {
     builder[key].mockReturnValue(builder);
   }
+  return builder;
+}
+
+function createBuilder(result: Result) {
+  const builder = newBuilder(result);
   const from = vi.fn(() => builder);
   createClientMock.mockReturnValue({ from });
   return { builder, from };
+}
+
+// 인접 글 조회는 from()을 두 번(이전·다음 순서) 호출하므로 빌더를 따로 돌려준다.
+function createAdjacentBuilders(older: Result, newer: Result) {
+  const olderBuilder = newBuilder(older);
+  const newerBuilder = newBuilder(newer);
+  const from = vi
+    .fn()
+    .mockReturnValueOnce(olderBuilder)
+    .mockReturnValueOnce(newerBuilder);
+  createClientMock.mockReturnValue({ from });
+  return { olderBuilder, newerBuilder, from };
 }
 
 const ok = (data: unknown): Result => ({ data, error: null });
@@ -62,7 +96,10 @@ describe("getLatestPosts", () => {
     const columns = builder.select.mock.calls[0][0] as string;
     expect(columns).not.toContain("content");
     expect(builder.eq).toHaveBeenCalledWith("published", true);
-    expect(builder.order).toHaveBeenCalledWith("published_at", {
+    expect(builder.order).toHaveBeenNthCalledWith(1, "published_at", {
+      ascending: false,
+    });
+    expect(builder.order).toHaveBeenNthCalledWith(2, "id", {
       ascending: false,
     });
     expect(builder.limit).toHaveBeenCalledWith(3);
@@ -124,7 +161,10 @@ describe("getPublishedPosts", () => {
     expect(builder.eq).toHaveBeenCalledTimes(1);
     expect(builder.eq).toHaveBeenCalledWith("published", true);
     expect(builder.contains).not.toHaveBeenCalled();
-    expect(builder.order).toHaveBeenCalledWith("published_at", {
+    expect(builder.order).toHaveBeenNthCalledWith(1, "published_at", {
+      ascending: false,
+    });
+    expect(builder.order).toHaveBeenNthCalledWith(2, "id", {
       ascending: false,
     });
   });
@@ -224,5 +264,126 @@ describe("getPostBySlug", () => {
 
     await expect(getPostBySlug("x-throw")).resolves.toBeNull();
     expect(errorSpy).toHaveBeenCalled();
+  });
+});
+
+describe("getAdjacentPosts", () => {
+  const publishedAt = "2026-11-09T02:30:35.377+00:00";
+  const id = "fb6ba941-a4ba-424c-84ac-7bd84abbdcf2";
+  const olderRow = { slug: "old", title: "오래된 글" };
+  const newerRow = { slug: "new", title: "최근 글" };
+
+  it("이전은 더 오래된 글, 다음은 더 최근 글로 매핑한다", async () => {
+    createAdjacentBuilders(ok([olderRow]), ok([newerRow]));
+
+    await expect(getAdjacentPosts(publishedAt, id)).resolves.toEqual({
+      prev: olderRow,
+      next: newerRow,
+    });
+  });
+
+  it("한쪽 결과가 비어 있으면 그쪽만 null이다", async () => {
+    createAdjacentBuilders(ok([]), ok([newerRow]));
+
+    await expect(getAdjacentPosts(publishedAt, id)).resolves.toEqual({
+      prev: null,
+      next: newerRow,
+    });
+  });
+
+  it("published 조건·slug,title 컬럼·limit(1)로 조회한다", async () => {
+    const { olderBuilder, newerBuilder, from } = createAdjacentBuilders(
+      ok([]),
+      ok([]),
+    );
+
+    await getAdjacentPosts(publishedAt, id);
+
+    expect(from).toHaveBeenCalledTimes(2);
+    for (const builder of [olderBuilder, newerBuilder]) {
+      expect(builder.eq).toHaveBeenCalledWith("published", true);
+      const columns = builder.select.mock.calls[0][0] as string;
+      expect(columns).toBe("slug, title");
+      expect(columns).not.toContain("content");
+      expect(builder.limit).toHaveBeenCalledWith(1);
+    }
+  });
+
+  it("이전은 lt 조건과 내림차순, 다음은 gt 조건과 오름차순이며 동률은 id로 가른다", async () => {
+    const { olderBuilder, newerBuilder } = createAdjacentBuilders(
+      ok([]),
+      ok([]),
+    );
+
+    await getAdjacentPosts(publishedAt, id);
+
+    expect(olderBuilder.or).toHaveBeenCalledWith(
+      `published_at.lt.${publishedAt},and(published_at.eq.${publishedAt},id.lt.${id})`,
+    );
+    expect(olderBuilder.order).toHaveBeenNthCalledWith(1, "published_at", {
+      ascending: false,
+    });
+    expect(olderBuilder.order).toHaveBeenNthCalledWith(2, "id", {
+      ascending: false,
+    });
+    expect(newerBuilder.or).toHaveBeenCalledWith(
+      `published_at.gt.${publishedAt},and(published_at.eq.${publishedAt},id.gt.${id})`,
+    );
+    expect(newerBuilder.order).toHaveBeenNthCalledWith(1, "published_at", {
+      ascending: true,
+    });
+    expect(newerBuilder.order).toHaveBeenNthCalledWith(2, "id", {
+      ascending: true,
+    });
+  });
+
+  it("posts 태그와 max 수명을 붙인다", async () => {
+    createAdjacentBuilders(ok([]), ok([]));
+
+    await getAdjacentPosts(publishedAt, id);
+
+    expect(cacheTagMock).toHaveBeenCalledWith("posts");
+    expect(cacheLifeMock).toHaveBeenCalledTimes(1);
+    expect(cacheLifeMock).toHaveBeenCalledWith("max");
+  });
+
+  it("이전·다음 중 하나라도 오류면 수명을 0으로 줄이고 빈 값을 반환한다", async () => {
+    createAdjacentBuilders(ok([olderRow]), {
+      data: null,
+      error: { message: "boom" },
+    });
+
+    await expect(getAdjacentPosts(publishedAt, id)).resolves.toEqual({
+      prev: null,
+      next: null,
+    });
+    expect(cacheLifeMock).toHaveBeenCalledWith({
+      stale: 0,
+      revalidate: 0,
+      expire: 0,
+    });
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it("클라이언트 생성이 던져도 빈 값을 반환한다", async () => {
+    createClientMock.mockImplementation(() => {
+      throw new Error("no env");
+    });
+
+    await expect(getAdjacentPosts(publishedAt, id)).resolves.toEqual({
+      prev: null,
+      next: null,
+    });
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it("publishedAt이 null이면 조회하지 않고 빈 값을 반환한다", async () => {
+    const { from } = createBuilder(ok([]));
+
+    await expect(getAdjacentPosts(null, id)).resolves.toEqual({
+      prev: null,
+      next: null,
+    });
+    expect(from).not.toHaveBeenCalled();
   });
 });
