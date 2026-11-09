@@ -17,6 +17,7 @@ import {
   getLatestPosts,
   getPostBySlug,
   getPublishedPosts,
+  getTaxonomy,
 } from "./posts";
 
 type Result = { data: unknown; error: { message: string } | null };
@@ -385,5 +386,84 @@ describe("getAdjacentPosts", () => {
       next: null,
     });
     expect(from).not.toHaveBeenCalled();
+  });
+});
+
+describe("getTaxonomy", () => {
+  it("published 조건과 category, tags 컬럼만 조회한다", async () => {
+    const { builder, from } = createBuilder(ok([]));
+
+    await getTaxonomy();
+
+    expect(from).toHaveBeenCalledWith("posts");
+    expect(builder.select).toHaveBeenCalledWith("category, tags");
+    expect(builder.eq).toHaveBeenCalledWith("published", true);
+  });
+
+  it("행을 집계해 정렬된 카테고리·태그 글 수를 반환한다", async () => {
+    createBuilder(
+      ok([
+        { category: "개발", tags: ["react", "Next.js"] },
+        { category: "개발", tags: ["react"] },
+        { category: "일상", tags: [] },
+      ]),
+    );
+
+    await expect(getTaxonomy()).resolves.toEqual({
+      categories: [
+        { name: "개발", count: 2 },
+        { name: "일상", count: 1 },
+      ],
+      tags: [
+        { name: "Next.js", count: 1 },
+        { name: "react", count: 2 },
+      ],
+    });
+  });
+
+  it("posts 태그와 max 수명을 붙인다", async () => {
+    createBuilder(ok([]));
+
+    await getTaxonomy();
+
+    expect(cacheTagMock).toHaveBeenCalledWith("posts");
+    expect(cacheLifeMock).toHaveBeenCalledTimes(1);
+    expect(cacheLifeMock).toHaveBeenCalledWith("max");
+  });
+
+  it("data가 null이면 빈 목록을 반환한다", async () => {
+    createBuilder(ok(null));
+
+    await expect(getTaxonomy()).resolves.toEqual({
+      categories: [],
+      tags: [],
+    });
+  });
+
+  it("오류면 수명을 0으로 줄이고 빈 목록과 로그를 남긴다", async () => {
+    createBuilder({ data: null, error: { message: "boom" } });
+
+    await expect(getTaxonomy()).resolves.toEqual({
+      categories: [],
+      tags: [],
+    });
+    expect(cacheLifeMock).toHaveBeenCalledWith({
+      stale: 0,
+      revalidate: 0,
+      expire: 0,
+    });
+    expect(errorSpy).toHaveBeenCalledWith("[getTaxonomy]", "boom");
+  });
+
+  it("클라이언트 생성이 던져도 빈 목록을 반환한다", async () => {
+    createClientMock.mockImplementation(() => {
+      throw new Error("no env");
+    });
+
+    await expect(getTaxonomy()).resolves.toEqual({
+      categories: [],
+      tags: [],
+    });
+    expect(errorSpy).toHaveBeenCalled();
   });
 });
