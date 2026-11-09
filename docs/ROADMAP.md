@@ -600,12 +600,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 의존성: Task 021(권장). 스키마 변경 없음
   - 관련 파일: `lib/queries/posts.ts`(`getAdjacentPosts`), `lib/queries/posts.test.ts`, `components/blog/post-pager.tsx`(신규), `app/(site)/blog/[slug]/page.tsx`, `e2e/post-navigation.spec.ts`(신규)
   - 수락 기준: 상세 하단에 "이전 글"(더 오래된 글)·"다음 글"(더 최근 글) 링크가 제목과 함께 표시되고, 가장 오래된·가장 최근 글에서는 해당 쪽이 비어 있음. 초안은 포함되지 않고, 글 저장·삭제·발행 상태 변경 뒤 인접 링크가 즉시 바뀜
-  - [ ] 정렬 기준: 목록과 같은 `published_at desc`, 동률은 `id`로 결정(같은 시각 발행 글의 누락·순환 방지). "이전 = 더 오래된 글, 다음 = 더 최근 글"로 정하고 컴포넌트 주석에 적음
-  - [ ] `fetchAdjacentPosts(publishedAt, id)`: `'use cache'` + `cacheTag('posts')` + `cacheLife('max')`, `published = true` 명시, 양쪽 각 1건(비교 + 정렬 + `limit(1)`, 동률 조건은 PostgREST `or` 필터 `published_at.lt.<X>,and(published_at.eq.<X>,id.lt.<Y>)` — 값은 DB에서 온 timestamp·uuid라 사용자 입력이 아님), 컬럼은 `slug, title`만. 실패는 `failUncached`, 바깥 래퍼는 `{ prev: null, next: null }`
-  - [ ] `PostPager`(Server Component): `<nav aria-label="이전·다음 글">`, 한글 슬러그는 기존 링크와 같은 방식으로 인코딩, 모바일에서는 세로 배치·긴 제목 말줄임
-  - [ ] 상세 페이지에서 본문 조회 뒤 같은 `<Suspense>` 경계 안에서 렌더링(상세가 이미 `params`를 읽는 Suspense 안에 있는지 확인)
-  - [ ] 무효화: 기존 `invalidatePostTags`가 `posts`를 만료하므로 인접 글 제목 변경·삭제도 반영되는지 확인하고, 추가 태그가 필요 없으면 그 근거를 주석으로 남김
-  - [ ] 단위 테스트: 쿼리 인자(published 필터·정렬·동률 조건), 실패 시 빈 값
+  - [x] 정렬 기준: 목록과 같은 `published_at desc`, 동률은 `id`로 결정(같은 시각 발행 글의 누락·순환 방지). "이전 = 더 오래된 글, 다음 = 더 최근 글"로 정하고 컴포넌트 주석에 적음
+  - [x] `fetchAdjacentPosts(publishedAt, id)`: `'use cache'` + `cacheTag('posts')` + `cacheLife('max')`, `published = true` 명시, 양쪽 각 1건(비교 + 정렬 + `limit(1)`, 동률 조건은 PostgREST `or` 필터 `published_at.lt.<X>,and(published_at.eq.<X>,id.lt.<Y>)` — 값은 DB에서 온 timestamp·uuid라 사용자 입력이 아님), 컬럼은 `slug, title`만. 실패는 `failUncached`, 바깥 래퍼는 `{ prev: null, next: null }`
+  - [x] `PostPager`(Server Component): `<nav aria-label="이전·다음 글">`, 한글 슬러그는 기존 링크와 같은 방식으로 인코딩, 모바일에서는 세로 배치·긴 제목 말줄임
+  - [x] 상세 페이지에서 본문 조회 뒤 같은 `<Suspense>` 경계 안에서 렌더링(상세가 이미 `params`를 읽는 Suspense 안에 있는지 확인)
+  - [x] 무효화: 기존 `invalidatePostTags`가 `posts`를 만료하므로 인접 글 제목 변경·삭제도 반영되는지 확인하고, 추가 태그가 필요 없으면 그 근거를 주석으로 남김
+  - [x] 단위 테스트: 쿼리 인자(published 필터·정렬·동률 조건), 실패 시 빈 값
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 발행 글 3건(시드 `e2e-nav-`) 중 가운데 글 상세 → 이전 글 = 가장 오래된 글, 다음 글 = 가장 최근 글의 제목·링크, 클릭 시 이동
     - 정상: Playwright MCP → 관리자가 인접 글 제목 수정 → 비로그인 컨텍스트로 상세 새로고침 → 새 제목
@@ -613,7 +613,13 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → 가장 최근 글 → "다음 글" 없음, 가장 오래된 글 → "이전 글" 없음, 발행 글 1건뿐 → 내비게이션 미표시
     - 엣지: `posts.test.ts` → 같은 `published_at`의 두 글 → `id` 기준으로 서로를 가리킴(누락·순환 없음)
     - 엣지: Playwright MCP → 한글 슬러그 인접 글 링크 클릭 → 정상 상세
-  - 테스트 결과: (미수행)
+  - 테스트 결과 (2026-11-09):
+    - 자동 검사: `npm run check` 통과(vitest 33파일 269건 — `posts.test.ts` 26건(인접 글 9건), `post-pager.test.tsx` 6건 포함), `npm run build` 통과(`/blog/[slug]` `◐ Partial Prerender`, Revalidate 1d·Expire 1w, 프리렌더 오류 없음). `npm run knip`은 첫 실행에서 `AdjacentPost` 타입의 불필요한 export를 지적해 export를 제거한 뒤 통과했다.
+    - e2e: `e2e/post-navigation.spec.ts` 5건 통과, 전체 `npx playwright test` 100건이 2회 연속 통과. 실행 뒤 DB의 `e2e-` 글 0건(Supabase MCP로 확인), 이미지 업로드는 하지 않아 `blog-images` 고아 파일 없음. 확인한 시나리오: 가운데 글의 이전(더 오래된 글)·다음(더 최근 글) 제목·href와 클릭 이동, 한글 슬러그 인접 글 링크 클릭, 인접 글 제목 수정 뒤 쿠키 없는 컨텍스트 새로고침에 새 제목, 인접 글을 초안으로 바꾸면 초안을 건너뛰고 그다음 발행 글 표시.
+    - 개발 서버: 가운데 글에는 이전·다음이, 가장 최근 글에는 이전만 표시됐고 콘솔·서버 로그에 새 오류는 없었다. 375px에서 두 링크가 세로로 쌓이고 다음 글은 우측 정렬이었다. PostgREST `or` 필터는 `+`·`:`가 든 timestamptz를 인용 없이도 읽기 전용 curl로 정상 처리했다.
+    - 결정: 목록 쿼리(`getLatestPosts`, `getPublishedPosts`)에 `id desc` 보조 정렬을 더해 같은 `published_at` 글의 목록 순서와 이전·다음 순서를 맞췄다.
+    - 첫 전체 e2e 실행에서 병렬 스펙의 발행이 시드 글 사이에 끼어 1건 실패했다. 시드 직후 `/blog` 목록 순서로 연속 여부를 확인하고 아니면 다시 만들도록 고친 뒤 통과했다.
+    - 제한 사항·미확인: (1) 동률 `published_at`의 실제 DB 동작은 확인하지 못했다(편집기에 발행 시각 입력이 없어 e2e로 만들 수 없고, 단위 테스트는 `or` 필터 문자열의 `lt`·`gt` 대칭과 정렬 인자만 확인한다). (2) 실제 글이 DB에 있어 "가장 오래된 글에는 이전 글 없음"과 "발행 글 1건뿐이면 내비게이션 미표시"는 e2e로 재현하지 못했다(후자는 `PostPager`의 둘 다 null 단위 테스트로 대체). 가장 최근 글의 "다음 글 없음"도 병렬 스펙이 글을 발행할 수 있어 e2e에서는 시드 글이 아님만 확인한다. (3) 글 삭제 직후 인접 링크가 바뀌는지는 e2e로 확인하지 않았다(제목 수정·초안 전환만 확인, 삭제도 같은 `posts` 태그 만료를 쓴다). (4) 데스크톱 폭(`sm` 이상) 2열 배치는 눈으로 확인하지 못했다(클래스와 단위 테스트로만 확인). (5) 체크리스트의 Playwright MCP 대신 Playwright 스펙과 개발 서버 응답으로 확인했다.
 
 - **Task 023: 태그·카테고리 필터 탐색 및 태그 정렬 규칙 구축**
   - 관련 기능: F016(제안: 태그·카테고리 필터 탐색과 정렬), F005

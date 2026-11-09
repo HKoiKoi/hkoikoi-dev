@@ -125,7 +125,7 @@ async function fetchPostBySlug(
 }
 
 /** 이전·다음 글 링크용 최소 정보 */
-export type AdjacentPost = Pick<Post, "slug" | "title">;
+type AdjacentPost = Pick<Post, "slug" | "title">;
 
 export type AdjacentPosts = {
   /** 더 오래된 글 */
