@@ -707,16 +707,16 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 테스트 결과: 2026-11-10 `npm run check`(Vitest 43개 파일·415개)·`npm run build`(실제 env, `/blog` 프리렌더 오류 없음, `◐` 부분 프리렌더)·`npm run knip` 통과. `e2e/blog-search.spec.ts` 12개 통과(입력 제출·초기화, 1자 안내, `q`+`tag` AND, 초안 전용 키워드 0건, `%`·`_`·`a,b)`·`' or 1=1 --` 오류 없음, 51자 초과 → 입력창 50자, NFD URL → NFC 입력값, noindex 메타와 canonical에 `q` 없음)와 함께 돌린 `blog-filter`·`blog-pagination`·`a11y`·`visitor-flow`·`seo` 33개 통과. Playwright MCP 개발 서버 확인: 데스크톱(1280px)에서 `?q=캐시`는 0건 안내가 나오고(시드 삭제 뒤), 375px에서 `?q=서버`는 결과 7건·`scrollWidth` 360으로 가로 넘침 없음, NFD `?q=서버`는 NFC와 같은 7건에 입력창 값이 NFC로 보임. 콘솔 오류 0건(경고 1건은 검색과 무관한 LCP 이미지 안내). anon 역할 RPC에 특수문자 17종을 넣어도 오류가 없음을 `execute_sql`로 확인(025-1)
   - 제한 사항·미확인: (1) 검색어가 3자 미만이면 trigram 인덱스를 쓰지 못해 seq scan이다(지금 글 수에서는 문제 없고, 수천 건이 되면 재검토). (2) anon 역할에서 trigram 인덱스가 실제로 쓰이지 않는 한계가 있고 현행 유지로 결정했다. (3) `content`는 인덱스 비용 때문에 검색 대상이 아니라 본문에만 있는 단어는 찾지 못한다. (4) RPC 반환 컬럼 타입의 nullable이 생성 타입과 어긋나는 점은 현행 유지로 결정했다. (5) 캐시하지 않으므로 검색마다 DB를 두 번 호출한다(캐시 결정은 위 항목). (6) 초안 차단은 SQL 데이터로는 확인하지 못했고 e2e(`createPublicClient` 경유)에서 초안 키워드 0건으로만 확인했다. (7) 다크 모드와 JavaScript 비활성 동작, 실제 모바일 기기, 운영 환경(`https://hkoikoi.dev`)의 canonical은 확인하지 않았다. (8) 오타 허용·정확도 순 정렬·하이라이트는 범위 밖이라 없다(최신순)
 
-- **Task 026: RSS 피드 구축**
+- **Task 026: RSS 피드 구축** ✅ - 완료 2026-11-10 (W3C 피드 검증기, 운영 반영, 푸터 RSS 링크의 `a11y`·`visitor-flow` e2e, 실제 피드 리더 구독은 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F019(제안: RSS 피드), F014
   - 목표: 피드 리더 구독자에게 새 글을 알린다
   - 의존성: Task 021(권장). 스키마 변경 없음
   - 관련 파일: `app/feed.xml/route.ts`(신규), `lib/feed/build-rss.ts`(+test), `app/layout.tsx`(`metadata.alternates.types`), `proxy.ts`(matcher), `e2e/seo.spec.ts`
   - 수락 기준: `/feed.xml`이 RSS 2.0(`application/rss+xml; charset=utf-8`)으로 최신 발행 글 20건(제목·링크·소개글·발행일·guid)을 `NEXT_PUBLIC_SITE_URL` 기준 절대 URL로 제공하고, 발행·삭제 직후(운영 포함) 반영. 모든 페이지 `<head>`에 피드 `link rel="alternate"`. 피드 검증기 통과
-  - [ ] Route Handler에서 기존 캐시 조회를 재사용하되 **`await connection()`으로 요청 시점 렌더링을 강제**(Task 020 sitemap 결함: `'use cache'` 조회만 있는 Route Handler는 실제 env 빌드에서 정적으로 굳어 갱신되지 않았다). 실제 env로 `npm run build` 후 빌드 표에서 `ƒ` 확인
-  - [ ] `buildRss(posts, siteUrl)` 순수 함수: XML 특수문자 이스케이프, 한글 슬러그 퍼센트 인코딩 링크, `pubDate`는 RFC 822, `guid isPermaLink="false"`는 글 id(슬러그를 바꿔도 구독자에게 중복 알림이 가지 않게), 본문은 넣지 않고 소개글만(raw HTML·`<style>` 노출 방지), `atom:link rel="self"`
-  - [ ] `proxy.ts` matcher에서 `feed.xml` 제외(세션 갱신 불필요, `robots.txt`·`sitemap.xml`과 같은 방식)
-  - [ ] 루트 `metadata.alternates.types['application/rss+xml']`, 푸터 RSS 링크(선택)
+  - [x] Route Handler에서 기존 캐시 조회를 재사용하되 **`await connection()`으로 요청 시점 렌더링을 강제**(Task 020 sitemap 결함: `'use cache'` 조회만 있는 Route Handler는 실제 env 빌드에서 정적으로 굳어 갱신되지 않았다). 실제 env로 `npm run build` 후 빌드 표에서 `ƒ` 확인
+  - [x] `buildRss(posts, siteUrl)` 순수 함수: XML 특수문자 이스케이프, 한글 슬러그 퍼센트 인코딩 링크, `pubDate`는 RFC 822, `guid isPermaLink="false"`는 글 id(슬러그를 바꿔도 구독자에게 중복 알림이 가지 않게), 본문은 넣지 않고 소개글만(raw HTML·`<style>` 노출 방지), `atom:link rel="self"`
+  - [x] `proxy.ts` matcher에서 `feed.xml` 제외(세션 갱신 불필요, `robots.txt`·`sitemap.xml`과 같은 방식)
+  - [x] 루트 `metadata.alternates.types['application/rss+xml']`, 푸터 RSS 링크(선택)
   - 테스트 체크리스트:
     - 정상: `build-rss.test.ts` → 제목에 `&`·`<` 포함 글 → 이스케이프된, 파싱 가능한 XML
     - 정상: Playwright MCP(또는 `curl`) → `/feed.xml` → 200, `content-type` rss+xml, 최신 발행 글 순서
@@ -724,7 +724,9 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: 셸 env로 잘못된 Supabase URL(수동 확인) → 200 + item 0개 채널, 500 아님
     - 엣지: Playwright MCP → `/feed.xml`의 한글 슬러그 `link` 접근 → 상세 정상
     - 엣지: W3C Feed Validation Service(수동 확인) → 운영 `https://www.hkoikoi.dev/feed.xml` 유효
-  - 테스트 결과: (미수행)
+  - 구현 메모(2026-11-10): `app/feed.xml/route.ts`는 `await connection()` 뒤 `getLatestPosts(20)`을 `buildRss(posts, getSiteUrl())`로 직렬화해 `application/rss+xml; charset=utf-8`로 돌려준다(`getLatestPosts`는 오류 시 빈 배열이라 200 + 빈 채널). `lastBuildDate`는 `new Date()` 대신 첫 글의 `updated_at`에서 만들고 글이 없으면 생략한다. `siteConfig.description`을 추가해 `app/layout.tsx`의 `metadata.description`과 채널 description이 같은 값을 쓴다. 푸터 연락처에 RSS 링크(`aria-label="RSS 피드 구독"`)를 넣었다.
+  - 테스트 결과: 2026-11-10 `npm run check`(Vitest 44개 파일·424개, `build-rss.test.ts` 8개 포함)·`npm run knip` 통과(knip은 출력 없이 종료). 실제 env `npm run build`의 빌드 표에서 `/feed.xml`은 `ƒ (Dynamic)`이다(`/sitemap.xml`도 `ƒ`). `npx playwright test e2e/seo.spec.ts` 11개(로그인 setup 포함) 통과: 새로 추가한 3개는 `/feed.xml` 200·`application/rss+xml`·`<rss version="2.0"`·`atom:link` 절대 URL, 홈 `<head>`의 `link[rel=alternate][type="application/rss+xml"]`, 관리자 시나리오(발행 글 포함·초안 제외, item `link`가 ASCII 퍼센트 인코딩이고 그 경로로 상세가 열림, 삭제 직후 피드에서 제외)다. 시나리오가 만든 `e2e-seo-` 글은 `afterAll`의 `cleanup`이 지운다. 오류 상황: 셸 env로 `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:9`를 준 dev 서버(`-p 3100`, `.env.local` 미수정)에서 `/feed.xml`이 HTTP 200, `application/rss+xml; charset=utf-8`, item 0개인 채널(`<link>`·`atom:link`는 `http://localhost:3000`)로 응답했다. 같은 폴더에 dev 서버(3000)가 떠 있으면 Next가 두 번째 서버를 거부해, 3000 서버를 종료한 뒤 확인했다.
+  - 제한 사항·미확인: (1) W3C Feed Validation Service는 실행하지 않았다(운영 `https://hkoikoi.dev/feed.xml` 유효성은 배포 뒤 수동 확인 필요). (2) 운영(홈 서버) 반영은 확인하지 않았다: 운영에서 발행·삭제 직후 피드가 갱신되는지, Caddy·Cloudflare가 `/feed.xml`을 캐시하지 않는지 보지 않았다. (3) 이번에 전체 `npx playwright test`는 돌리지 않아 푸터 RSS 링크가 링크 수·이름에 의존하는 `a11y.spec.ts`·`visitor-flow.spec.ts`에 영향이 없는지는 확인하지 않았다. (4) "모든 페이지 `<head>`" 중 홈만 e2e로 확인했다(루트 layout metadata라 같은 값이 들어가는 것으로 추정). (5) 실제 피드 리더(Feedly 등)에서의 구독·표시는 확인하지 않았다. (6) 피드는 최신 20건·소개글만 담고 본문은 넣지 않는다(의도). 소개글이 없는 글은 `description` 없이 나간다. (7) 로컬 `NEXT_PUBLIC_SITE_URL` 미설정이라 절대 URL이 `localhost:3000`이다.
 
 - **Task 027: 편집기 임시저장 자동화**
   - 관련 기능: F020(제안: 편집기 임시저장 자동화), F008, F010
