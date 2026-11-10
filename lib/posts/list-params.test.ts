@@ -38,7 +38,73 @@ describe("parseListParams", () => {
   });
 
   it("알 수 없는 키는 무시한다", () => {
-    expect(parseListParams({ q: "x", sort: "old" })).toEqual({});
+    expect(parseListParams({ sort: "old", foo: "bar" })).toEqual({});
+  });
+
+  describe("q", () => {
+    it("검색어를 읽는다", () => {
+      expect(parseListParams({ q: "캐시" })).toEqual({ q: "캐시" });
+    });
+
+    it("앞뒤 공백을 제거하고 안쪽 공백은 유지한다", () => {
+      expect(parseListParams({ q: "  next js " })).toEqual({ q: "next js" });
+    });
+
+    it("NFD 한글을 NFC로 정규화한다", () => {
+      const nfd = "캐시".normalize("NFD");
+      expect(nfd).not.toBe("캐시");
+      expect(parseListParams({ q: nfd })).toEqual({ q: "캐시" });
+    });
+
+    it("50자는 그대로, 51자 이상은 50자로 자른다", () => {
+      expect(parseListParams({ q: "a".repeat(50) })).toEqual({
+        q: "a".repeat(50),
+      });
+      expect(parseListParams({ q: "a".repeat(51) })).toEqual({
+        q: "a".repeat(50),
+      });
+      expect(parseListParams({ q: "a".repeat(500) })).toEqual({
+        q: "a".repeat(50),
+      });
+    });
+
+    it("1자는 검색하지 않고 qTooShort와 원문을 돌려준다", () => {
+      expect(parseListParams({ q: "a" })).toEqual({
+        qTooShort: true,
+        rawQ: "a",
+      });
+      expect(parseListParams({ q: " 가 " })).toEqual({
+        qTooShort: true,
+        rawQ: "가",
+      });
+    });
+
+    it("2자는 검색한다", () => {
+      expect(parseListParams({ q: "ab" })).toEqual({ q: "ab" });
+    });
+
+    it("빈 값·공백·undefined·빈 배열은 무시한다", () => {
+      expect(parseListParams({ q: "" })).toEqual({});
+      expect(parseListParams({ q: "   " })).toEqual({});
+      expect(parseListParams({ q: undefined })).toEqual({});
+      expect(parseListParams({ q: [] })).toEqual({});
+    });
+
+    it("배열이면 첫 값을 사용한다", () => {
+      expect(parseListParams({ q: ["캐시", "태그"] })).toEqual({ q: "캐시" });
+    });
+
+    it("% _ 쉼표 따옴표 같은 특수문자도 그대로 읽는다", () => {
+      expect(parseListParams({ q: "100%_a,b)'" })).toEqual({
+        q: "100%_a,b)'",
+      });
+    });
+
+    it("category·tag·page와 함께 읽는다", () => {
+      expect(
+        parseListParams({ q: "캐시", category: "개발", tag: "x", page: "2" }),
+      ).toEqual({ q: "캐시", category: "개발", tag: "x", page: 2 });
+    });
   });
 
   describe("page", () => {
@@ -127,6 +193,63 @@ describe("buildBlogHref", () => {
     expect(parsed).toEqual({ tag });
     expect(href).not.toContain(" ");
     expect(href).not.toContain("&  ");
+  });
+
+  describe("q", () => {
+    it("q를 설정하고 다른 조건은 유지한다", () => {
+      expect(buildBlogHref({ tag: "react" }, { q: "캐시" })).toBe(
+        `/blog?tag=react&q=${encodeURIComponent("캐시")}`,
+      );
+    });
+
+    it("q만 있는 현재 조건을 그대로 유지한다", () => {
+      expect(buildBlogHref({ q: "캐시" })).toBe(
+        `/blog?q=${encodeURIComponent("캐시")}`,
+      );
+    });
+
+    it("category·tag 변경 시 q를 유지한다", () => {
+      expect(buildBlogHref({ q: "캐시" }, { tag: "react" })).toBe(
+        `/blog?tag=react&q=${encodeURIComponent("캐시")}`,
+      );
+    });
+
+    it("q를 해제하면 다른 조건은 남기고 없으면 /blog를 돌려준다", () => {
+      expect(buildBlogHref({ tag: "react", q: "캐시" }, { q: undefined })).toBe(
+        "/blog?tag=react",
+      );
+      expect(buildBlogHref({ q: "캐시" }, { q: undefined })).toBe("/blog");
+    });
+
+    it("qTooShort 상태는 href에 q를 남기지 않는다", () => {
+      expect(buildBlogHref({ tag: "react", qTooShort: true, rawQ: "a" })).toBe(
+        "/blog?tag=react",
+      );
+    });
+
+    it("q가 바뀌거나 해제되면 page를 지운다", () => {
+      expect(buildBlogHref({ q: "가나", page: 3 }, { q: "다라" })).toBe(
+        `/blog?q=${encodeURIComponent("다라")}`,
+      );
+      expect(
+        buildBlogHref({ tag: "a", q: "가나", page: 3 }, { q: undefined }),
+      ).toBe("/blog?tag=a");
+    });
+
+    it("page만 바꾸면 q를 유지한다", () => {
+      expect(buildBlogHref({ q: "캐시" }, { page: 2 })).toBe(
+        `/blog?q=${encodeURIComponent("캐시")}&page=2`,
+      );
+    });
+
+    it("특수문자 검색어를 인코딩하고 parseListParams로 되돌릴 수 있다", () => {
+      const q = "100%_a,b)' &=";
+      const href = buildBlogHref({}, { q });
+      const parsed = parseListParams(
+        Object.fromEntries(new URL(href, "http://x").searchParams),
+      );
+      expect(parsed).toEqual({ q });
+    });
   });
 
   describe("page", () => {
