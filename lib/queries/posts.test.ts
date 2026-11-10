@@ -19,6 +19,7 @@ import {
   getPublishedPosts,
   getPublishedPostsPage,
   getTaxonomy,
+  searchPosts,
 } from "./posts";
 
 type Result = {
@@ -392,6 +393,112 @@ describe("getPublishedPostsPage", () => {
     await expect(
       getPublishedPostsPage({ page: 1, pageSize: 10 }),
     ).resolves.toEqual({
+      posts: [],
+      total: 0,
+    });
+    expect(errorSpy).toHaveBeenCalled();
+  });
+});
+
+describe("searchPosts", () => {
+  type RpcResult = { data: unknown; error: { message: string } | null };
+
+  function createRpc(rows: RpcResult, count: RpcResult) {
+    const rpc = vi.fn((name: string) =>
+      Promise.resolve(name === "search_published_posts" ? rows : count),
+    );
+    createClientMock.mockReturnValue({ rpc });
+    return rpc;
+  }
+
+  it("검색 RPC와 count RPC를 같은 필터로 호출하고 total을 숫자로 바꾼다", async () => {
+    const rows = [{ id: "1" }];
+    const rpc = createRpc(ok(rows), ok("25"));
+
+    await expect(
+      searchPosts({
+        q: "캐시",
+        category: "개발",
+        tag: "nextjs",
+        page: 2,
+        pageSize: 10,
+      }),
+    ).resolves.toEqual({ posts: rows, total: 25 });
+
+    expect(rpc).toHaveBeenCalledWith("search_published_posts", {
+      q: "캐시",
+      p_category: "개발",
+      p_tag: "nextjs",
+      p_limit: 10,
+      p_offset: 10,
+    });
+    expect(rpc).toHaveBeenCalledWith("search_published_posts_count", {
+      q: "캐시",
+      p_category: "개발",
+      p_tag: "nextjs",
+    });
+  });
+
+  it("page를 생략하면 offset 0으로 조회하고 캐시를 쓰지 않는다", async () => {
+    const rpc = createRpc(ok([]), ok(0));
+
+    await expect(searchPosts({ q: "없음", pageSize: 6 })).resolves.toEqual({
+      posts: [],
+      total: 0,
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "search_published_posts",
+      expect.objectContaining({ p_limit: 6, p_offset: 0 }),
+    );
+    expect(cacheTagMock).not.toHaveBeenCalled();
+    expect(cacheLifeMock).not.toHaveBeenCalled();
+  });
+
+  it("범위 밖 offset은 빈 목록과 count로 센 total을 돌려준다", async () => {
+    createRpc(ok([]), ok(12));
+
+    await expect(
+      searchPosts({ q: "캐시", page: 9, pageSize: 10 }),
+    ).resolves.toEqual({ posts: [], total: 12 });
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it("data가 null이면 빈 목록과 0을 반환한다", async () => {
+    createRpc(ok(null), ok(null));
+
+    await expect(searchPosts({ q: "캐시", pageSize: 10 })).resolves.toEqual({
+      posts: [],
+      total: 0,
+    });
+  });
+
+  it("검색 RPC 오류면 빈 페이지를 반환하고 로그를 남긴다", async () => {
+    createRpc({ data: null, error: { message: "boom" } }, ok(3));
+
+    await expect(searchPosts({ q: "캐시", pageSize: 10 })).resolves.toEqual({
+      posts: [],
+      total: 0,
+    });
+    expect(errorSpy).toHaveBeenCalledWith("[searchPosts]", "boom");
+  });
+
+  it("count RPC 오류여도 빈 페이지를 반환한다", async () => {
+    createRpc(ok([{ id: "1" }]), { data: null, error: { message: "bad" } });
+
+    await expect(searchPosts({ q: "캐시", pageSize: 10 })).resolves.toEqual({
+      posts: [],
+      total: 0,
+    });
+    expect(errorSpy).toHaveBeenCalledWith("[searchPosts]", "bad");
+  });
+
+  it("클라이언트 생성이 던져도 빈 페이지를 반환한다", async () => {
+    createClientMock.mockImplementation(() => {
+      throw new Error("no env");
+    });
+
+    await expect(searchPosts({ q: "캐시", pageSize: 10 })).resolves.toEqual({
       posts: [],
       total: 0,
     });
