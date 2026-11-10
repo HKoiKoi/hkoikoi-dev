@@ -40,7 +40,7 @@ hkoikoi-dev/
 │   ├── auth/               # is-admin.ts(역할 판별), is-admin-path.ts(/admin 경로 판정), require-admin.ts(서버 가드) + 테스트
 │   ├── supabase/           # client.ts / server.ts / public.ts / proxy.ts / database.types.ts
 │   ├── feed/                  # build-rss.ts: buildRss(posts, siteUrl) 순수 함수, XML 이스케이프·RFC 822 pubDate (+ 테스트)
-├── storage/            # validate-image.ts(형식·크기 검증, 경로 생성), upload-image.ts(브라우저 직접 업로드) + 테스트
+├── storage/            # validate-image.ts(형식·크기 검증, 경로 생성), upload-image.ts(브라우저 직접 업로드), extract-image-paths.ts·find-orphans.ts(참조 추출·고아 판정 순수 함수), storage-adapter.ts(목록·삭제 I/O), load-orphan-candidates.ts(후보 계산) + 테스트
 │   ├── editor/             # insert-at-cursor.ts(커서 삽입·자리표시 치환 순수 함수), draft-storage.ts(편집기 localStorage 백업) + 테스트
 │   ├── types/              # 도메인 타입 (post, profile, resume)
 │   ├── schemas/            # post.ts(zod 입력 스키마, POST_LIMITS, parseTags) + 테스트
@@ -103,6 +103,7 @@ app/
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
 │   ├── actions.ts          # logout Server Action (+ actions.test.ts)
 │   ├── _components/        # admin-guard.tsx, admin-nav.tsx, logout-button.tsx
+│   ├── storage/            # 고아 이미지 정리: page.tsx(후보 표, 드라이런), actions.ts(deleteOrphans Server Action, 삭제 직전 재검사) + 테스트, _components/orphan-list.tsx(선택·확인 대화상자)
 │   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx(메타 필드 post-meta-fields.tsx, 썸네일 thumbnail-field.tsx, 본문 이미지 업로드 버튼 image-upload-button.tsx와 업로드 훅 use-content-upload.ts, 자동 저장 훅 use-autosave.ts·상태 표시 autosave-status.tsx·복원 배너 restore-banner.tsx, 필드 오류 field-error.tsx로 분리), 목록 post-table.tsx와 삭제 확인 delete-post-dialog.tsx, 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·autosaveDraft·deletePost Server Action)
 └── auth/
     ├── layout.tsx          # noindex 메타데이터
@@ -185,7 +186,7 @@ lib/
 - `lib/supabase/server.ts`는 `next/headers`를 쓰는 서버 전용 모듈이므로 Client Component에서 import하지 않습니다. 필요하면 상단에 `import "server-only"`를 추가합니다 (패키지 설치 필요).
 - `lib/types/post.ts`의 `PostSummary`/`Post`/`PostInput`은 `Tables<'posts'>`에서 파생합니다. 컬럼을 바꾸면 마이그레이션 → 타입 재생성 순서로 진행합니다.
 - 검증 스키마(zod)는 `lib/schemas/`에, 관리자 조회는 `lib/queries/admin-posts.ts`에 둡니다. 훅이 생기면 루트 `hooks/`를 추가합니다 (`components.json`의 `hooks` 별칭은 `@/hooks`).
-- `lib/storage/`의 상수(허용 MIME 4종, 5MB)는 `supabase/migrations/20261026105803_create_blog_images_bucket.sql`의 버킷 설정과 같아야 합니다. 한쪽을 바꾸면 다른 쪽도 바꿉니다. `upload-image.ts`는 `client.ts`(브라우저 클라이언트)를 쓰는 브라우저 전용 모듈이라 `server.ts`를 import하지 않습니다. 버킷에 select 정책이 없어 업로드한 파일은 앱·e2e에서 삭제할 수 없고, 고아 파일은 정리하지 않습니다.
+- `lib/storage/`의 상수(허용 MIME 4종, 5MB)는 `supabase/migrations/20261026105803_create_blog_images_bucket.sql`의 버킷 설정과 같아야 합니다. 한쪽을 바꾸면 다른 쪽도 바꿉니다. `upload-image.ts`는 `client.ts`(브라우저 클라이언트)를 쓰는 브라우저 전용 모듈이라 `server.ts`를 import하지 않습니다. 버킷의 select 정책은 관리자 전용(`blog_images_select_admin`)이라 anon은 목록을 볼 수 없고, 고아 파일은 `/admin/storage`에서 Storage API로만 지웁니다(service role 키 미사용).
 - 순수 로직은 `lib/<도메인>/`에 함수로 분리하고 옆에 `*.test.ts`를 둡니다. 컴포넌트에는 화면 코드만 남깁니다.
 
 ## supabase/ — 마이그레이션
@@ -193,7 +194,7 @@ lib/
 - `supabase/migrations/<version>_<name>.sql`. 파일명의 version은 원격에 적용된 `list_migrations`의 version과 **일치**시킵니다.
 - 적용은 Supabase MCP의 `apply_migration`으로 하고, 적용 후 `get_advisors`(security, performance)를 확인합니다.
 - 관리자 판별은 RLS에서 `(select auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin'`만 사용합니다. `user_metadata`는 사용자가 바꿀 수 있어 쓰지 않습니다.
-- 현재 마이그레이션: `create_posts`(테이블, check, 인덱스, `updated_at` 트리거, RLS), `create_blog_images_bucket`(public 버킷 `blog-images`, 5MB, 이미지 MIME 4종, 관리자 전용 insert/update/delete 정책), `add_posts_category_tags_length_checks`(category·tags 길이 check), `revoke_excess_posts_grants`(`public` 스키마 default privileges로 과잉 부여된 anon·authenticated GRANT 회수), `add_posts_search`(`pg_trgm`, `title`·`excerpt` GIN trigram 인덱스, 검색 RPC `search_published_posts`·`search_published_posts_count`).
+- 현재 마이그레이션: `create_posts`(테이블, check, 인덱스, `updated_at` 트리거, RLS), `create_blog_images_bucket`(public 버킷 `blog-images`, 5MB, 이미지 MIME 4종, 관리자 전용 insert/update/delete 정책), `blog_images_admin_select`(관리자 전용 select 정책 `blog_images_select_admin`), `add_posts_category_tags_length_checks`(category·tags 길이 check), `revoke_excess_posts_grants`(`public` 스키마 default privileges로 과잉 부여된 anon·authenticated GRANT 회수), `add_posts_search`(`pg_trgm`, `title`·`excerpt` GIN trigram 인덱스, 검색 RPC `search_published_posts`·`search_published_posts_count`).
 - `public` 스키마의 default privileges는 바꾸지 않았으므로 새 테이블은 같은 과잉 GRANT를 받습니다. 새 테이블 마이그레이션에는 필요한 권한만 남기는 `revoke`를 함께 넣고, 점검은 `rls-verification.md`를 따릅니다.
 - 알려진 advisor 경고: `auth_leaked_password_protection` 1건은 Pro 플랜 미사용으로 예외 수용했습니다(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수).
 
