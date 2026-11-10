@@ -790,7 +790,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] 참조 수집: 모든 글(초안 포함, `lib/queries/admin-posts.ts` 계열)의 `content`에서 `…/storage/v1/object/public/blog-images/<path>`를 추출(마크다운 이미지·raw HTML `img src`, URL 인코딩 처리)하고 `thumbnail_url`과 합친 집합. 순수 함수 + 단위 테스트
   - [x] 객체 목록: Storage API `list`(연/월 폴더 순회, 페이지 단위) → 참조 집합과의 차집합 → 유예 기간 필터(편집 중 업로드했지만 아직 저장하지 않은 이미지 보호)
   - [x] 삭제 Server Action: `requireAdmin()` → **삭제 직전에 참조를 다시 검사** → Storage API `remove`(배치 상한) → 결과 요약. 되돌릴 수 없음을 확인 대화상자로 안내
-  - [ ] 초기 정리(보류, 2026-11-10 사용자 결정: 문서만 갱신): 누적된 e2e 테스트 이미지(70바이트, Task 017 시점 71건 + 이후 실행분)와 운영 검증 이미지 정리. 완료 후 CLAUDE.md "알려진 예외", ROADMAP "알려진 트레이드오프"의 고아 파일 항목 갱신
+  - [ ] 초기 정리(범위 제외, 2026-11-10 사용자 결정: 사용자가 유예(2026-11-12 이후)가 지난 뒤 `/admin/storage`에서 수동 정리): 누적된 e2e 테스트 이미지(70바이트, Task 017 시점 71건 + 이후 실행분)와 운영 검증 이미지. 이 Task에서는 정리하지 않았고 문서만 갱신했다
   - [ ] (선택, 이번 범위 제외) e2e가 자기 업로드를 `afterAll`에서 삭제하도록 변경, 글 삭제 때 그 글만 참조하던 이미지 삭제 제안
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 관리자로 `/admin/storage` → 고아 후보 목록, 참조 중인 썸네일·본문 이미지는 없음
@@ -803,7 +803,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 구현 메모(2026-11-10): `lib/storage/`에 `extract-image-paths.ts`·`find-orphans.ts`(순수), `storage-adapter.ts`(목록·삭제), `load-orphan-candidates.ts`, `lib/queries/admin-posts.ts`의 `getAdminPostReferences()`(실패 시 null로 빈 목록과 구분), `app/admin/storage/`(`page.tsx`, `actions.ts`의 `deleteOrphans`, `_components/orphan-list.tsx`)와 admin 메뉴 '스토리지'. 삭제 결과에는 명세의 필드 외에 `skippedMissing`을 더했다.
   - 제외한 선택 항목: e2e `afterAll` 삭제와 글 삭제 시 단독 참조 이미지 삭제 제안은 구현하지 않았다. 유예 기간이 방금 올린 파일을 보호해 UI로 지울 수 없고, 유예를 우회하면 서버 재검사 보호가 약해지기 때문이다.
   - 테스트 결과: 2026-11-10 `npm run check`(526개 테스트), `npm run build`, `npm run knip`(미사용 항목 없음, 기존 설정 hint 1건) 통과. `npx playwright test e2e/admin-storage.spec.ts e2e/access-control.spec.ts` 통과(admin-storage 4건 통과·1건 skip). 확인한 시나리오: 비로그인 `/admin/storage` → `/auth/login`, 관리자 목록·빈 상태 표시, 초안이 참조하는 방금 올린 이미지는 후보 아님, 단위 테스트로 삭제 직전 재검사(참조 조회를 두 번째 호출에서 바꿔 모킹)·참조 조회 실패 시 무삭제·remove 일부 실패 요약.
-  - 제한 사항·미확인: 운영 `blog-images` 121개가 모두 업로드 7일 이내(가장 오래된 것 2026-11-05)라 후보가 0건이었다. 그래서 후보 선택 e2e(1건 skip), 실제 삭제와 공개 URL 비반환 확인, 삭제 직전 경합 재현(수동)은 수행하지 못했다. e2e는 운영 스토리지를 실제로 지우지 않는다. 2026-11-12 이후 후보가 생기면 목록을 확인하고 승인받아 UI로 삭제한 뒤 '초기 정리' 항목과 위 미확인 항목을 갱신한다.
+  - 제한 사항·미확인: 운영 `blog-images` 121개가 모두 업로드 7일 이내(가장 오래된 것 2026-11-05)라 후보가 0건이었다. 그래서 후보 선택 e2e(1건 skip), 실제 삭제와 공개 URL 비반환 확인, 삭제 직전 경합 재현(수동)은 수행하지 못했다. e2e는 운영 스토리지를 실제로 지우지 않는다. 초기 정리는 사용자가 2026-11-12 이후 `/admin/storage`에서 직접 수행하기로 했고, 그때 실제 삭제·공개 URL 비반환 확인과 위 미확인 항목을 확인한다(이 Task에서는 확인하지 않았다).
 
 - **Task 030: 블로그 글 조회수 집계 구현**
   - 관련 기능: F023(제안: 글 조회수), F006
@@ -1151,7 +1151,7 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
 - 스타일 변조(`position:fixed` 오버레이, `url()` 외부 요청) 가능성은 관리자 계정 보호(강한 비밀번호·MFA)로 완화(Task 011).
 - 없는 글은 soft 404(HTTP 200 + noindex)로 응답(Task 018).
 - 관리자 role 회수 후에도 기존 JWT는 만료 전까지 유효(RLS 동일). 역할 변경 후 재로그인 필요(Task 011).
-- 스토리지 고아 파일은 자동으로 지우지 않고 관리자가 `/admin/storage`에서 확인한 뒤 지운다(Task 029). 유예 7일 이내와 참조 중인 파일은 지울 수 없다. 초기 누적분 정리는 유예가 지난 뒤로 보류했다.
+- 스토리지 고아 파일은 자동으로 지우지 않고 관리자가 `/admin/storage`에서 확인한 뒤 지운다(Task 029). 유예 7일 이내와 참조 중인 파일은 지울 수 없다. 초기 누적분은 유예가 지난 뒤(2026-11-12 이후) 사용자가 수동으로 정리한다.
 - 로그인 시도 횟수 제한은 Supabase Auth 기본 레이트 리밋(`/auth/v1/token`, IP당 5분 150회·burst 30, 공식 문서 기준)에 의존하고 앱 코드의 제한·CAPTCHA는 없다(관리자 1인, 최소 비밀번호 12자·가입 차단으로 완화, 2026-10-28 사용자 결정으로 수용). 이 프로젝트의 실제 설정값은 2026-10-28 사용자가 대시보드 Authentication > Rate Limits에서 확인했다(가입·로그인 30, 토큰 150, 기본값에서 변경 없음). 서버에서 호출할 때 Supabase가 보는 IP도 미확인이다. Turnstile CAPTCHA는 `login` 액션에 `captchaToken` 전달이 필요하고 Password Verification Attempt hook은 Teams 이상 플랜 전용이라 도입하지 않았다.
 - 관리자 레이아웃 헤더는 `AdminGuard` 바깥(정적 셸)에 둔다. 로그인한 비관리자에게 `notFound()` 전환 전 잠깐 보일 수 있으나 노출되는 것은 공개 상수와 링크뿐이고, 가드 안으로 옮기면 모든 `/admin` 진입에서 빈 화면이 생겨 현상 유지로 결정(2026-10-28 사용자 결정).
 - Supabase advisor 보안 경고 `auth_leaked_password_protection`(유출 비밀번호 보호)은 Pro 플랜 전용이라 예외로 수용. 완화책: 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수(Task 010, 011).
