@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { SkipLink } from "@/components/layout/skip-link";
+import { siteConfig } from "@/lib/site-config";
 import { getSiteUrl } from "@/lib/site-url";
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
     default: "hkoikoi.dev",
     template: "%s | hkoikoi.dev",
   },
-  description: "hkoikoi의 개발 블로그와 프로젝트 기록",
+  description: siteConfig.description,
 };
 
 // 본문 폰트 Pretendard Variable은 위 CSS(unicode-range 분할 서브셋, font-display: swap)로 로드하고,
