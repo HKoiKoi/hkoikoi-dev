@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatDate } from "@/lib/format-date";
+import { formatDateTime } from "@/lib/format-date";
 import { sortTags } from "@/lib/posts/sort-tags";
 import type { PostSummary } from "@/lib/types/post";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ export function PostCard({ post, className }: PostCardProps) {
         <div className="flex flex-wrap items-center gap-2">
           <CategoryBadge category={category} className="relative z-30" />
           <time dateTime={date} className="text-xs text-muted-foreground">
-            {formatDate(date)}
+            {formatDateTime(date)}
           </time>
         </div>
         <CardTitle className="text-lg break-words">

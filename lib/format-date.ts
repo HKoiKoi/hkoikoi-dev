@@ -10,3 +10,17 @@ const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
 export function formatDate(iso: string): string {
   return dateFormatter.format(new Date(iso));
 }
+
+const dateTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+// ISO 8601 문자열을 '2026. 10. 25. 오후 12:00' 형식(서울 기준)으로 변환한다.
+export function formatDateTime(iso: string): string {
+  return dateTimeFormatter.format(new Date(iso));
+}
