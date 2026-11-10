@@ -61,10 +61,10 @@ function ChipRow({
 
 const LIST_CLASS = "flex flex-wrap gap-2";
 
-// /blog 상단의 카테고리·태그 칩 목록 (글 수 포함). 집계가 비면(조회 실패 포함) 렌더링하지 않는다.
+// /blog 상단의 태그 칩 목록 (카테고리는 검색 폼의 select) (글 수 포함). 집계가 비면(조회 실패 포함) 렌더링하지 않는다.
 export function TaxonomyFilter({ taxonomy, current }: TaxonomyFilterProps) {
-  const { categories, tags } = taxonomy;
-  if (categories.length === 0 && tags.length === 0) return null;
+  const { tags } = taxonomy;
+  if (tags.length === 0) return null;
 
   const { visible, rest } = splitTopTags(tags, current.tag, VISIBLE_TAG_LIMIT);
 
@@ -84,26 +84,6 @@ export function TaxonomyFilter({ taxonomy, current }: TaxonomyFilterProps) {
 
   return (
     <nav aria-label="글 탐색" className="flex flex-col gap-3 pb-6">
-      {categories.length > 0 && (
-        <ChipRow label="카테고리">
-          <ul className={LIST_CLASS}>
-            {categories.map(({ name, count }) => {
-              const selected = current.category === name;
-              return (
-                <Chip
-                  key={name}
-                  name={name}
-                  count={count}
-                  selected={selected}
-                  href={buildBlogHref(current, {
-                    category: selected ? undefined : name,
-                  })}
-                />
-              );
-            })}
-          </ul>
-        </ChipRow>
-      )}
       {tags.length > 0 && (
         <ChipRow label="태그">
           <ul className={LIST_CLASS}>

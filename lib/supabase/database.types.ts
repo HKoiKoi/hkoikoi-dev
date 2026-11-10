@@ -64,7 +64,36 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      search_published_posts: {
+        Args: {
+          p_category?: string;
+          p_limit?: number;
+          p_offset?: number;
+          p_tag?: string;
+          q: string;
+        };
+        Returns: {
+          category: string;
+          created_at: string;
+          excerpt: string;
+          id: string;
+          published: boolean;
+          published_at: string;
+          slug: string;
+          tags: string[];
+          thumbnail_url: string;
+          title: string;
+          updated_at: string;
+        }[];
+      };
+      search_published_posts_count: {
+        Args: { p_category?: string; p_tag?: string; q: string };
+        Returns: number;
+      };
+      tags_elements_within_length: {
+        Args: { max_length: number; tags: string[] };
+        Returns: boolean;
+      };
     };
     Enums: {
       [_ in never]: never;

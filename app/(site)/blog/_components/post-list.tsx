@@ -5,11 +5,21 @@ import type { PostSummary } from "@/lib/types/post";
 interface PostListProps {
   posts: PostSummary[];
   filtered: boolean;
+  /** 검색 중인 검색어. 있으면 0건 문구가 검색 결과 없음으로 바뀐다 */
+  query?: string;
 }
 
 // 블로그 글 목록 (0건이면 안내 문구)
-export function PostList({ posts, filtered }: PostListProps) {
+export function PostList({ posts, filtered, query }: PostListProps) {
   if (posts.length === 0) {
+    if (query) {
+      return (
+        <EmptyState
+          title="검색 결과가 없습니다"
+          message="다른 검색어로 다시 찾아보세요."
+        />
+      );
+    }
     return (
       <EmptyState
         title={
