@@ -682,7 +682,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 메타데이터: 에이전트가 프로덕션(`next start`)과 개발 서버 응답 HTML로 `/blog` `블로그 | hkoikoi.dev`·canonical `/blog`, `?page=2` `블로그 (2페이지) | hkoikoi.dev`·canonical `?page=2`, `?page=abc`는 `/blog`와 같음, `?category=개발&page=2` canonical에 두 값 포함을 확인했다. 일반 브라우저 UA에서 title은 `<head>` 밖(스트리밍)에 들어가고 `Twitterbot`은 `<head>` 안, `Googlebot` UA는 프로덕션에서 `<head>` 밖이었다(문서의 스트리밍 메타데이터 설명과 일치).
     - 제한 사항·미확인: (1) 실제 모바일 기기와 Safari에서의 동작은 확인하지 못했다(User-Agent를 흉내 낸 컨텍스트로만 확인). 데스크톱 브라우저 창만 좁히면 10개가 나오는 것은 설계에 따른 동작이다. (2) 데스크톱(sm 이상) 번호 목록의 육안 확인은 하지 않았다(e2e가 링크 수·`aria-current`만 확인). (3) 다크 모드 육안 확인은 하지 않았다. (4) JavaScript 비활성 동작은 확인하지 못했다(링크와 서버 컴포넌트뿐이고 새 `'use client'`는 없다). (5) canonical의 운영 호스트(`https://hkoikoi.dev`)는 확인하지 않았다(로컬은 `NEXT_PUBLIC_SITE_URL` 미설정이라 `localhost`). (6) Googlebot이 `<head>` 밖 스트리밍 title·canonical로 색인하는지, 같은 `?page=n`이 기기마다 다른 글을 보여 주는 한계가 검색 노출에 미치는 영향은 확인하지 못했다. (7) Caddy·Cloudflare가 User-Agent에 따라 달라지는 HTML을 캐시하지 않는지 확인하지 않았다. (8) 개발 서버 첫 요청에서 `/blog`만 title이 `<head>` 안에 있던 현상의 원인은 확인하지 않았다(첫 컴파일 타이밍으로 추정). (9) `count: 'exact'`는 필터된 행 전체를 세므로 글이 수천 건이 되면 커서·추정 카운트를 재검토해야 한다.
 
-- **Task 025: 블로그 키워드 검색 구현**
+- **Task 025: 블로그 키워드 검색 구현** ✅ - 완료 2026-11-10 (초안 차단의 SQL 데이터 확인, 다크 모드, JavaScript 비활성 동작, 실제 모바일 기기, 운영 canonical 호스트, anon 역할의 trigram 인덱스 사용은 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F018(제안: 블로그 키워드 검색), F005
   - 목표: 제목·소개글(선택: 본문·태그)의 키워드로 발행 글을 찾는다
   - 의존성: Task 023(URL 상태), Task 024(검색 결과 페이지네이션). **스키마 변경 있음**
