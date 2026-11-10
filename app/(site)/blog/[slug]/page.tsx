@@ -6,7 +6,7 @@ import { CategoryBadge } from "@/components/blog/category-badge";
 import { PostPager } from "@/components/blog/post-pager";
 import { TagBadge } from "@/components/blog/tag-badge";
 import { MarkdownContent } from "@/components/markdown/markdown-content";
-import { formatDate } from "@/lib/format-date";
+import { formatDateTime } from "@/lib/format-date";
 import { buildPostMetadata } from "@/lib/post-metadata";
 import { sortTags } from "@/lib/posts/sort-tags";
 import { getAdjacentPosts, getPostBySlug } from "@/lib/queries/posts";
@@ -47,7 +47,7 @@ async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
           <div className="flex flex-wrap items-center gap-2">
             <CategoryBadge category={post.category} />
             <time dateTime={date} className="text-sm text-muted-foreground">
-              {formatDate(date)}
+              {formatDateTime(date)}
             </time>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight break-words sm:text-3xl">
@@ -63,7 +63,7 @@ async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
             </ul>
           )}
         </header>
-        <MarkdownContent content={post.content} />
+        <MarkdownContent content={post.content} scopeId={post.id} />
       </article>
       <PostPager prev={prev} next={next} />
     </div>

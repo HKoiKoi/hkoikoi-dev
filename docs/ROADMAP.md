@@ -537,7 +537,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
 - **GRANT**: `public` 스키마의 default privileges 때문에 새 테이블은 anon·authenticated에 과잉 권한(`TRUNCATE`·`REFERENCES`·`TRIGGER` 등)을 받는다(`docs/guides/rls-verification.md`, `fix/posts-grants` 기록). 마이그레이션에서 필요한 권한만 남기도록 `revoke`를 함께 둔다. 관리자 판별은 `app_metadata.role = 'admin'`만 쓰고 `user_metadata`는 쓰지 않는다.
 - **캐싱**: 공개 조회는 `lib/queries/posts.ts` 패턴(`createPublicClient()` + `'use cache'` + `cacheTag` + `cacheLife('max')`, 실패는 `failUncached`, 바깥 래퍼에서 `unstable_rethrow` → `console.error` → 빈 값)을 따르고, 쓰기 쪽은 `updateTag`로 무효화한다. 요청 시점 데이터(`searchParams`, 쿠키, 조회수 등)는 `<Suspense>` 안에서 읽는다.
 - **운영 반영 확인 필수**: 운영(Vercel)에서 캐시 결과가 정적 셸에 굳어 태그 무효화가 반영되지 않은 사례가 두 번 있었다(Task 020 sitemap, PR #39 홈 최신 글). 공개 화면에 새 데이터 영역을 붙이면 **실제 Supabase env로** `npm run build`를 돌려 빌드 표(○/◐/ƒ)를 확인하고, 운영에서 발행·삭제 직후 반영되는지 직접 본다. 필요하면 그 영역을 `<Suspense>` + `await connection()`으로 분리한다. CI와 placeholder env 빌드는 이 문제를 잡지 못한다.
-- **테스트 데이터**: DB 쓰기 e2e는 운영 DB를 쓰므로 `e2e-` 접두와 `afterAll` 정리를 지킨다. 이미지 업로드 e2e는 고아 파일을 늘리므로 Task 029 전까지 최소화한다.
+- **테스트 데이터**: DB 쓰기 e2e는 운영 DB를 쓰므로 `e2e-` 접두와 `afterAll` 정리를 지킨다. 이미지 업로드 e2e는 고아 파일을 늘리므로 최소화하고, 쌓인 파일은 7일 뒤 `/admin/storage`에서 정리한다.
 
 #### 우선순위와 권장 구현 순서
 
@@ -728,18 +728,18 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 테스트 결과: 2026-11-10 `npm run check`(Vitest 44개 파일·424개, `build-rss.test.ts` 8개 포함)·`npm run knip` 통과(knip은 출력 없이 종료). 실제 env `npm run build`의 빌드 표에서 `/feed.xml`은 `ƒ (Dynamic)`이다(`/sitemap.xml`도 `ƒ`). `npx playwright test e2e/seo.spec.ts` 11개(로그인 setup 포함) 통과: 새로 추가한 3개는 `/feed.xml` 200·`application/rss+xml`·`<rss version="2.0"`·`atom:link` 절대 URL, 홈 `<head>`의 `link[rel=alternate][type="application/rss+xml"]`, 관리자 시나리오(발행 글 포함·초안 제외, item `link`가 ASCII 퍼센트 인코딩이고 그 경로로 상세가 열림, 삭제 직후 피드에서 제외)다. 시나리오가 만든 `e2e-seo-` 글은 `afterAll`의 `cleanup`이 지운다. 오류 상황: 셸 env로 `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:9`를 준 dev 서버(`-p 3100`, `.env.local` 미수정)에서 `/feed.xml`이 HTTP 200, `application/rss+xml; charset=utf-8`, item 0개인 채널(`<link>`·`atom:link`는 `http://localhost:3000`)로 응답했다. 같은 폴더에 dev 서버(3000)가 떠 있으면 Next가 두 번째 서버를 거부해, 3000 서버를 종료한 뒤 확인했다.
   - 제한 사항·미확인: (1) W3C Feed Validation Service는 실행하지 않았다(운영 `https://hkoikoi.dev/feed.xml` 유효성은 배포 뒤 수동 확인 필요). (2) 운영(홈 서버) 반영은 확인하지 않았다: 운영에서 발행·삭제 직후 피드가 갱신되는지, Caddy·Cloudflare가 `/feed.xml`을 캐시하지 않는지 보지 않았다. (3) 이번에 전체 `npx playwright test`는 돌리지 않아 푸터 RSS 링크가 링크 수·이름에 의존하는 `a11y.spec.ts`·`visitor-flow.spec.ts`에 영향이 없는지는 확인하지 않았다. (4) "모든 페이지 `<head>`" 중 홈만 e2e로 확인했다(루트 layout metadata라 같은 값이 들어가는 것으로 추정). (5) 실제 피드 리더(Feedly 등)에서의 구독·표시는 확인하지 않았다. (6) 피드는 최신 20건·소개글만 담고 본문은 넣지 않는다(의도). 소개글이 없는 글은 `description` 없이 나간다. (7) 로컬 `NEXT_PUBLIC_SITE_URL` 미설정이라 절대 URL이 `localhost:3000`이다.
 
-- **Task 027: 편집기 임시저장 자동화**
+- **Task 027: 편집기 임시저장 자동화** ✅ - 완료 2026-11-10 (`beforeunload` 경고와 하단 바 '나가기' 확인창은 e2e·수동 모두 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F020(제안: 편집기 임시저장 자동화), F008, F010
   - 목표: 브라우저 종료·새로고침·네트워크 오류로 작성 중인 글이 사라지지 않게 한다
   - 의존성: Task 021(권장). 스키마 변경 없음(기본안)
   - 관련 파일: `app/admin/posts/_components/{post-editor,autosave-status}.tsx`, `app/admin/posts/_components/use-autosave.ts`(+test), `lib/editor/draft-storage.ts`(+test), `app/admin/posts/actions.ts`, `e2e/admin-autosave.spec.ts`(신규)
   - 수락 기준: 입력이 멈추고 2초 뒤 자동 저장되고 상태("저장 중…"/"자동 저장됨 HH:MM"/"로컬에 보관됨"/"저장 실패")가 표시됨. 새로고침 뒤 저장하지 않은 로컬 사본이 있으면 복원 여부를 묻는다. **발행된 글은 자동 저장으로 초안이 되거나 공개 내용이 바뀌지 않는다.** 저장하지 않은 변경이 있으면 나가기 전에 경고
-  - [ ] 저장 위치 결정·기록: (1) 모든 글: `localStorage` 백업(키 `post-draft:<id|new>`, 필드·저장 시각), 서버 쓰기 없음. (2) id가 있는 초안(`published = false`): 기존 `savePost` 임시 저장 경로로 서버 자동 저장. (3) 발행된 글: 서버 자동 저장 금지, 로컬 백업만(지금의 "임시 저장"은 발행 글을 초안으로 되돌리므로 자동 실행하면 글이 공개에서 내려간다, Task 013 후속 개선 기록). (4) 새 글: 첫 수동 저장 전에는 로컬만(자동 insert는 URL 이동·중복 생성 위험)
-  - [ ] `useAutosave`: 디바운스, 저장이 진행 중이면 끝난 뒤 마지막 값만 다시 저장(경합 방지), 이미지 업로드 중(Task 017 자리표시)에는 보류, 서버 저장 성공 시 로컬 사본 정리
-  - [ ] 충돌 방지: 서버 자동 저장 때 편집 시작 시점의 `updated_at`을 함께 보내 서버 값이 더 새로우면 덮어쓰지 않고 알림(`savePost`에 낙관적 잠금 옵션 추가 여부 결정)
-  - [ ] 복원 UI: 로컬 사본이 서버 `updated_at`보다 새로우면 "저장하지 않은 변경 복원/버리기" 배너
+  - [x] 저장 위치 결정·기록: (1) 모든 글: `localStorage` 백업(키 `post-draft:<id|new>`, 필드·저장 시각), 서버 쓰기 없음. (2) id가 있는 초안(`published = false`): 기존 `savePost` 임시 저장 경로로 서버 자동 저장. (3) 발행된 글: 서버 자동 저장 금지, 로컬 백업만(지금의 "임시 저장"은 발행 글을 초안으로 되돌리므로 자동 실행하면 글이 공개에서 내려간다, Task 013 후속 개선 기록). (4) 새 글: 첫 수동 저장 전에는 로컬만(자동 insert는 URL 이동·중복 생성 위험)
+  - [x] `useAutosave`: 디바운스, 저장이 진행 중이면 끝난 뒤 마지막 값만 다시 저장(경합 방지), 이미지 업로드 중(Task 017 자리표시)에는 보류, 서버 저장 성공 시 로컬 사본 정리
+  - [x] 충돌 방지: 서버 자동 저장 때 편집 시작 시점의 `updated_at`을 함께 보내 서버 값이 더 새로우면 덮어쓰지 않고 알림(`savePost`에 낙관적 잠금 옵션 추가 여부 결정)
+  - [x] 복원 UI: 로컬 사본이 서버 `updated_at`보다 새로우면 "저장하지 않은 변경 복원/버리기" 배너
   - [ ] `beforeunload` 경고와 하단 바 "나가기" 확인
-  - [ ] 비용 점검: 초안 저장도 `invalidatePostTags`로 `posts` 태그를 만료하는 현재 동작이 자동 저장마다 공개 캐시를 비우지 않도록, 초안→초안 저장은 공개 태그 만료를 생략할지 결정
+  - [x] 비용 점검: 초안 저장도 `invalidatePostTags`로 `posts` 태그를 만료하는 현재 동작이 자동 저장마다 공개 캐시를 비우지 않도록, 초안→초안 저장은 공개 태그 만료를 생략할지 결정
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 기존 초안 편집 화면에서 본문 입력 후 3초 대기 → "자동 저장됨", 새로고침 시 입력 유지
     - 정상: Playwright MCP → 새 글에서 입력 후 새로고침 → 복원 배너 → "복원" → 입력값 복원, DB 행 생성 없음
@@ -748,20 +748,22 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → 이미지 업로드 진행 중 → 자동 저장 보류, 완료 뒤 저장(자리표시 텍스트가 저장되지 않음)
     - 엣지: Playwright MCP → 두 탭에서 같은 초안 편집 → 늦게 저장한 탭에 충돌 알림, 덮어쓰기 없음
     - 엣지: `draft-storage.test.ts` → `localStorage` 용량 초과·사용 불가 → 예외 없이 무시
-  - 테스트 결과: (미수행)
+  - 구현 메모(027-5, 2026-11-10): 수동 `savePost`에는 낙관적 잠금(`base_updated_at`)을 추가하지 않기로 했다(명시적 저장은 마지막 쓰기 우선, 기존 동작 유지). 대신 `PostActionState.updatedAt`(선택)을 추가해 기존 글의 임시 저장 성공 뒤 자동 저장의 `updated_at` 기준을 갱신한다. 복원 사본은 `baseUpdatedAt`을 기준으로 삼아 서버가 더 새로우면 충돌로 드러난다. 수동 저장 중에는 자동 저장을 보류한다.
+  - 테스트 결과(2026-11-10): `npx playwright test e2e/admin-autosave.spec.ts` 7개(로그인 setup 포함 8건) 통과: 기존 초안 자동 저장·새로고침 유지, 새 글 복원 배너·복원(서버 호출 0건, 목록에 행 없음), 복원 버리기, 발행 글 로컬 보관(대기 3초 뒤에도 Server Action 0건, 공개 상세 원문 유지, 목록 상태 '초안' 아님), `route.abort` 실패 표시·입력 유지·다음 입력 재시도, 이미지 업로드 중 보류(3초 동안 Server Action 0건)·끝난 뒤 저장·자리표시 텍스트 미저장, 두 탭 충돌 알림과 먼저 저장한 내용 유지. 기존 관리자 e2e(`admin-posts`·`admin-image-upload`·`admin-preview`·`cache-invalidation`) 39개 통과(편집기 통합 직후 실행). `npm run check`(Vitest 48개 파일·467개)·`npm run knip`(종료 코드 0, 기존 설정 힌트 1건)·`npm run build` 통과. 시나리오가 만든 `e2e-auto-` 글은 `afterAll`의 `cleanup`이 지운다. 관리자 계정은 기존 `E2E_ADMIN_*`를 썼고 임시 admin 사용자는 만들지 않았다.
+  - 제한 사항·미확인: (1) `beforeunload` 경고와 하단 바 '나가기' 확인창은 e2e·수동으로 확인하지 않았다(그래서 해당 체크박스는 비워 둔다. e2e는 dialog를 수락하도록 처리). (2) 공개 캐시 태그를 만료하지 않는 동작(초안→초안 저장)은 `actions.test.ts` 단위 테스트로만 확인했고 운영·e2e로는 확인하지 않았다. (3) 충돌 상태는 새로고침 전까지 풀리지 않고, 충돌 뒤 수동 저장은 마지막 쓰기 우선이다. (4) 발행 글에서 '임시 저장'을 누르면 초안이 되는 기존 동작은 그대로이며 그 뒤 `initialPost.published`가 낡아 로컬 백업만 한다. (5) 클라이언트 전환으로 새 글에서 수정 화면으로 가면 이전 라우트의 숨겨진 편집기가 DOM에 남아 같은 id가 둘이 되므로(cacheComponents), e2e 헬퍼는 전체 로드로 한 화면만 남긴다. (6) 모바일·Firefox·WebKit과 운영(홈 서버)에서는 확인하지 않았다. (7) 전체 `npx playwright test`는 이번에 돌리지 않았다.
 
-- **Task 028: `<style>` 글 단위 스코프 변환 구현**
+- **Task 028: `<style>` 글 단위 스코프 변환 구현** ✅ - 완료 2026-11-10 (접두 뒤 `#user-content-` 선택자의 브라우저 매칭, 전체 e2e는 미확인 — `테스트 결과` 참고)
   - 관련 기능: F021(제안: `<style>` 글 단위 스코프 변환), F007
   - 목표: 본문 `<style>` 규칙이 그 글의 본문 컨테이너 안에서만 적용되게 해, 사이트가 쓰는 `post-` 접두 클래스(예: `MarkdownContent`의 `.post-content` 래퍼)나 앞으로 한 화면에 함께 렌더링될 다른 글에 영향을 주지 않게 한다
   - 현재 상태: `lib/markdown/rehype-sanitize-style.ts`가 이미 `.post-`·`#user-content-` 접두 선택자만 남기고 `@` 규칙·중첩 규칙·`~`/`+`/`:has` 등과 `url()`을 제거한다. 남은 위험은 (1) 사이트의 `post-` 접두 클래스와의 충돌, (2) 여러 글 본문을 한 화면에 렌더링할 때 규칙이 서로 새는 것, (3) `position: fixed` 같은 속성(스코프로도 막지 못하며 기존대로 수용)이다
   - 의존성: Task 021(권장). 스키마 변경 없음. Task 016(Shadow DOM 미리보기)과 호환 필요
   - 관련 파일: `lib/markdown/rehype-scope-style.ts`(+test), `lib/markdown/plugins.ts`, `components/markdown/markdown-content.tsx`, `app/(site)/blog/[slug]/page.tsx`, `app/admin/posts/_components/markdown-preview.tsx`, `README.md`(작성 규칙)
   - 수락 기준: 상세와 미리보기에서 `<style>`의 모든 선택자가 글 래퍼 클래스(`.post-scope-<글 id 기반 값>`) 하위로 바뀌고, 본문 밖 요소(헤더·푸터·`.post-content` 등 사이트 클래스)에 매칭되지 않음. 기존 글의 본문 안 스타일 결과는 같음
-  - [ ] 방식 결정·기록: (a) 선택자 접두 변환(sanitize-style 다음 단계에서 `.post-box` → `.post-scope-x .post-box`, 모든 브라우저에서 동작) — 기본안. (b) CSS `@scope` 래핑 — 방문자 브라우저 지원을 확인해야 하고, 지금 sanitize-style이 `@` 규칙을 모두 지우므로 정책 변경이 필요해 보류
-  - [ ] 플러그인 순서: remark-gfm/remark-math → rehype-raw → rehype-sanitize → rehype-sanitize-style → **rehype-scope-style** → rehype-katex → rehype-highlight. scope 값은 `MarkdownContent`의 prop(`scopeId`)으로 받고 래퍼에 같은 클래스를 붙임(sanitize 뒤에 붙이므로 class 허용 규칙과 무관)
-  - [ ] `scopeId`: 글 id 기반(슬러그 변경에도 안정). 미리보기는 Shadow DOM 안이라 고정 값 사용
-  - [ ] 선택적 확장(별도 결정): 스코프가 생기면 요소 선택자(`h2`, `table` 등)를 스코프 아래에서 허용할 수 있다. 작성은 쉬워지지만 sanitize-style 허용 규칙을 바꿔야 하므로 기본은 기존 제한 유지
-  - [ ] README의 `<style>` 작성 규칙 갱신, PRD 트레이드오프 문구 갱신 필요 여부를 사용자에게 보고(PRD는 사용자 결정 후 수정)
+  - [x] 방식 결정·기록: (a) 선택자 접두 변환(sanitize-style 다음 단계에서 `.post-box` → `.post-scope-x .post-box`, 모든 브라우저에서 동작) — 기본안. (b) CSS `@scope` 래핑 — 방문자 브라우저 지원을 확인해야 하고, 지금 sanitize-style이 `@` 규칙을 모두 지우므로 정책 변경이 필요해 보류
+  - [x] 플러그인 순서: remark-gfm/remark-math → rehype-raw → rehype-sanitize → rehype-sanitize-style → **rehype-scope-style** → rehype-katex → rehype-highlight. scope 값은 `MarkdownContent`의 prop(`scopeId`)으로 받고 래퍼에 같은 클래스를 붙임(sanitize 뒤에 붙이므로 class 허용 규칙과 무관)
+  - [x] `scopeId`: 글 id 기반(슬러그 변경에도 안정). 미리보기는 Shadow DOM 안이라 고정 값 사용
+  - [x] 선택적 확장(별도 결정): **미채택, 기존 제한 유지**(2026-11-10 결정). 스코프가 생기면 요소 선택자(`h2`, `table` 등)를 스코프 아래에서 허용할 수 있다. 작성은 쉬워지지만 sanitize-style 허용 규칙을 바꿔야 하므로 기본은 기존 제한 유지
+  - [x] README의 `<style>` 작성 규칙 갱신, PRD 트레이드오프 문구 갱신 필요 여부를 사용자에게 보고(PRD는 사용자 결정 후 수정)
   - 테스트 체크리스트:
     - 정상: `rehype-scope-style.test.ts` → `.post-box{color:red}` + scopeId `abc` → `.post-scope-abc .post-box{color:red}`, 선택자 목록(`.post-a, .post-b`)은 각각 접두
     - 정상: Playwright MCP → `<style>.post-box{color:red}</style><div class="post-box">x</div>` 발행 글(시드 `e2e-scope-`) → 본문 div가 빨간색
@@ -769,7 +771,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: `rehype-scope-style.test.ts` → 빈 규칙·주석·sanitize-style이 이미 지운 규칙 → 예외 없이 처리
     - 엣지: 단위 테스트 → `#user-content-intro` 선택자 → 접두 뒤에도 본문 요소에 매칭
     - 엣지: 터미널 → `npx playwright test e2e/admin-preview.spec.ts` → Shadow DOM 미리보기 결과와 편집기 UI 격리 유지
-  - 테스트 결과: (미수행)
+  - 결정 기록: (a) 선택자 접두 변환을 채택했다. (b) `@scope`는 sanitize-style이 `@` 규칙을 모두 지워 정책 변경이 필요하고 방문자 브라우저 지원도 확인하지 못해 보류했다. `scopeCss`는 `@` 규칙을 남기지 않고 버린다. 선택적 확장(스코프 아래 요소 선택자 허용)은 하지 않고 기존 제한을 유지했다.
+  - 테스트 결과(2026-11-10):
+    - 단위: `npx vitest run lib/markdown`·`components/markdown` 통과(`.post-box`→`.post-scope-abc .post-box`, 선택자 목록 각각 접두, `#user-content-intro` 접두, 빈 입력·빈 prelude·주석·`@import;`·`@media`·닫히지 않은 블록, 정규화, uuid, 플러그인 순서·`{ scopeId }` 전달, 래퍼 클래스, `.post-content` 규칙이 래퍼에 매칭되지 않음). 접두 뒤 `#user-content-intro`가 실제 요소에 매칭되는지는 브라우저에서 확인하지 않았고 접두 결과만 단위 테스트로 확인했다.
+    - e2e: `npx playwright test e2e/post-style-scope.spec.ts e2e/admin-preview.spec.ts` 7개 통과(10.4초). 새 spec은 Playwright MCP 대신 spec 파일로 `e2e-scope-` 발행 글의 `.post-box`가 `rgb(255, 0, 0)`이고 `.post-content{display:none}`이 있어도 래퍼가 보임을 확인하며, 미리보기 격리 6개는 그대로 통과했다. 전체 e2e는 로그인 횟수 제한 때문에 돌리지 않았다.
+    - 게이트: `npm run check`(Vitest 49 파일 / 482개)·`npm run build`·`npm run knip` 통과(knip은 기존 `@testing-library/user-event` 설정 힌트 1건 출력).
+    - PRD: 289행 "스코프 변환은 MVP 밖"과 75행 "`<style>`의 글 단위 스코프 변환"(MVP 제외 목록)은 이번 구현과 어긋나 갱신이 필요해 보이며, 수정하지 않고 사용자에게 보고했다.
 
 - **Task 029: 스토리지 고아 이미지 정리 도구 구축**
   - 관련 기능: F022(제안: 스토리지 고아 이미지 정리), F009
@@ -778,13 +785,13 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 의존성: Task 021(권장). **정책(스키마) 변경 있음**
   - 관련 파일: `supabase/migrations/<timestamp>_blog_images_admin_select.sql`, `lib/storage/extract-image-paths.ts`(+test), `lib/storage/find-orphans.ts`(+test), `app/admin/storage/page.tsx`(신규), `app/admin/storage/actions.ts`(신규), `app/admin/_components/admin-nav.tsx`, `docs/guides/rls-verification.md`(점검 항목 추가 대상), `e2e/admin-storage.spec.ts`(신규)
   - 수락 기준: 관리자 전용 `/admin/storage`에서 고아 후보(경로·크기·업로드 시각) 목록을 보고 선택 삭제할 수 있고, 참조 중인 이미지와 유예 기간(기본 7일) 이내 객체는 후보에서 빠짐. anon·비관리자는 여전히 객체 목록을 볼 수 없고 공개 URL 접근은 그대로. 기본 동작은 목록만 보여 주는 드라이런
-  - [ ] 권한 경로 결정·기록: (a) **관리자만** SELECT할 수 있는 정책 추가(`bucket_id = 'blog-images' and (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'`) — 기본안. anon list 차단은 유지되고 service role 키가 필요 없다. (b) 서버 전용 service role 키로 Route Handler·cron에서 삭제 — 운영 환경에 강한 비밀을 새로 두게 되어 제외(이 프로젝트는 service role 키를 쓰지 않는다)
-  - [ ] 마이그레이션 적용 뒤 RLS 읽기 전용 점검(`docs/guides/rls-verification.md`: anon objs 0, `user_metadata.role='admin'` 위조 0, 정책의 `user_metadata` 참조 0)과 `get_advisors`
-  - [ ] 참조 수집: 모든 글(초안 포함, `lib/queries/admin-posts.ts` 계열)의 `content`에서 `…/storage/v1/object/public/blog-images/<path>`를 추출(마크다운 이미지·raw HTML `img src`, URL 인코딩 처리)하고 `thumbnail_url`과 합친 집합. 순수 함수 + 단위 테스트
-  - [ ] 객체 목록: Storage API `list`(연/월 폴더 순회, 페이지 단위) → 참조 집합과의 차집합 → 유예 기간 필터(편집 중 업로드했지만 아직 저장하지 않은 이미지 보호)
-  - [ ] 삭제 Server Action: `requireAdmin()` → **삭제 직전에 참조를 다시 검사** → Storage API `remove`(배치 상한) → 결과 요약. 되돌릴 수 없음을 확인 대화상자로 안내
-  - [ ] 초기 정리: 누적된 e2e 테스트 이미지(70바이트, Task 017 시점 71건 + 이후 실행분)와 운영 검증 이미지 정리. 완료 후 CLAUDE.md "알려진 예외", ROADMAP "알려진 트레이드오프"의 고아 파일 항목 갱신
-  - [ ] (선택) e2e가 자기 업로드를 `afterAll`에서 삭제하도록 변경, 글 삭제 때 그 글만 참조하던 이미지 삭제 제안
+  - [x] 권한 경로 결정·기록: (a) **관리자만** SELECT할 수 있는 정책 추가(`bucket_id = 'blog-images' and (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'`) — 기본안. anon list 차단은 유지되고 service role 키가 필요 없다. (b) 서버 전용 service role 키로 Route Handler·cron에서 삭제 — 운영 환경에 강한 비밀을 새로 두게 되어 제외(이 프로젝트는 service role 키를 쓰지 않는다)
+  - [x] 마이그레이션 적용 뒤 RLS 읽기 전용 점검(`docs/guides/rls-verification.md`: anon objs 0, `user_metadata.role='admin'` 위조 0, 정책의 `user_metadata` 참조 0)과 `get_advisors`
+  - [x] 참조 수집: 모든 글(초안 포함, `lib/queries/admin-posts.ts` 계열)의 `content`에서 `…/storage/v1/object/public/blog-images/<path>`를 추출(마크다운 이미지·raw HTML `img src`, URL 인코딩 처리)하고 `thumbnail_url`과 합친 집합. 순수 함수 + 단위 테스트
+  - [x] 객체 목록: Storage API `list`(연/월 폴더 순회, 페이지 단위) → 참조 집합과의 차집합 → 유예 기간 필터(편집 중 업로드했지만 아직 저장하지 않은 이미지 보호)
+  - [x] 삭제 Server Action: `requireAdmin()` → **삭제 직전에 참조를 다시 검사** → Storage API `remove`(배치 상한) → 결과 요약. 되돌릴 수 없음을 확인 대화상자로 안내
+  - [ ] 초기 정리(보류, 2026-11-10 사용자 결정: 문서만 갱신): 누적된 e2e 테스트 이미지(70바이트, Task 017 시점 71건 + 이후 실행분)와 운영 검증 이미지 정리. 완료 후 CLAUDE.md "알려진 예외", ROADMAP "알려진 트레이드오프"의 고아 파일 항목 갱신
+  - [ ] (선택, 이번 범위 제외) e2e가 자기 업로드를 `afterAll`에서 삭제하도록 변경, 글 삭제 때 그 글만 참조하던 이미지 삭제 제안
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 관리자로 `/admin/storage` → 고아 후보 목록, 참조 중인 썸네일·본문 이미지는 없음
     - 정상: Playwright MCP → 후보 1건 선택 삭제 → 목록에서 사라지고 공개 URL이 더는 이미지를 반환하지 않음
@@ -793,7 +800,10 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: 삭제 직전에 그 이미지를 다른 글에 넣고 저장(경합 재현, 수동 확인) → 서버 재검사로 삭제 건너뜀
     - 엣지: `extract-image-paths.test.ts` → URL 인코딩 경로, 쿼리스트링이 붙은 URL, 다른 버킷·외부 도메인 URL → 올바르게 포함·제외
     - 엣지: Playwright MCP → 방금 업로드하고 저장하지 않은 이미지 → 유예 기간 때문에 후보 아님
-  - 테스트 결과: (미수행)
+  - 구현 메모(2026-11-10): `lib/storage/`에 `extract-image-paths.ts`·`find-orphans.ts`(순수), `storage-adapter.ts`(목록·삭제), `load-orphan-candidates.ts`, `lib/queries/admin-posts.ts`의 `getAdminPostReferences()`(실패 시 null로 빈 목록과 구분), `app/admin/storage/`(`page.tsx`, `actions.ts`의 `deleteOrphans`, `_components/orphan-list.tsx`)와 admin 메뉴 '스토리지'. 삭제 결과에는 명세의 필드 외에 `skippedMissing`을 더했다.
+  - 제외한 선택 항목: e2e `afterAll` 삭제와 글 삭제 시 단독 참조 이미지 삭제 제안은 구현하지 않았다. 유예 기간이 방금 올린 파일을 보호해 UI로 지울 수 없고, 유예를 우회하면 서버 재검사 보호가 약해지기 때문이다.
+  - 테스트 결과: 2026-11-10 `npm run check`(526개 테스트), `npm run build`, `npm run knip`(미사용 항목 없음, 기존 설정 hint 1건) 통과. `npx playwright test e2e/admin-storage.spec.ts e2e/access-control.spec.ts` 통과(admin-storage 4건 통과·1건 skip). 확인한 시나리오: 비로그인 `/admin/storage` → `/auth/login`, 관리자 목록·빈 상태 표시, 초안이 참조하는 방금 올린 이미지는 후보 아님, 단위 테스트로 삭제 직전 재검사(참조 조회를 두 번째 호출에서 바꿔 모킹)·참조 조회 실패 시 무삭제·remove 일부 실패 요약.
+  - 제한 사항·미확인: 운영 `blog-images` 121개가 모두 업로드 7일 이내(가장 오래된 것 2026-11-05)라 후보가 0건이었다. 그래서 후보 선택 e2e(1건 skip), 실제 삭제와 공개 URL 비반환 확인, 삭제 직전 경합 재현(수동)은 수행하지 못했다. e2e는 운영 스토리지를 실제로 지우지 않는다. 2026-11-12 이후 후보가 생기면 목록을 확인하고 승인받아 UI로 삭제한 뒤 '초기 정리' 항목과 위 미확인 항목을 갱신한다.
 
 - **Task 030: 블로그 글 조회수 집계 구현**
   - 관련 기능: F023(제안: 글 조회수), F006
@@ -822,7 +832,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 의존성: Task 021(권장). 방식에 따라 스키마 변경 여부가 달라짐(기본안은 변경 없음). **방식은 시작 전에 사용자 결정 필요**
   - 관련 파일: `components/blog/comments.tsx`(신규, Client), `app/(site)/blog/[slug]/page.tsx`, `lib/site-config.ts`(설정값), `next.config.ts`(CSP 확인)
   - 수락 기준: 발행 글 상세 하단에서 댓글을 읽고 쓸 수 있고, 라이트/다크 테마가 사이트와 맞춰지며, 댓글 영역은 화면에 들어올 때만 로드되어 상세 Lighthouse(모바일) 성능 90 이상 유지. 슬러그를 바꿔도 기존 댓글이 같은 글에 남음
-  - [ ] 방식 결정·기록: (a) **Giscus(GitHub Discussions)** — 기본안. DB·스팸 방지·모더레이션을 GitHub에 맡기고 회원가입 차단 정책과 충돌하지 않는다. 댓글을 쓰려면 GitHub 계정이 필요하다. (b) Supabase 자체 댓글 테이블 — 익명 작성이면 스팸 대책(CAPTCHA)·모더레이션 UI·개인정보(이메일·닉네임) 처리 부담이 크고, 회원가입을 열어야 하면 현재 인증 정책과 충돌한다. (c) Disqus 등 — 광고·추적 때문에 제외
+  - [x] 방식 결정·기록: (a) **Giscus(GitHub Discussions)** — 기본안. DB·스팸 방지·모더레이션을 GitHub에 맡기고 회원가입 차단 정책과 충돌하지 않는다. 댓글을 쓰려면 GitHub 계정이 필요하다. (b) Supabase 자체 댓글 테이블 — 익명 작성이면 스팸 대책(CAPTCHA)·모더레이션 UI·개인정보(이메일·닉네임) 처리 부담이 크고, 회원가입을 열어야 하면 현재 인증 정책과 충돌한다. (c) Disqus 등 — 광고·추적 때문에 제외
   - [ ] (a 채택 시, 사용자 수동 작업) 저장소 Discussions 활성화, giscus 앱 설치, 댓글용 카테고리 생성
   - [ ] 매핑은 `data-mapping="specific"` + `data-term=<글 id>`(pathname 매핑은 슬러그를 바꾸면 끊긴다)
   - [ ] `Comments`(Client): `IntersectionObserver`로 지연 로드, `next-themes` 테마가 바뀌면 iframe에 `postMessage`로 전달, 로드 실패 시 안내 문구. 초안·없는 글에는 렌더링하지 않음
@@ -1135,13 +1145,13 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
 
 ## 알려진 트레이드오프 (PRD 반영)
 
-- `<style>` 허용으로 글 CSS가 해당 페이지 전체에 영향 가능(작성자 1인이라 수용, 스코프 변환은 MVP 밖 → Post-MVP Task 028). 편집기 미리보기만 격리(Task 016).
+- `<style>` 허용으로 글 CSS가 해당 페이지 전체에 영향 가능(작성자 1인이라 수용, 선택자 접두 스코프 변환은 Task 028에서 구현). 편집기 미리보기만 격리(Task 016).
   - 2026-10-28 보완: `lib/markdown/rehype-sanitize-style.ts`가 sanitize 뒤 `<style>` 내용을 검사해 `.post-`·`#user-content-` 접두가 아닌 규칙, `@` 규칙(@import 포함), 중첩 규칙, 범위 이탈 선택자(`~`, `+`, `:has` 등), `url()`·`image-set()` 선언을 제거한다(단위 테스트 13개). `.post-` 요소 자체의 `position:fixed` 같은 속성은 막지 않으며 작성자 1인이라 수용한다.
 - 보안 헤더(2026-10-28 결정): `next.config.ts`에 `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, CSP(`object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`)를 둔다. nonce 기반 CSP는 전 페이지 동적 렌더링이 필요해 `cacheComponents`와 맞지 않고 `script-src 'unsafe-inline'`은 이득이 작으며, 본문이 임의 외부 이미지를 쓰므로 `script-src`·`style-src`·`img-src`는 두지 않는다. dev 서버 응답 헤더와 visitor-flow·admin-preview e2e 통과로 확인했다(KaTeX·next-themes 동작은 admin-preview 수식 렌더링 e2e로만 확인).
 - 스타일 변조(`position:fixed` 오버레이, `url()` 외부 요청) 가능성은 관리자 계정 보호(강한 비밀번호·MFA)로 완화(Task 011).
 - 없는 글은 soft 404(HTTP 200 + noindex)로 응답(Task 018).
 - 관리자 role 회수 후에도 기존 JWT는 만료 전까지 유효(RLS 동일). 역할 변경 후 재로그인 필요(Task 011).
-- 스토리지 고아 파일은 정리하지 않음(Task 017). 정리 도구는 Post-MVP Task 029에서 다룬다.
+- 스토리지 고아 파일은 자동으로 지우지 않고 관리자가 `/admin/storage`에서 확인한 뒤 지운다(Task 029). 유예 7일 이내와 참조 중인 파일은 지울 수 없다. 초기 누적분 정리는 유예가 지난 뒤로 보류했다.
 - 로그인 시도 횟수 제한은 Supabase Auth 기본 레이트 리밋(`/auth/v1/token`, IP당 5분 150회·burst 30, 공식 문서 기준)에 의존하고 앱 코드의 제한·CAPTCHA는 없다(관리자 1인, 최소 비밀번호 12자·가입 차단으로 완화, 2026-10-28 사용자 결정으로 수용). 이 프로젝트의 실제 설정값은 2026-10-28 사용자가 대시보드 Authentication > Rate Limits에서 확인했다(가입·로그인 30, 토큰 150, 기본값에서 변경 없음). 서버에서 호출할 때 Supabase가 보는 IP도 미확인이다. Turnstile CAPTCHA는 `login` 액션에 `captchaToken` 전달이 필요하고 Password Verification Attempt hook은 Teams 이상 플랜 전용이라 도입하지 않았다.
 - 관리자 레이아웃 헤더는 `AdminGuard` 바깥(정적 셸)에 둔다. 로그인한 비관리자에게 `notFound()` 전환 전 잠깐 보일 수 있으나 노출되는 것은 공개 상수와 링크뿐이고, 가드 안으로 옮기면 모든 `/admin` 진입에서 빈 화면이 생겨 현상 유지로 결정(2026-10-28 사용자 결정).
 - Supabase advisor 보안 경고 `auth_leaked_password_protection`(유출 비밀번호 보호)은 Pro 플랜 전용이라 예외로 수용. 완화책: 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수(Task 010, 011).

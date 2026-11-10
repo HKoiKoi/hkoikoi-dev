@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const items = [
   { href: "/admin/posts", label: "글 관리" },
   { href: "/admin/posts/new", label: "새 글" },
+  { href: "/admin/storage", label: "스토리지" },
 ];
 
 // 관리자 헤더 메뉴. "글 관리"는 새 글·수정 하위 경로에서도 활성으로 보되,
