@@ -7,7 +7,7 @@
 
 | 항목                | 버전 / 설정                                                                        |
 | ------------------- | ---------------------------------------------------------------------------------- |
-| Next.js             | 16.4.3 설치 (`package.json`은 `latest`). App Router 전용, Turbopack 기본           |
+| Next.js             | 16.4.6 설치 (`package.json`은 `^16.4.6`). App Router 전용, Turbopack 기본          |
 | React               | 19.3                                                                               |
 | Node.js             | 20.9 이상 (필수), `.nvmrc`는 24                                                    |
 | TypeScript          | 5, `strict`                                                                        |

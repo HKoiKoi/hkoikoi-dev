@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-`AGENTS.md`에 명시된 대로, 이 프로젝트의 Next.js(16.x, `package.json`은 `latest`)는 학습 데이터와 다르다. 코드를 작성하기 전에 `node_modules/next/dist/docs/`의 관련 문서를 먼저 확인하고 deprecation 안내를 따른다.
+`AGENTS.md`에 명시된 대로, 이 프로젝트의 Next.js(16.x, `package.json`은 `^16.4.6`)는 학습 데이터와 다르다. 코드를 작성하기 전에 `node_modules/next/dist/docs/`의 관련 문서를 먼저 확인하고 deprecation 안내를 따른다.
 
 ## 프로젝트
 
