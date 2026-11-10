@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import Markdown from "react-markdown";
 import { describe, expect, it } from "vitest";
 
-import { rehypePlugins, remarkPlugins } from "./plugins";
+import { createRehypePlugins, remarkPlugins } from "./plugins";
 import { sanitizeStyleCss } from "./rehype-sanitize-style";
 
 describe("sanitizeStyleCss", () => {
@@ -80,7 +80,10 @@ describe("sanitizeStyleCss", () => {
 describe("마크다운 파이프라인", () => {
   it("본문 <style>의 악성 규칙만 제거하고 정상 규칙과 본문을 유지한다", () => {
     const html = renderToStaticMarkup(
-      <Markdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>
+      <Markdown
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={createRehypePlugins("t")}
+      >
         {
           '<style>@import url(x.css);body{display:none}.post-a{color:red}</style>\n\n<p class="post-a">본문</p>'
         }
@@ -90,5 +93,18 @@ describe("마크다운 파이프라인", () => {
     expect(html).not.toContain("@import");
     expect(html).not.toContain("body");
     expect(html).toContain("본문");
+  });
+
+  it("scope-style이 통과한 규칙에 scopeId 접두를 붙인다", () => {
+    const html = renderToStaticMarkup(
+      <Markdown
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={createRehypePlugins("abc")}
+      >
+        {"<style>body{display:none}.post-a{color:red}</style>"}
+      </Markdown>,
+    );
+    expect(html).toContain(".post-scope-abc .post-a { color: red }");
+    expect(html).not.toContain("body");
   });
 });
