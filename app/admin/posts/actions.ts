@@ -7,7 +7,11 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { parsePostFormData } from "@/lib/posts/form-data";
 import { resolvePublishedAt } from "@/lib/posts/published-at";
-import { postSchema, type PostActionState } from "@/lib/schemas/post";
+import {
+  postSchema,
+  type AutosaveResult,
+  type PostActionState,
+} from "@/lib/schemas/post";
 import { createClient } from "@/lib/supabase/server";
 import type { PostInput } from "@/lib/types/post";
 
@@ -55,6 +59,8 @@ export async function savePost(
   let createdId: string | null = null;
   // 무효화할 슬러그: 새 슬러그와(수정이면) 변경 전 슬러그
   const staleSlugs: string[] = [parsed.data.slug];
+  // 기존 글 저장 뒤 새 updated_at (자동 저장의 낙관적 잠금 기준 갱신용)
+  let savedUpdatedAt: string | undefined;
 
   try {
     // 요청마다 새 클라이언트를 만든다.
@@ -88,12 +94,13 @@ export async function savePost(
           ),
         })
         .eq("id", id)
-        .select("id")
+        .select("id, updated_at")
         .maybeSingle();
 
       error = updateError;
       // 영향 행이 0이면(삭제 직후·RLS 거부) 성공으로 보지 않는다.
       if (!error && !updated) return { ok: false, message: NOT_FOUND };
+      savedUpdatedAt = updated?.updated_at;
     } else {
       const payload: PostInput = parsed.data;
       const result = await supabase
@@ -134,10 +141,123 @@ export async function savePost(
   if (!parsed.data.published) {
     // redirect는 예외를 던지므로 try/catch 밖에서 호출한다.
     if (createdId) redirect(`/admin/posts/${createdId}/edit`);
-    return { ok: true, message: DRAFT_SAVED };
+    return savedUpdatedAt
+      ? { ok: true, message: DRAFT_SAVED, updatedAt: savedUpdatedAt }
+      : { ok: true, message: DRAFT_SAVED };
   }
 
   redirect("/admin/posts");
+}
+
+/**
+ * 초안 자동 저장. 발행된 글은 서버에 쓰지 않고(로컬 백업만), updated_at 낙관적 잠금으로
+ * 다른 탭·기기에서 먼저 저장한 내용을 덮어쓰지 않는다. redirect는 하지 않는다.
+ */
+export async function autosaveDraft(
+  id: string,
+  formData: FormData,
+  baseUpdatedAt: string,
+): Promise<AutosaveResult> {
+  await requireAdmin();
+
+  if (!z.uuid().safeParse(id).success) {
+    return { ok: false, reason: "not_found", message: NOT_FOUND };
+  }
+  if (typeof baseUpdatedAt !== "string" || baseUpdatedAt.length === 0) {
+    return {
+      ok: false,
+      reason: "invalid",
+      message: "저장 기준 시각이 없습니다.",
+    };
+  }
+
+  // 자동 저장은 어떤 경우에도 발행 상태를 바꾸지 않는다.
+  const { values } = parsePostFormData(formData);
+  const parsed = postSchema.safeParse({ ...values, published: false });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      reason: "invalid",
+      message: "입력값을 확인해 주세요.",
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+    };
+  }
+
+  const staleSlugs: string[] = [parsed.data.slug];
+  let wasPublishedBefore = false;
+  let updatedAt: string;
+
+  try {
+    const supabase = await createClient();
+
+    const { data: existing, error: readError } = await supabase
+      .from("posts")
+      .select("published, published_at, slug")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (readError) {
+      console.error("[autosaveDraft:read]", readError.message);
+      return { ok: false, reason: "failed", message: SAVE_FAILED };
+    }
+    if (!existing) {
+      return { ok: false, reason: "not_found", message: NOT_FOUND };
+    }
+    if (existing.published) {
+      return {
+        ok: false,
+        reason: "published",
+        message: "발행된 글은 자동 저장하지 않습니다.",
+      };
+    }
+    staleSlugs.push(existing.slug);
+    wasPublishedBefore = existing.published_at !== null;
+
+    const payload: PostInput = parsed.data;
+    const { data: updated, error: updateError } = await supabase
+      .from("posts")
+      .update({ ...payload, published: false })
+      .eq("id", id)
+      .eq("updated_at", baseUpdatedAt)
+      .select("updated_at")
+      .maybeSingle();
+
+    if (updateError) {
+      if (updateError.code === UNIQUE_VIOLATION) {
+        return {
+          ok: false,
+          reason: "invalid",
+          message: "입력값을 확인해 주세요.",
+          fieldErrors: { slug: ["이미 사용 중인 슬러그입니다"] },
+        };
+      }
+      console.error("[autosaveDraft]", updateError.code, updateError.message);
+      return { ok: false, reason: "failed", message: SAVE_FAILED };
+    }
+    // 읽을 때는 있었는데 updated_at 조건에서 0행이면 그 사이 다른 곳에서 저장한 것이다.
+    if (!updated) {
+      return {
+        ok: false,
+        reason: "conflict",
+        message: "다른 곳에서 이 글이 수정되었습니다.",
+      };
+    }
+    updatedAt = updated.updated_at;
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error("[autosaveDraft]", error);
+    return { ok: false, reason: "failed", message: SAVE_FAILED };
+  }
+
+  if (wasPublishedBefore) {
+    // 발행됐다 초안으로 돌아온 글은 공개 캐시에 남은 흔적이 있을 수 있어 만료한다.
+    invalidatePostTags(staleSlugs);
+  } else {
+    // 한 번도 발행되지 않은 초안은 공개 화면에 영향이 없다.
+    revalidatePath("/admin/posts");
+  }
+
+  return { ok: true, updatedAt };
 }
 
 export async function deletePost(

@@ -22,7 +22,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-import { deletePost, savePost } from "./actions";
+import { autosaveDraft, deletePost, savePost } from "./actions";
 
 const POST_ID = "123e4567-e89b-42d3-a456-426614174000";
 const EXISTING_PUBLISHED_AT = "2026-01-01T00:00:00.000Z";
@@ -65,16 +65,17 @@ function mockPostsTable(results: {
         ),
     }),
   }));
-  const update = vi.fn(() => ({
-    eq: () => ({
-      select: () => ({
-        maybeSingle: () =>
-          Promise.resolve(
-            results.update ?? { data: { id: POST_ID }, error: null },
-          ),
-      }),
+  // eq는 여러 번 이어 붙일 수 있다(낙관적 잠금의 updated_at 조건).
+  const updateChain = {
+    eq: () => updateChain,
+    select: () => ({
+      maybeSingle: () =>
+        Promise.resolve(
+          results.update ?? { data: { id: POST_ID }, error: null },
+        ),
     }),
-  }));
+  };
+  const update = vi.fn(() => updateChain);
   const deleteRows = vi.fn(() => ({
     eq: () => ({
       select: () =>
@@ -357,5 +358,139 @@ describe("deletePost", () => {
     expect(result.ok).toBe(false);
     expect(revalidatePathMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("autosaveDraft", () => {
+  const BASE = "2026-02-01T00:00:00+00:00";
+  const NEXT = "2026-02-01T00:00:05+00:00";
+  const draftRow = (overrides: Record<string, unknown> = {}) => ({
+    data: {
+      published: false,
+      published_at: null,
+      slug: "old-slug",
+      ...overrides,
+    },
+    error: null,
+  });
+
+  it("발행된 글은 거절하고 update를 호출하지 않는다", async () => {
+    const { update } = mockPostsTable({
+      existing: draftRow({
+        published: true,
+        published_at: EXISTING_PUBLISHED_AT,
+      }),
+    });
+
+    const result = await autosaveDraft(POST_ID, buildFormData(), BASE);
+
+    expect(result).toMatchObject({ ok: false, reason: "published" });
+    expect(update).not.toHaveBeenCalled();
+    expect(updateTagMock).not.toHaveBeenCalled();
+  });
+
+  it("updated_at이 달라 0행이면 conflict를 반환한다", async () => {
+    mockPostsTable({
+      existing: draftRow(),
+      update: { data: null, error: null },
+    });
+
+    const result = await autosaveDraft(POST_ID, buildFormData(), BASE);
+
+    expect(result).toMatchObject({ ok: false, reason: "conflict" });
+    expect(updateTagMock).not.toHaveBeenCalled();
+  });
+
+  it("성공하면 새 updatedAt을 반환하고 posts 태그는 만료하지 않는다", async () => {
+    const { update } = mockPostsTable({
+      existing: draftRow(),
+      update: { data: { updated_at: NEXT }, error: null },
+    });
+
+    const result = await autosaveDraft(POST_ID, buildFormData(), BASE);
+
+    expect(result).toEqual({ ok: true, updatedAt: NEXT });
+    // 폼에 published가 켜져 있어도 항상 초안으로 저장한다.
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ published: false, slug: "test-post" }),
+    );
+    expect(updateTagMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).toHaveBeenCalledWith("/admin/posts");
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("발행 이력이 있는 초안은 이전·새 슬러그 태그를 만료한다", async () => {
+    mockPostsTable({
+      existing: draftRow({ published_at: EXISTING_PUBLISHED_AT }),
+      update: { data: { updated_at: NEXT }, error: null },
+    });
+
+    const result = await autosaveDraft(POST_ID, buildFormData(), BASE);
+
+    expect(result.ok).toBe(true);
+    expect(updateTagMock).toHaveBeenCalledWith("posts");
+    expect(updateTagMock).toHaveBeenCalledWith("post:test-post");
+    expect(updateTagMock).toHaveBeenCalledWith("post:old-slug");
+  });
+
+  it("슬러그가 중복(23505)이면 slug 필드 오류를 반환한다", async () => {
+    mockPostsTable({
+      existing: draftRow(),
+      update: { error: { code: "23505", message: "duplicate key" } },
+    });
+
+    const result = await autosaveDraft(POST_ID, buildFormData(), BASE);
+
+    expect(result).toEqual({
+      ok: false,
+      reason: "invalid",
+      message: "입력값을 확인해 주세요.",
+      fieldErrors: { slug: ["이미 사용 중인 슬러그입니다"] },
+    });
+  });
+
+  it("검증에 실패하면 DB를 호출하지 않는다", async () => {
+    const result = await autosaveDraft(
+      POST_ID,
+      buildFormData({ title: "" }),
+      BASE,
+    );
+
+    expect(result).toMatchObject({ ok: false, reason: "invalid" });
+    expect(createClientMock).not.toHaveBeenCalled();
+  });
+
+  it("id가 uuid가 아니거나 기준 시각이 비면 DB를 호출하지 않는다", async () => {
+    expect(await autosaveDraft("x", buildFormData(), BASE)).toMatchObject({
+      reason: "not_found",
+    });
+    expect(await autosaveDraft(POST_ID, buildFormData(), "")).toMatchObject({
+      reason: "invalid",
+    });
+    expect(createClientMock).not.toHaveBeenCalled();
+  });
+
+  it("글이 없으면 not_found, DB 오류는 failed로 원문을 숨긴다", async () => {
+    mockPostsTable({ existing: { data: null, error: null } });
+    expect(await autosaveDraft(POST_ID, buildFormData(), BASE)).toMatchObject({
+      reason: "not_found",
+    });
+
+    mockPostsTable({
+      existing: draftRow(),
+      update: { error: { code: "XX000", message: "secret internal detail" } },
+    });
+    const result = await autosaveDraft(POST_ID, buildFormData(), BASE);
+    expect(result).toMatchObject({ ok: false, reason: "failed" });
+    expect(JSON.stringify(result)).not.toContain("secret");
+  });
+
+  it("requireAdmin이 거부하면 이후 로직을 실행하지 않는다", async () => {
+    requireAdminMock.mockRejectedValue(new Error("NEXT_REDIRECT:/auth/login"));
+
+    await expect(autosaveDraft(POST_ID, buildFormData(), BASE)).rejects.toThrow(
+      "NEXT_REDIRECT:/auth/login",
+    );
+    expect(createClientMock).not.toHaveBeenCalled();
   });
 });
