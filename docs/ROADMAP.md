@@ -688,13 +688,13 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 의존성: Task 023(URL 상태), Task 024(검색 결과 페이지네이션). **스키마 변경 있음**
   - 관련 파일: `supabase/migrations/<timestamp>_add_posts_search.sql`, `lib/supabase/database.types.ts`(재생성), `lib/queries/posts.ts`(`searchPosts`), `lib/posts/list-params.ts`, `app/(site)/blog/_components/search-form.tsx`(신규), `app/(site)/blog/page.tsx`, `e2e/blog-search.spec.ts`(신규)
   - 수락 기준: `/blog?q=키워드`가 발행 글 중 부분 일치 결과를 최신순으로 보여 주고 필터·페이지와 AND로 결합. 한글 부분 문자열(예: "캐시" → "캐시무효화")이 검색됨. 초안은 결과에 없고 `%`·`_`·`,`·`(`·따옴표 입력이 오류나 필터 주입을 일으키지 않음
-  - [ ] 방식 결정·기록: Postgres 전문 검색(`to_tsvector('simple')`)은 한국어를 형태소로 나누지 못해 부분 문자열 검색이 안 되므로, `pg_trgm` + GIN trigram 인덱스(`title`, `excerpt`, 선택 `content`) + `ilike`를 기본안으로 한다. 외부 검색 서비스(Algolia 등)는 비용·의존성 대비 이득이 작아 제외
-  - [ ] 마이그레이션: `create extension if not exists pg_trgm with schema extensions`, trigram 인덱스, 검색 RPC `search_published_posts(q text, p_category text, p_tag text, p_limit int, p_offset int)`(`security invoker`, `set search_path = ''`, 내부에서 `published = true`, `like` 와일드카드 이스케이프, 총 건수 반환 방식 결정). PostgREST `or()` 필터 문자열에 사용자 입력을 넣지 않으려고 RPC로 한다. EXECUTE는 `revoke ... from public` 뒤 anon·authenticated에만 부여
-  - [ ] 적용 뒤 `generate_typescript_types`, `get_advisors`(security: `function_search_path_mutable`·`extension_in_public` 없음 확인, performance)
-  - [ ] `q` 파싱: trim, NFC 정규화, 2~50자(1자는 검색하지 않고 안내, 50자 초과는 자름)
+  - [x] 방식 결정·기록: Postgres 전문 검색(`to_tsvector('simple')`)은 한국어를 형태소로 나누지 못해 부분 문자열 검색이 안 되므로, `pg_trgm` + GIN trigram 인덱스(`title`, `excerpt`, 선택 `content`) + `ilike`를 기본안으로 한다. 외부 검색 서비스(Algolia 등)는 비용·의존성 대비 이득이 작아 제외
+  - [x] 마이그레이션: `create extension if not exists pg_trgm with schema extensions`, trigram 인덱스, 검색 RPC `search_published_posts(q text, p_category text, p_tag text, p_limit int, p_offset int)`(`security invoker`, `set search_path = ''`, 내부에서 `published = true`, `like` 와일드카드 이스케이프, 총 건수 반환 방식 결정). PostgREST `or()` 필터 문자열에 사용자 입력을 넣지 않으려고 RPC로 한다. EXECUTE는 `revoke ... from public` 뒤 anon·authenticated에만 부여
+  - [x] 적용 뒤 `generate_typescript_types`, `get_advisors`(security: `function_search_path_mutable`·`extension_in_public` 없음 확인, performance)
+  - [x] `q` 파싱: trim, NFC 정규화, 2~50자(1자는 검색하지 않고 안내, 50자 초과는 자름)
   - [x] 캐싱 결정(확정: a, 캐시 없음): `use-cache.md` 확인 결과 캐시 키가 직렬화된 인자라 `q`마다 항목이 생긴다. `searchPosts`(`lib/queries/posts.ts`)는 `'use cache'` 없이 `createPublicClient()`로 RPC 두 개(행·count)를 병렬 호출하고, 호출 측이 Suspense 안에서 요청 시점에 조회한다. 아래는 원래 결정 항목: 검색어는 키 공간이 사실상 무한이라 `'use cache'`로 저장하면 캐시가 커질 수 있다. `node_modules/next/dist/docs/`의 `use cache`·`cacheLife` 문서를 확인한 뒤 (a) 캐시 없이 Suspense 안에서 요청 시점 조회, (b) 짧은 `cacheLife` + `cacheTag('posts')` 중 결정(기본: a)
-  - [ ] `SearchForm`: `<form action="/blog" method="get" role="search">`(JavaScript 없이 동작), 라벨, 현재 `category`·`tag`는 hidden으로 유지하고 `page`는 초기화. 결과 수와 검색어 옆 "초기화" 링크
-  - [ ] 검색 결과 화면은 `robots: { index: false }`(검색어 URL 색인 방지)
+  - [x] `SearchForm`: `<form action="/blog" method="get" role="search">`(JavaScript 없이 동작), 라벨, 현재 `category`·`tag`는 hidden으로 유지하고 `page`는 초기화. 결과 수와 검색어 옆 "초기화" 링크
+  - [x] 검색 결과 화면은 `robots: { index: false }`(검색어 URL 색인 방지)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 발행 글 `e2e-search-캐시무효화-정리` 시드 → `/blog`에서 "캐시" 검색 → 해당 글 표시, URL `?q=캐시`
     - 정상: Playwright MCP → `?q=캐시&tag=nextjs` → 두 조건 AND
@@ -703,7 +703,9 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: Playwright MCP → 1자 검색 → 검색하지 않고 안내, 51자 이상 → 잘린 값으로 검색
     - 엣지: Supabase MCP `execute_sql`(읽기 전용 트랜잭션, rollback) → anon 역할로 RPC 호출 → 초안 0건
     - 엣지: Playwright MCP → NFD 한글 검색어(URL 직접 입력) → NFC 검색과 같은 결과
-  - 테스트 결과: (미수행)
+  - 구현 메모(2026-11-10): 마이그레이션 `20261110025008_add_posts_search`(`pg_trgm`, `title`·`excerpt` GIN trigram 인덱스, `search_published_posts`·`search_published_posts_count` RPC 두 개: `security invoker`, `search_path = ''`, 내부 `published = true`, `\`·`%`·`_` 이스케이프, `revoke ... from public` 뒤 anon·authenticated만 grant). `searchPosts`는 캐시 없이 행·건수 RPC를 병렬 호출한다. `SearchForm`은 서버 컴포넌트 GET 폼(`role="search"`)에 카테고리 select, hidden `tag`, 초기화 링크(`search-reset-link.tsx`만 입력창을 비우려고 `'use client'`)를 둔다. 검색 결과는 `robots: { index: false }`이고 canonical은 검색어·page를 뺀 필터 목록 URL이다. `PostFilterBar`(e2e `visitor-flow`·`a11y`가 의존)는 통합하지 않고 유지하되 필터 해제 href가 `q`를 유지한다. `q`는 1자면 검색하지 않고 안내하며, 입력만으로 자동 검색하지 않고 제출(Enter·검색 버튼)해야 한다
+  - 테스트 결과: 2026-11-10 `npm run check`(Vitest 43개 파일·415개)·`npm run build`(실제 env, `/blog` 프리렌더 오류 없음, `◐` 부분 프리렌더)·`npm run knip` 통과. `e2e/blog-search.spec.ts` 12개 통과(입력 제출·초기화, 1자 안내, `q`+`tag` AND, 초안 전용 키워드 0건, `%`·`_`·`a,b)`·`' or 1=1 --` 오류 없음, 51자 초과 → 입력창 50자, NFD URL → NFC 입력값, noindex 메타와 canonical에 `q` 없음)와 함께 돌린 `blog-filter`·`blog-pagination`·`a11y`·`visitor-flow`·`seo` 33개 통과. Playwright MCP 개발 서버 확인: 데스크톱(1280px)에서 `?q=캐시`는 0건 안내가 나오고(시드 삭제 뒤), 375px에서 `?q=서버`는 결과 7건·`scrollWidth` 360으로 가로 넘침 없음, NFD `?q=서버`는 NFC와 같은 7건에 입력창 값이 NFC로 보임. 콘솔 오류 0건(경고 1건은 검색과 무관한 LCP 이미지 안내). anon 역할 RPC에 특수문자 17종을 넣어도 오류가 없음을 `execute_sql`로 확인(025-1)
+  - 제한 사항·미확인: (1) 검색어가 3자 미만이면 trigram 인덱스를 쓰지 못해 seq scan이다(지금 글 수에서는 문제 없고, 수천 건이 되면 재검토). (2) anon 역할에서 trigram 인덱스가 실제로 쓰이지 않는 한계가 있고 현행 유지로 결정했다. (3) `content`는 인덱스 비용 때문에 검색 대상이 아니라 본문에만 있는 단어는 찾지 못한다. (4) RPC 반환 컬럼 타입의 nullable이 생성 타입과 어긋나는 점은 현행 유지로 결정했다. (5) 캐시하지 않으므로 검색마다 DB를 두 번 호출한다(캐시 결정은 위 항목). (6) 초안 차단은 SQL 데이터로는 확인하지 못했고 e2e(`createPublicClient` 경유)에서 초안 키워드 0건으로만 확인했다. (7) 다크 모드와 JavaScript 비활성 동작, 실제 모바일 기기, 운영 환경(`https://hkoikoi.dev`)의 canonical은 확인하지 않았다. (8) 오타 허용·정확도 순 정렬·하이라이트는 범위 밖이라 없다(최신순)
 
 - **Task 026: RSS 피드 구축**
   - 관련 기능: F019(제안: RSS 피드), F014

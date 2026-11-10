@@ -96,7 +96,7 @@ app/
 │   ├── _components/        # latest-posts.tsx (메인의 최신 글)
 │   ├── education/ career/ certifications/ languages/   # 이력
 │   ├── volunteer/ activities/ projects/ publications/
-│   └── blog/               # /blog, /blog/[slug], _components/ (taxonomy-filter 카테고리·태그 칩, post-filter-bar 현재 필터, post-list, pagination 페이지 이동)
+│   └── blog/               # /blog, /blog/[slug], _components/ (search-form 키워드 검색 GET 폼과 category-select·search-reset-link, taxonomy-filter 카테고리·태그 칩, post-filter-bar 현재 필터, post-list, pagination 페이지 이동)
 ├── admin/                  # 관리자 영역 (로그인 필요)
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
 │   ├── actions.ts          # logout Server Action (+ actions.test.ts)
@@ -117,7 +117,7 @@ app/
 - `params`, `searchParams`는 Promise이므로 `await` 하거나 `PageProps<'/경로'>` / `LayoutProps<'/경로'>` 헬퍼를 사용합니다. 타입은 `npx next typegen`으로 생성합니다(`npm run typecheck`가 먼저 실행합니다).
 - Cache Components가 켜져 있으므로 요청 시점 데이터(쿠키, Supabase 세션 등)를 읽는 컴포넌트는 `<Suspense>`로 감쌉니다 (`nextjs-16.md`).
 - 라우트 세그먼트 설정 `dynamic`, `revalidate`, `fetchCache`, `runtime`은 사용하지 않습니다.
-- 공개 글 조회(`lib/queries/posts.ts`)는 `'use cache'` + `cacheTag` + `cacheLife('max')`로 캐시하고, 저장·삭제 Server Action이 `updateTag`로 무효화합니다. 쿠키를 읽는 쿼리(`admin-posts.ts`)에는 `'use cache'`를 붙이지 않습니다 (`nextjs-16.md`).
+- 공개 글 조회(`lib/queries/posts.ts`)는 `'use cache'` + `cacheTag` + `cacheLife('max')`로 캐시하고, 저장·삭제 Server Action이 `updateTag`로 무효화합니다. 키워드 검색(`searchPosts`)은 검색어마다 캐시 항목이 생기므로 `'use cache'` 없이 `createPublicClient()`로 검색 RPC(`search_published_posts`·`search_published_posts_count`)를 요청 시점에 호출합니다. 쿠키를 읽는 쿼리(`admin-posts.ts`)에는 `'use cache'`를 붙이지 않습니다 (`nextjs-16.md`).
 - 한 라우트에서만 쓰는 컴포넌트는 그 폴더의 `_components/`에 둡니다 (`_` 접두 폴더는 라우팅 제외).
 - URL에 영향 없이 레이아웃만 나누려면 Route Group `(group)`을 사용합니다. 공개 영역은 `(site)`가 이 역할입니다.
 
@@ -165,9 +165,9 @@ lib/
 ├── editor/                # insert-at-cursor.ts: insertAtCursor, replaceOnce, replaceWithCaret, createUploadPlaceholder (+ 테스트)
 ├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
 ├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
-├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getTaxonomy / getPostBySlug('use cache' + cacheTag, public 클라이언트), admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
+├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getTaxonomy / getPostBySlug('use cache' + cacheTag, public 클라이언트), searchPosts(캐시 없음, 검색 RPC), admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
 ├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), rehype-sanitize-style.ts(`<style>` CSS 내용 검사), plugins.ts(remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
-├── posts/                 # slugify.ts, form-data.ts, published-at.ts, sort-tags.ts(태그 정렬 규칙), list-params.ts(/blog URL 상태 파싱·href), taxonomy.ts(카테고리·태그 집계와 상위 태그 분리), pagination.ts(총 페이지 수·range·번호 목록 계산), page-size.ts(요청 헤더로 기기 판별: 모바일 6개·그 외 10개), list-metadata.ts(/blog title·canonical) (+ 테스트)
+├── posts/                 # slugify.ts, form-data.ts, published-at.ts, sort-tags.ts(태그 정렬 규칙), list-params.ts(/blog URL 상태 파싱·href, 검색어 q 포함), taxonomy.ts(카테고리·태그 집계와 상위 태그 분리), pagination.ts(총 페이지 수·range·번호 목록 계산), page-size.ts(요청 헤더로 기기 판별: 모바일 6개·그 외 10개), list-metadata.ts(/blog title·canonical) (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
 ├── auth/                  # is-admin.ts, is-admin-path.ts, require-admin.ts (+ 테스트)
 ├── site-config.ts         # siteConfig, navItems
@@ -191,7 +191,7 @@ lib/
 - `supabase/migrations/<version>_<name>.sql`. 파일명의 version은 원격에 적용된 `list_migrations`의 version과 **일치**시킵니다.
 - 적용은 Supabase MCP의 `apply_migration`으로 하고, 적용 후 `get_advisors`(security, performance)를 확인합니다.
 - 관리자 판별은 RLS에서 `(select auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin'`만 사용합니다. `user_metadata`는 사용자가 바꿀 수 있어 쓰지 않습니다.
-- 현재 마이그레이션: `create_posts`(테이블, check, 인덱스, `updated_at` 트리거, RLS), `create_blog_images_bucket`(public 버킷 `blog-images`, 5MB, 이미지 MIME 4종, 관리자 전용 insert/update/delete 정책), `add_posts_category_tags_length_checks`(category·tags 길이 check), `revoke_excess_posts_grants`(`public` 스키마 default privileges로 과잉 부여된 anon·authenticated GRANT 회수).
+- 현재 마이그레이션: `create_posts`(테이블, check, 인덱스, `updated_at` 트리거, RLS), `create_blog_images_bucket`(public 버킷 `blog-images`, 5MB, 이미지 MIME 4종, 관리자 전용 insert/update/delete 정책), `add_posts_category_tags_length_checks`(category·tags 길이 check), `revoke_excess_posts_grants`(`public` 스키마 default privileges로 과잉 부여된 anon·authenticated GRANT 회수), `add_posts_search`(`pg_trgm`, `title`·`excerpt` GIN trigram 인덱스, 검색 RPC `search_published_posts`·`search_published_posts_count`).
 - `public` 스키마의 default privileges는 바꾸지 않았으므로 새 테이블은 같은 과잉 GRANT를 받습니다. 새 테이블 마이그레이션에는 필요한 권한만 남기는 `revoke`를 함께 넣고, 점검은 `rls-verification.md`를 따릅니다.
 - 알려진 advisor 경고: `auth_leaked_password_protection` 1건은 Pro 플랜 미사용으로 예외 수용했습니다(대신 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수).
 
@@ -284,7 +284,7 @@ import { cn } from "@/lib/utils";
 ### 테스트 배치
 
 - 단위/컴포넌트 테스트: 대상 파일 옆의 `*.test.ts(x)` (예: `lib/format-date.test.ts`). 환경은 jsdom이고 `vitest.setup.ts`가 `jest-dom` 매처와 `cleanup`을 설정합니다.
-- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`, `blog-filter`, `blog-pagination`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
+- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`, `blog-filter`, `blog-pagination`, `blog-search`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
 - E2E 관리자 로그인: `setup` 프로젝트(`e2e/auth.setup.ts`)가 1회 로그인해 세션을 `e2e/.auth/admin.json`(git 제외)에 저장하고, `login()`이 이 쿠키를 재사용합니다. 새 세션이 필요한 테스트만 `loginWithForm()`을 씁니다. 로그인 횟수는 Supabase Auth `/token`의 IP당 버스트 한도(30건)와 직결되므로 일반 테스트에서 폼 로그인을 늘리지 않습니다.
 - 커버리지는 `app/`, `components/`, `lib/`를 대상으로 하되 `components/ui/**`는 제외합니다.
 - Server Component(async)는 Vitest로 직접 렌더링하기 어렵습니다. 로직은 함수로 분리해 단위 테스트하고, 화면 흐름은 E2E로 검증합니다.
