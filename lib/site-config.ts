@@ -1,5 +1,6 @@
 export const siteConfig = {
   name: "hkoikoi.dev",
+  description: "hkoikoi의 개발 블로그와 프로젝트 기록",
 } as const;
 
 type NavLeaf = { label: string; href: string };

@@ -39,7 +39,8 @@ hkoikoi-dev/
 ├── lib/
 │   ├── auth/               # is-admin.ts(역할 판별), is-admin-path.ts(/admin 경로 판정), require-admin.ts(서버 가드) + 테스트
 │   ├── supabase/           # client.ts / server.ts / public.ts / proxy.ts / database.types.ts
-│   ├── storage/            # validate-image.ts(형식·크기 검증, 경로 생성), upload-image.ts(브라우저 직접 업로드) + 테스트
+│   ├── feed/                  # build-rss.ts: buildRss(posts, siteUrl) 순수 함수, XML 이스케이프·RFC 822 pubDate (+ 테스트)
+├── storage/            # validate-image.ts(형식·크기 검증, 경로 생성), upload-image.ts(브라우저 직접 업로드) + 테스트
 │   ├── editor/             # insert-at-cursor.ts(커서 삽입·자리표시 치환 순수 함수) + 테스트
 │   ├── types/              # 도메인 타입 (post, profile, resume)
 │   ├── schemas/            # post.ts(zod 입력 스키마, POST_LIMITS, parseTags) + 테스트
@@ -73,7 +74,7 @@ hkoikoi-dev/
 └── .env / .env.example     # 환경 변수
 ```
 
-- `app/robots.ts`·`app/sitemap.ts`는 메타데이터 라우트입니다. `/robots.txt`는 정적, `/sitemap.xml`은 글 조회가 `cookies()`를 읽어 요청 시점에 만들어집니다. `/admin`(`app/admin/layout.tsx`)과 `/auth`(`app/auth/layout.tsx`)는 layout에서 `robots: { index: false, follow: false }`를 지정하며, `robots`는 얕은 병합이라 하위 page에서 다시 지정하지 않습니다.
+- `app/robots.ts`·`app/sitemap.ts`는 메타데이터 라우트입니다. `/robots.txt`는 정적, `/sitemap.xml`은 글 조회가 `cookies()`를 읽어 요청 시점에 만들어집니다. `/feed.xml`은 `app/feed.xml/route.ts` Route Handler이며 `'use cache'` 조회만 있으면 빌드에서 정적으로 굳으므로 `await connection()`으로 요청 시점 렌더링을 강제하고, `proxy.ts` matcher에서 제외됩니다. `/admin`(`app/admin/layout.tsx`)과 `/auth`(`app/auth/layout.tsx`)는 layout에서 `robots: { index: false, follow: false }`를 지정하며, `robots`는 얕은 병합이라 하위 page에서 다시 지정하지 않습니다.
 - `tailwind.config.ts`는 없습니다. 테마는 `app/globals.css`의 `@theme inline`에서 정의합니다.
 - `middleware.ts`는 만들지 않습니다. 요청 전처리는 루트의 `proxy.ts`가 맡습니다.
 - `AGENTS.md`의 `next dev`가 관리하는 블록은 직접 지우지 말고 변경분을 함께 커밋합니다.
@@ -88,6 +89,7 @@ app/
 ├── globals.css             # Tailwind v4 + shadcn 테마 변수
 ├── not-found.tsx
 ├── robots.ts / sitemap.ts  # 메타데이터 라우트 (+ robots.test.ts, sitemap.test.ts)
+├── feed.xml/route.ts       # RSS 2.0 Route Handler (connection() 후 최신 20건, buildRss)
 ├── opengraph-image.png / twitter-image.png   # 1200x630 공유 카드 (hkoikoi.dev용)
 ├── icon.svg                # 파비콘(로고 마크). favicon.ico는 없다
 ├── (site)/                 # 공개 사이트 (Route Group, URL에 나타나지 않음)
