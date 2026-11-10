@@ -49,7 +49,7 @@ hkoikoi-dev/
 │   ├── site-config.ts      # 사이트 이름, 내비게이션 항목
 │   ├── site-url.ts         # NEXT_PUBLIC_SITE_URL 기준 절대 URL(getSiteUrl, absoluteUrl) + 테스트
 │   ├── post-metadata.ts    # 글 상세 메타데이터(OG·twitter·없는 글 noindex) 순수 함수 + 테스트
-│   ├── markdown/           # sanitize 스키마, `<style>` 검사, 플러그인 순서 + 테스트
+│   ├── markdown/           # sanitize 스키마, `<style>` 검사·글 단위 스코프 접두, 플러그인 순서 + 테스트
 │   ├── format-date.ts / is-active-path.ts / utils.ts   # 공용 유틸 (+ *.test.ts)
 ├── public/                 # 정적 파일: avatar.webp(홈 프로필 사진, 위치정보 없는 640px 변환본)
 ├── supabase/migrations/    # DB 마이그레이션 SQL (원격 version과 파일명 일치)
@@ -168,7 +168,7 @@ lib/
 ├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
 ├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
 ├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getTaxonomy / getPostBySlug('use cache' + cacheTag, public 클라이언트), searchPosts(캐시 없음, 검색 RPC), admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
-├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), rehype-sanitize-style.ts(`<style>` CSS 내용 검사), plugins.ts(remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
+├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), rehype-sanitize-style.ts(`<style>` CSS 내용 검사), rehype-scope-style.ts(`scopeClassName`·`scopeCss`·`rehypeScopeStyle`: 검사를 통과한 선택자 앞에 `.post-scope-<scopeId>` 접두), plugins.ts(`createRehypePlugins(scopeId)`: remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
 ├── posts/                 # slugify.ts, form-data.ts, published-at.ts, sort-tags.ts(태그 정렬 규칙), list-params.ts(/blog URL 상태 파싱·href, 검색어 q 포함), taxonomy.ts(카테고리·태그 집계와 상위 태그 분리), pagination.ts(총 페이지 수·range·번호 목록 계산), page-size.ts(요청 헤더로 기기 판별: 모바일 6개·그 외 10개), list-metadata.ts(/blog title·canonical) (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
 ├── auth/                  # is-admin.ts, is-admin-path.ts, require-admin.ts (+ 테스트)

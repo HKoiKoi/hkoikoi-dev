@@ -82,7 +82,9 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ## 글 안 `<style>` 작성 규칙
 
-글 본문에 `<style>`을 쓸 수 있지만, 글 상세 페이지 전체에 적용되므로 sanitize를 통과한 뒤 CSS를 한 번 더 걸러냅니다(`lib/markdown/rehype-sanitize-style.ts`). 걸러진 규칙은 오류 없이 조용히 사라집니다.
+글 본문에 `<style>`을 쓸 수 있지만, sanitize를 통과한 뒤 CSS를 한 번 더 걸러냅니다(`lib/markdown/rehype-sanitize-style.ts`). 걸러진 규칙은 오류 없이 조용히 사라집니다.
+
+규칙은 그 글의 본문 안에서만 적용됩니다. 통과한 모든 선택자 앞에 글 본문 래퍼 클래스(`.post-scope-<글 id>`)가 자동으로 붙기 때문에(`lib/markdown/rehype-scope-style.ts`) 헤더·푸터 같은 본문 밖 요소와 사이트가 쓰는 `.post-content` 같은 클래스는 영향을 받지 않습니다. 접두는 직접 쓰지 않아도 됩니다.
 
 **남는 것**
 

@@ -3,8 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { MarkdownContent } from "./markdown-content";
 
-function renderMd(content: string) {
-  return render(<MarkdownContent content={content} />).container;
+function renderMd(content: string, scopeId = "t") {
+  return render(<MarkdownContent content={content} scopeId={scopeId} />)
+    .container;
 }
 
 describe("MarkdownContent 렌더링", () => {
@@ -70,6 +71,32 @@ describe("MarkdownContent 렌더링", () => {
   it("래퍼에 post-content prose class가 붙는다", () => {
     const c = renderMd("x");
     expect(c.firstElementChild).toHaveClass("post-content", "prose");
+  });
+});
+
+describe("MarkdownContent 스타일 범위", () => {
+  it("래퍼에 scopeId로 만든 클래스가 붙는다", () => {
+    const c = renderMd("x", "a b");
+    expect(c.firstElementChild).toHaveClass("post-content", "post-scope-a-b");
+  });
+
+  it("본문 <style> 선택자에 래퍼 클래스를 접두한다", () => {
+    const c = renderMd(
+      '<style>.post-box{color:red}</style><div class="post-box">x</div>',
+      "abc",
+    );
+    expect(c.querySelector("style")?.textContent).toBe(
+      ".post-scope-abc .post-box { color: red }",
+    );
+  });
+
+  it(".post-content 규칙은 래퍼 자신에 매칭되지 않는다", () => {
+    const c = renderMd("<style>.post-content{display:none}</style>본문", "abc");
+    const wrapper = c.firstElementChild as HTMLElement;
+    const rule = c.querySelector("style")?.textContent ?? "";
+    expect(rule).toBe(".post-scope-abc .post-content { display: none }");
+    expect(wrapper.matches(".post-scope-abc .post-content")).toBe(false);
+    expect(wrapper.querySelector(".post-scope-abc .post-content")).toBeNull();
   });
 });
 

@@ -63,7 +63,7 @@ async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
             </ul>
           )}
         </header>
-        <MarkdownContent content={post.content} />
+        <MarkdownContent content={post.content} scopeId={post.id} />
       </article>
       <PostPager prev={prev} next={next} />
     </div>

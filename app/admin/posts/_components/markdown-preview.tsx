@@ -145,7 +145,10 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
                   <p className="text-sm text-muted-foreground">{PLACEHOLDER}</p>
                 ) : (
                   <PreviewErrorBoundary resetKey={deferredContent}>
-                    <MarkdownContent content={deferredContent} />
+                    <MarkdownContent
+                      content={deferredContent}
+                      scopeId="preview"
+                    />
                   </PreviewErrorBoundary>
                 )}
               </div>
