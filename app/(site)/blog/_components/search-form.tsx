@@ -27,13 +27,19 @@ export function SearchForm({
 
   return (
     <div className="flex flex-col gap-2 pb-6">
-      <form action="/blog" method="get" role="search" className="flex gap-2">
+      <form
+        action="/blog"
+        method="get"
+        role="search"
+        className="flex flex-wrap gap-2"
+      >
         <Label htmlFor="blog-search" className="sr-only">
           블로그 검색
         </Label>
         <Input
           key={q ?? rawQ ?? ""}
           id="blog-search"
+          className="basis-full sm:flex-1 sm:basis-0"
           type="search"
           name="q"
           defaultValue={q ?? rawQ ?? ""}
