@@ -91,3 +91,13 @@ export type PostActionState = {
   message?: string;
   fieldErrors?: Record<string, string[] | undefined>;
 };
+
+/** 자동 저장(autosaveDraft) 결과. 실패 사유별로 클라이언트가 재시도 여부를 정한다. */
+export type AutosaveResult =
+  | { ok: true; updatedAt: string }
+  | {
+      ok: false;
+      reason: "published" | "conflict" | "invalid" | "not_found" | "failed";
+      message: string;
+      fieldErrors?: Record<string, string[] | undefined>;
+    };
