@@ -752,7 +752,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 테스트 결과(2026-11-10): `npx playwright test e2e/admin-autosave.spec.ts` 7개(로그인 setup 포함 8건) 통과: 기존 초안 자동 저장·새로고침 유지, 새 글 복원 배너·복원(서버 호출 0건, 목록에 행 없음), 복원 버리기, 발행 글 로컬 보관(대기 3초 뒤에도 Server Action 0건, 공개 상세 원문 유지, 목록 상태 '초안' 아님), `route.abort` 실패 표시·입력 유지·다음 입력 재시도, 이미지 업로드 중 보류(3초 동안 Server Action 0건)·끝난 뒤 저장·자리표시 텍스트 미저장, 두 탭 충돌 알림과 먼저 저장한 내용 유지. 기존 관리자 e2e(`admin-posts`·`admin-image-upload`·`admin-preview`·`cache-invalidation`) 39개 통과(편집기 통합 직후 실행). `npm run check`(Vitest 48개 파일·467개)·`npm run knip`(종료 코드 0, 기존 설정 힌트 1건)·`npm run build` 통과. 시나리오가 만든 `e2e-auto-` 글은 `afterAll`의 `cleanup`이 지운다. 관리자 계정은 기존 `E2E_ADMIN_*`를 썼고 임시 admin 사용자는 만들지 않았다.
   - 제한 사항·미확인: (1) `beforeunload` 경고와 하단 바 '나가기' 확인창은 e2e·수동으로 확인하지 않았다(그래서 해당 체크박스는 비워 둔다. e2e는 dialog를 수락하도록 처리). (2) 공개 캐시 태그를 만료하지 않는 동작(초안→초안 저장)은 `actions.test.ts` 단위 테스트로만 확인했고 운영·e2e로는 확인하지 않았다. (3) 충돌 상태는 새로고침 전까지 풀리지 않고, 충돌 뒤 수동 저장은 마지막 쓰기 우선이다. (4) 발행 글에서 '임시 저장'을 누르면 초안이 되는 기존 동작은 그대로이며 그 뒤 `initialPost.published`가 낡아 로컬 백업만 한다. (5) 클라이언트 전환으로 새 글에서 수정 화면으로 가면 이전 라우트의 숨겨진 편집기가 DOM에 남아 같은 id가 둘이 되므로(cacheComponents), e2e 헬퍼는 전체 로드로 한 화면만 남긴다. (6) 모바일·Firefox·WebKit과 운영(홈 서버)에서는 확인하지 않았다. (7) 전체 `npx playwright test`는 이번에 돌리지 않았다.
 
-- **Task 028: `<style>` 글 단위 스코프 변환 구현**
+- **Task 028: `<style>` 글 단위 스코프 변환 구현** ✅ - 완료 2026-11-10 (접두 뒤 `#user-content-` 선택자의 브라우저 매칭, 전체 e2e는 미확인 — `테스트 결과` 참고)
   - 관련 기능: F021(제안: `<style>` 글 단위 스코프 변환), F007
   - 목표: 본문 `<style>` 규칙이 그 글의 본문 컨테이너 안에서만 적용되게 해, 사이트가 쓰는 `post-` 접두 클래스(예: `MarkdownContent`의 `.post-content` 래퍼)나 앞으로 한 화면에 함께 렌더링될 다른 글에 영향을 주지 않게 한다
   - 현재 상태: `lib/markdown/rehype-sanitize-style.ts`가 이미 `.post-`·`#user-content-` 접두 선택자만 남기고 `@` 규칙·중첩 규칙·`~`/`+`/`:has` 등과 `url()`을 제거한다. 남은 위험은 (1) 사이트의 `post-` 접두 클래스와의 충돌, (2) 여러 글 본문을 한 화면에 렌더링할 때 규칙이 서로 새는 것, (3) `position: fixed` 같은 속성(스코프로도 막지 못하며 기존대로 수용)이다
@@ -762,7 +762,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] 방식 결정·기록: (a) 선택자 접두 변환(sanitize-style 다음 단계에서 `.post-box` → `.post-scope-x .post-box`, 모든 브라우저에서 동작) — 기본안. (b) CSS `@scope` 래핑 — 방문자 브라우저 지원을 확인해야 하고, 지금 sanitize-style이 `@` 규칙을 모두 지우므로 정책 변경이 필요해 보류
   - [x] 플러그인 순서: remark-gfm/remark-math → rehype-raw → rehype-sanitize → rehype-sanitize-style → **rehype-scope-style** → rehype-katex → rehype-highlight. scope 값은 `MarkdownContent`의 prop(`scopeId`)으로 받고 래퍼에 같은 클래스를 붙임(sanitize 뒤에 붙이므로 class 허용 규칙과 무관)
   - [x] `scopeId`: 글 id 기반(슬러그 변경에도 안정). 미리보기는 Shadow DOM 안이라 고정 값 사용
-  - [ ] 선택적 확장(별도 결정): 스코프가 생기면 요소 선택자(`h2`, `table` 등)를 스코프 아래에서 허용할 수 있다. 작성은 쉬워지지만 sanitize-style 허용 규칙을 바꿔야 하므로 기본은 기존 제한 유지
+  - [x] 선택적 확장(별도 결정): **미채택, 기존 제한 유지**(2026-11-10 결정). 스코프가 생기면 요소 선택자(`h2`, `table` 등)를 스코프 아래에서 허용할 수 있다. 작성은 쉬워지지만 sanitize-style 허용 규칙을 바꿔야 하므로 기본은 기존 제한 유지
   - [x] README의 `<style>` 작성 규칙 갱신, PRD 트레이드오프 문구 갱신 필요 여부를 사용자에게 보고(PRD는 사용자 결정 후 수정)
   - 테스트 체크리스트:
     - 정상: `rehype-scope-style.test.ts` → `.post-box{color:red}` + scopeId `abc` → `.post-scope-abc .post-box{color:red}`, 선택자 목록(`.post-a, .post-b`)은 각각 접두
@@ -1142,7 +1142,7 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
 
 ## 알려진 트레이드오프 (PRD 반영)
 
-- `<style>` 허용으로 글 CSS가 해당 페이지 전체에 영향 가능(작성자 1인이라 수용, 스코프 변환은 MVP 밖 → Post-MVP Task 028). 편집기 미리보기만 격리(Task 016).
+- `<style>` 허용으로 글 CSS가 해당 페이지 전체에 영향 가능(작성자 1인이라 수용, 선택자 접두 스코프 변환은 Task 028에서 구현). 편집기 미리보기만 격리(Task 016).
   - 2026-10-28 보완: `lib/markdown/rehype-sanitize-style.ts`가 sanitize 뒤 `<style>` 내용을 검사해 `.post-`·`#user-content-` 접두가 아닌 규칙, `@` 규칙(@import 포함), 중첩 규칙, 범위 이탈 선택자(`~`, `+`, `:has` 등), `url()`·`image-set()` 선언을 제거한다(단위 테스트 13개). `.post-` 요소 자체의 `position:fixed` 같은 속성은 막지 않으며 작성자 1인이라 수용한다.
 - 보안 헤더(2026-10-28 결정): `next.config.ts`에 `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, CSP(`object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`)를 둔다. nonce 기반 CSP는 전 페이지 동적 렌더링이 필요해 `cacheComponents`와 맞지 않고 `script-src 'unsafe-inline'`은 이득이 작으며, 본문이 임의 외부 이미지를 쓰므로 `script-src`·`style-src`·`img-src`는 두지 않는다. dev 서버 응답 헤더와 visitor-flow·admin-preview e2e 통과로 확인했다(KaTeX·next-themes 동작은 admin-preview 수식 렌더링 e2e로만 확인).
 - 스타일 변조(`position:fixed` 오버레이, `url()` 외부 요청) 가능성은 관리자 계정 보호(강한 비밀번호·MFA)로 완화(Task 011).
