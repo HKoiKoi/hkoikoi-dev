@@ -90,6 +90,8 @@ export type PostActionState = {
   ok: boolean;
   message?: string;
   fieldErrors?: Record<string, string[] | undefined>;
+  /** 기존 글을 임시 저장했을 때 새 updated_at. 자동 저장의 낙관적 잠금 기준을 갱신하는 데 쓴다. */
+  updatedAt?: string;
 };
 
 /** 자동 저장(autosaveDraft) 결과. 실패 사유별로 클라이언트가 재시도 여부를 정한다. */

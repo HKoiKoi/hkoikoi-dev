@@ -59,6 +59,8 @@ export async function savePost(
   let createdId: string | null = null;
   // 무효화할 슬러그: 새 슬러그와(수정이면) 변경 전 슬러그
   const staleSlugs: string[] = [parsed.data.slug];
+  // 기존 글 저장 뒤 새 updated_at (자동 저장의 낙관적 잠금 기준 갱신용)
+  let savedUpdatedAt: string | undefined;
 
   try {
     // 요청마다 새 클라이언트를 만든다.
@@ -92,12 +94,13 @@ export async function savePost(
           ),
         })
         .eq("id", id)
-        .select("id")
+        .select("id, updated_at")
         .maybeSingle();
 
       error = updateError;
       // 영향 행이 0이면(삭제 직후·RLS 거부) 성공으로 보지 않는다.
       if (!error && !updated) return { ok: false, message: NOT_FOUND };
+      savedUpdatedAt = updated?.updated_at;
     } else {
       const payload: PostInput = parsed.data;
       const result = await supabase
@@ -138,7 +141,9 @@ export async function savePost(
   if (!parsed.data.published) {
     // redirect는 예외를 던지므로 try/catch 밖에서 호출한다.
     if (createdId) redirect(`/admin/posts/${createdId}/edit`);
-    return { ok: true, message: DRAFT_SAVED };
+    return savedUpdatedAt
+      ? { ok: true, message: DRAFT_SAVED, updatedAt: savedUpdatedAt }
+      : { ok: true, message: DRAFT_SAVED };
   }
 
   redirect("/admin/posts");
