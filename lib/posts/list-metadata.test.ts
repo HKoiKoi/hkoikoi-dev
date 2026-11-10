@@ -39,4 +39,28 @@ describe("buildBlogListMetadata", () => {
       "개발과 일상에 대한 글을 모아둔 블로그입니다.",
     );
   });
+
+  it("검색어가 있으면 noindex이고 canonical은 q와 page를 뺀 목록 URL", () => {
+    const meta = build({ q: "캐시", page: "2" });
+    expect(meta.robots).toEqual({ index: false });
+    expect(meta.alternates?.canonical).toBe(absoluteUrl("/blog"));
+  });
+
+  it("검색어와 필터가 함께 있으면 canonical에 필터만 남긴다", () => {
+    const meta = build({ q: "캐시", category: "개발" });
+    expect(meta.robots).toEqual({ index: false });
+    expect(meta.alternates?.canonical).toBe(
+      absoluteUrl(`/blog?category=${encodeURIComponent("개발")}`),
+    );
+  });
+
+  it("1자 검색어도 noindex로 두고 canonical에서 q를 뺀다", () => {
+    const meta = build({ q: "a" });
+    expect(meta.robots).toEqual({ index: false });
+    expect(meta.alternates?.canonical).toBe(absoluteUrl("/blog"));
+  });
+
+  it("검색어가 없으면 robots를 지정하지 않는다", () => {
+    expect(build({ category: "개발" }).robots).toBeUndefined();
+  });
 });
