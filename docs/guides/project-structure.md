@@ -41,7 +41,7 @@ hkoikoi-dev/
 │   ├── supabase/           # client.ts / server.ts / public.ts / proxy.ts / database.types.ts
 │   ├── feed/                  # build-rss.ts: buildRss(posts, siteUrl) 순수 함수, XML 이스케이프·RFC 822 pubDate (+ 테스트)
 ├── storage/            # validate-image.ts(형식·크기 검증, 경로 생성), upload-image.ts(브라우저 직접 업로드) + 테스트
-│   ├── editor/             # insert-at-cursor.ts(커서 삽입·자리표시 치환 순수 함수) + 테스트
+│   ├── editor/             # insert-at-cursor.ts(커서 삽입·자리표시 치환 순수 함수), draft-storage.ts(편집기 localStorage 백업) + 테스트
 │   ├── types/              # 도메인 타입 (post, profile, resume)
 │   ├── schemas/            # post.ts(zod 입력 스키마, POST_LIMITS, parseTags) + 테스트
 │   ├── queries/            # posts.ts(공개 글 조회), admin-posts.ts(관리자 조회), columns.ts(공용 select 컬럼), 서버 전용 + 테스트
@@ -103,7 +103,7 @@ app/
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
 │   ├── actions.ts          # logout Server Action (+ actions.test.ts)
 │   ├── _components/        # admin-guard.tsx, admin-nav.tsx, logout-button.tsx
-│   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx(메타 필드 post-meta-fields.tsx, 썸네일 thumbnail-field.tsx, 본문 이미지 업로드 버튼 image-upload-button.tsx와 업로드 훅 use-content-upload.ts, 필드 오류 field-error.tsx로 분리), 목록 post-table.tsx와 삭제 확인 delete-post-dialog.tsx, 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·deletePost Server Action)
+│   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx(메타 필드 post-meta-fields.tsx, 썸네일 thumbnail-field.tsx, 본문 이미지 업로드 버튼 image-upload-button.tsx와 업로드 훅 use-content-upload.ts, 자동 저장 훅 use-autosave.ts·상태 표시 autosave-status.tsx·복원 배너 restore-banner.tsx, 필드 오류 field-error.tsx로 분리), 목록 post-table.tsx와 삭제 확인 delete-post-dialog.tsx, 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·autosaveDraft·deletePost Server Action)
 └── auth/
     ├── layout.tsx          # noindex 메타데이터
     ├── login/              # 로그인 (actions.ts: login Server Action + 테스트, _components/login-form.tsx)
@@ -164,7 +164,7 @@ lib/
 │   ├── proxy.ts           # proxy.ts에서 호출하는 updateSession()과 hasEnvVars(env 미설정 시 세션 검사 생략)
 │   └── database.types.ts  # 생성 파일 (직접 편집 금지)
 ├── storage/               # validate-image.ts: ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES, validateImage, buildImagePath / upload-image.ts: uploadImage (브라우저 전용, + 테스트)
-├── editor/                # insert-at-cursor.ts: insertAtCursor, replaceOnce, replaceWithCaret, createUploadPlaceholder (+ 테스트)
+├── editor/                # insert-at-cursor.ts: insertAtCursor, replaceOnce, replaceWithCaret, createUploadPlaceholder (+ 테스트), draft-storage.ts: PostDraft, draftKey, readDraft, writeDraft, clearDraft (+ 테스트)
 ├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
 ├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
 ├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getTaxonomy / getPostBySlug('use cache' + cacheTag, public 클라이언트), searchPosts(캐시 없음, 검색 RPC), admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
@@ -286,7 +286,7 @@ import { cn } from "@/lib/utils";
 ### 테스트 배치
 
 - 단위/컴포넌트 테스트: 대상 파일 옆의 `*.test.ts(x)` (예: `lib/format-date.test.ts`). 환경은 jsdom이고 `vitest.setup.ts`가 `jest-dom` 매처와 `cleanup`을 설정합니다.
-- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`, `blog-filter`, `blog-pagination`, `blog-search`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
+- E2E: `e2e/*.spec.ts` (`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-image-upload`, `admin-preview`, `admin-autosave`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`, `blog-filter`, `blog-pagination`, `blog-search`)와 공용 헬퍼 `e2e/fixtures/admin.ts`. Vitest는 `e2e/`와 `.agents`를 제외합니다.
 - E2E 관리자 로그인: `setup` 프로젝트(`e2e/auth.setup.ts`)가 1회 로그인해 세션을 `e2e/.auth/admin.json`(git 제외)에 저장하고, `login()`이 이 쿠키를 재사용합니다. 새 세션이 필요한 테스트만 `loginWithForm()`을 씁니다. 로그인 횟수는 Supabase Auth `/token`의 IP당 버스트 한도(30건)와 직결되므로 일반 테스트에서 폼 로그인을 늘리지 않습니다.
 - 커버리지는 `app/`, `components/`, `lib/`를 대상으로 하되 `components/ui/**`는 제외합니다.
 - Server Component(async)는 Vitest로 직접 렌더링하기 어렵습니다. 로직은 함수로 분리해 단위 테스트하고, 화면 흐름은 E2E로 검증합니다.
