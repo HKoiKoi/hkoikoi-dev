@@ -7,7 +7,7 @@
 
 | 항목       | 버전 / 설정                                                                         |
 | ---------- | ----------------------------------------------------------------------------------- |
-| Next.js    | 16.4 (`package.json`은 `latest`, 설치된 버전 16.4.3). App Router, Turbopack         |
+| Next.js    | 16.4 (`package.json`은 `^16.4.6`, 설치된 버전 16.4.6). App Router, Turbopack        |
 | React      | 19.3                                                                                |
 | TypeScript | 5, `strict`                                                                         |
 | Tailwind   | 4.3 (`postcss.config.mjs`의 `@tailwindcss/postcss`, `tailwind.config.ts` 없음)      |
