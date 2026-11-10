@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cacheLife } from "next/cache";
-import { GithubIcon, MailIcon } from "lucide-react";
+import { GithubIcon, MailIcon, RssIcon } from "lucide-react";
 import { profile } from "@/data/profile";
 import { siteConfig } from "@/lib/site-config";
 
@@ -49,6 +49,16 @@ export function SiteFooter({ children }: SiteFooterProps) {
               >
                 <GithubIcon aria-hidden="true" />
                 GitHub
+              </a>
+            </li>
+            <li>
+              <a
+                href="/feed.xml"
+                className={linkClassName}
+                aria-label="RSS 피드 구독"
+              >
+                <RssIcon aria-hidden="true" />
+                RSS
               </a>
             </li>
             {children ? <li>{children}</li> : null}

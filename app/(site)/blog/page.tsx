@@ -10,14 +10,23 @@ import {
   BLOG_DESCRIPTION,
   buildBlogListMetadata,
 } from "@/lib/posts/list-metadata";
-import { buildBlogHref, parseListParams } from "@/lib/posts/list-params";
+import {
+  buildBlogHref,
+  parseListParams,
+  type ListParams,
+} from "@/lib/posts/list-params";
 import { getPageSize } from "@/lib/posts/page-size";
 import { getTotalPages } from "@/lib/posts/pagination";
-import { getPublishedPostsPage, getTaxonomy } from "@/lib/queries/posts";
+import {
+  getPublishedPostsPage,
+  getTaxonomy,
+  searchPosts,
+} from "@/lib/queries/posts";
 
 import { Pagination } from "./_components/pagination";
 import { PostFilterBar } from "./_components/post-filter-bar";
 import { PostList } from "./_components/post-list";
+import { SearchForm } from "./_components/search-form";
 import { TaxonomyFilter } from "./_components/taxonomy-filter";
 
 // searchParams를 읽으므로 메타데이터는 요청 시점에 평가된다. 본문도 Suspense 안에서 요청 시점
@@ -33,7 +42,7 @@ function PageOutOfRange({
   filter,
   totalPages,
 }: {
-  filter: { category?: string; tag?: string };
+  filter: ListParams;
   totalPages: number;
 }) {
   const linkClass = "underline underline-offset-4 hover:text-foreground";
@@ -63,26 +72,40 @@ async function FilteredPosts({
   searchParams,
 }: Pick<PageProps<"/blog">, "searchParams">) {
   const params = await searchParams;
-  const { category, tag, page = 1 } = parseListParams(params);
+  const parsed = parseListParams(params);
+  const { category, tag, q, page = 1 } = parsed;
   // 모바일 6개·그 외 10개. 같은 ?page=n이어도 기기에 따라 담기는 글이 다르다.
   const pageSize = getPageSize(await headers());
+  // 검색어가 있으면 검색 RPC(캐시 없음), 없으면 기존 캐시 조회. 1자 검색어는 검색하지 않는다.
   const [{ posts, total }, taxonomy] = await Promise.all([
-    getPublishedPostsPage({ category, tag, page, pageSize }),
+    q
+      ? searchPosts({ q, category, tag, page, pageSize })
+      : getPublishedPostsPage({ category, tag, page, pageSize }),
     getTaxonomy(),
   ]);
   const totalPages = getTotalPages(total, pageSize);
-  const filter = { category, tag };
+  // page를 뺀 현재 조건(검색어 포함). 링크 생성이 이 값을 기준으로 한다.
+  const current: ListParams = { ...parsed, page: undefined };
 
   return (
     <>
-      <TaxonomyFilter taxonomy={taxonomy} current={filter} />
-      <PostFilterBar category={category} tag={tag} />
+      <SearchForm
+        current={current}
+        total={q ? total : undefined}
+        categories={taxonomy.categories}
+      />
+      <TaxonomyFilter taxonomy={taxonomy} current={current} />
+      <PostFilterBar category={category} tag={tag} q={q} />
       {total > 0 && page > totalPages ? (
-        <PageOutOfRange filter={filter} totalPages={totalPages} />
+        <PageOutOfRange filter={current} totalPages={totalPages} />
       ) : (
         <>
-          <PostList posts={posts} filtered={Boolean(category || tag)} />
-          <Pagination current={filter} page={page} totalPages={totalPages} />
+          <PostList
+            posts={posts}
+            filtered={Boolean(category || tag)}
+            query={q}
+          />
+          <Pagination current={current} page={page} totalPages={totalPages} />
         </>
       )}
     </>

@@ -89,4 +89,18 @@ describe("Pagination", () => {
       render(<Pagination current={{}} page={99} totalPages={5} />),
     ).not.toThrow();
   });
+
+  it("검색어를 모든 링크에 유지한다", () => {
+    render(<Pagination current={{ q: "캐시" }} page={2} totalPages={3} />);
+
+    const q = encodeURIComponent("캐시");
+    expect(screen.getByRole("link", { name: "이전 페이지" })).toHaveAttribute(
+      "href",
+      `/blog?q=${q}`,
+    );
+    expect(screen.getByRole("link", { name: "3페이지" })).toHaveAttribute(
+      "href",
+      `/blog?q=${q}&page=3`,
+    );
+  });
 });
