@@ -728,7 +728,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 테스트 결과: 2026-11-10 `npm run check`(Vitest 44개 파일·424개, `build-rss.test.ts` 8개 포함)·`npm run knip` 통과(knip은 출력 없이 종료). 실제 env `npm run build`의 빌드 표에서 `/feed.xml`은 `ƒ (Dynamic)`이다(`/sitemap.xml`도 `ƒ`). `npx playwright test e2e/seo.spec.ts` 11개(로그인 setup 포함) 통과: 새로 추가한 3개는 `/feed.xml` 200·`application/rss+xml`·`<rss version="2.0"`·`atom:link` 절대 URL, 홈 `<head>`의 `link[rel=alternate][type="application/rss+xml"]`, 관리자 시나리오(발행 글 포함·초안 제외, item `link`가 ASCII 퍼센트 인코딩이고 그 경로로 상세가 열림, 삭제 직후 피드에서 제외)다. 시나리오가 만든 `e2e-seo-` 글은 `afterAll`의 `cleanup`이 지운다. 오류 상황: 셸 env로 `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:9`를 준 dev 서버(`-p 3100`, `.env.local` 미수정)에서 `/feed.xml`이 HTTP 200, `application/rss+xml; charset=utf-8`, item 0개인 채널(`<link>`·`atom:link`는 `http://localhost:3000`)로 응답했다. 같은 폴더에 dev 서버(3000)가 떠 있으면 Next가 두 번째 서버를 거부해, 3000 서버를 종료한 뒤 확인했다.
   - 제한 사항·미확인: (1) W3C Feed Validation Service는 실행하지 않았다(운영 `https://hkoikoi.dev/feed.xml` 유효성은 배포 뒤 수동 확인 필요). (2) 운영(홈 서버) 반영은 확인하지 않았다: 운영에서 발행·삭제 직후 피드가 갱신되는지, Caddy·Cloudflare가 `/feed.xml`을 캐시하지 않는지 보지 않았다. (3) 이번에 전체 `npx playwright test`는 돌리지 않아 푸터 RSS 링크가 링크 수·이름에 의존하는 `a11y.spec.ts`·`visitor-flow.spec.ts`에 영향이 없는지는 확인하지 않았다. (4) "모든 페이지 `<head>`" 중 홈만 e2e로 확인했다(루트 layout metadata라 같은 값이 들어가는 것으로 추정). (5) 실제 피드 리더(Feedly 등)에서의 구독·표시는 확인하지 않았다. (6) 피드는 최신 20건·소개글만 담고 본문은 넣지 않는다(의도). 소개글이 없는 글은 `description` 없이 나간다. (7) 로컬 `NEXT_PUBLIC_SITE_URL` 미설정이라 절대 URL이 `localhost:3000`이다.
 
-- **Task 027: 편집기 임시저장 자동화**
+- **Task 027: 편집기 임시저장 자동화** ✅ - 완료 2026-11-10 (`beforeunload` 경고와 하단 바 '나가기' 확인창은 e2e·수동 모두 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F020(제안: 편집기 임시저장 자동화), F008, F010
   - 목표: 브라우저 종료·새로고침·네트워크 오류로 작성 중인 글이 사라지지 않게 한다
   - 의존성: Task 021(권장). 스키마 변경 없음(기본안)
