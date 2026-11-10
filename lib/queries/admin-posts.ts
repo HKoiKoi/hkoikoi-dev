@@ -30,6 +30,36 @@ export async function getAdminPosts(): Promise<PostSummary[]> {
   }
 }
 
+export type PostReference = { content: string; thumbnail_url: string | null };
+
+/**
+ * 이미지 참조 판정용: 초안 포함 모든 글의 content·thumbnail_url. 캐시하지 않는다.
+ * 오류는 null로 돌려준다. 빈 배열("글이 없음")과 구분해야 하므로, 호출 측은 null이면
+ * 반드시 중단해야 한다 (실패를 빈 참조로 보면 모든 이미지가 고아로 보인다).
+ * 반드시 requireAdmin() 이후에 호출한다.
+ */
+export async function getAdminPostReferences(): Promise<
+  PostReference[] | null
+> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("posts")
+      .select("content, thumbnail_url");
+
+    if (error) {
+      console.error("[getAdminPostReferences]", error.message);
+      return null;
+    }
+    return data ?? [];
+  } catch (error) {
+    // 프리렌더 중단 같은 Next.js 내부 신호는 삼키지 않고 다시 던진다.
+    unstable_rethrow(error);
+    console.error("[getAdminPostReferences]", error);
+    return null;
+  }
+}
+
 /**
  * id로 글 하나 조회 (초안 포함, 본문 포함). uuid 형식이 아니거나 없거나 오류면 null.
  * published 필터를 걸지 않으므로 반드시 requireAdmin() 이후에 호출한다.

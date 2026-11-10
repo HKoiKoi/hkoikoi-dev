@@ -4,7 +4,11 @@ const createClientMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: createClientMock }));
 
-import { getAdminPostById, getAdminPosts } from "./admin-posts";
+import {
+  getAdminPostById,
+  getAdminPostReferences,
+  getAdminPosts,
+} from "./admin-posts";
 
 type Result = { data: unknown; error: { message: string } | null };
 
@@ -118,5 +122,29 @@ describe("getAdminPostById", () => {
 
     await expect(getAdminPostById(VALID_ID)).resolves.toBeNull();
     expect(errorSpy).toHaveBeenCalled();
+  });
+});
+
+describe("getAdminPostReferences", () => {
+  it("published 필터 없이 content·thumbnail_url만 조회한다", async () => {
+    const rows = [{ content: "a", thumbnail_url: null }];
+    const { builder, from } = createBuilder(ok(rows));
+
+    await expect(getAdminPostReferences()).resolves.toEqual(rows);
+
+    expect(from).toHaveBeenCalledWith("posts");
+    expect(builder.select).toHaveBeenCalledWith("content, thumbnail_url");
+    expect(builder.eq).not.toHaveBeenCalled();
+  });
+
+  it("글이 없으면 빈 배열이고, 오류면 null로 구분한다", async () => {
+    createBuilder(ok([]));
+    await expect(getAdminPostReferences()).resolves.toEqual([]);
+
+    createBuilder({ data: null, error: { message: "boom" } });
+    await expect(getAdminPostReferences()).resolves.toBeNull();
+
+    createClientMock.mockRejectedValue(new Error("down"));
+    await expect(getAdminPostReferences()).resolves.toBeNull();
   });
 });
