@@ -2,9 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 
 import {
   cleanup,
+  confirmDelete,
   createPost,
   hasAdmin,
   login,
+  rowOf,
   uniqueName,
 } from "./fixtures/admin";
 
@@ -52,6 +54,24 @@ test.describe("SEO (공개, 시크릿 불필요)", () => {
     ]) {
       expect(locs).toContain(path);
     }
+  });
+
+  test("/feed.xml은 200과 application/rss+xml로 응답하는 RSS 2.0이다", async ({
+    request,
+  }) => {
+    const res = await request.get("/feed.xml");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain("application/rss+xml");
+    const body = await res.text();
+    expect(body).toContain('<rss version="2.0"');
+    expect(body).toMatch(/<atom:link [^>]*href="https?:\/\/[^"]+\/feed\.xml"/);
+  });
+
+  test("홈 head에 RSS 자동 발견 링크가 있다", async ({ page }) => {
+    await page.goto("/");
+    await expect(
+      page.locator('link[rel="alternate"][type="application/rss+xml"]').first(),
+    ).toHaveAttribute("href", /\/feed\.xml$/);
   });
 
   for (const path of ["/auth/login", "/auth/error"]) {
@@ -139,5 +159,46 @@ test.describe("SEO (발행 글, 관리자 계정 필요)", () => {
     await expect(
       page.getByRole("heading", { name: title }).first(),
     ).toBeVisible();
+  });
+
+  test("feed.xml: 발행 글은 포함·초안은 제외, 한글 슬러그 link로 열리고 삭제 직후 빠진다", async ({
+    page,
+    request,
+  }) => {
+    await login(page);
+    const published = uniqueName(PREFIX, "피드");
+    const draft = uniqueName(PREFIX, "feeddraft");
+    await createPost(page, {
+      title: published,
+      slug: published,
+      excerpt: "피드 확인용 소개글",
+      published: true,
+    });
+    await createPost(page, { title: draft, slug: draft, published: false });
+
+    const feed = await (await request.get("/feed.xml")).text();
+    expect(feed).toContain(published);
+    expect(feed).not.toContain(draft);
+    const link = [...feed.matchAll(/<link>([^<]+)<\/link>/g)]
+      .map((m) => m[1])
+      .find((url) => url.endsWith(`/blog/${encodeURIComponent(published)}`));
+    expect(link).toBeTruthy();
+    expect(link).not.toMatch(/[^\x00-\x7F]/);
+
+    // 공개 방문자로 item link 경로를 연다.
+    const visitor = await page.context().browser()!.newContext();
+    const visitorPage = await visitor.newPage();
+    await visitorPage.goto(new URL(link!, "http://localhost:3000").pathname);
+    await expect(
+      visitorPage.getByRole("heading", { name: published }).first(),
+    ).toBeVisible();
+    await visitor.close();
+
+    await page.goto("/admin/posts");
+    await confirmDelete(page, published);
+    await expect(rowOf(page, published)).toHaveCount(0);
+
+    const after = await (await request.get("/feed.xml")).text();
+    expect(after).not.toContain(published);
   });
 });
