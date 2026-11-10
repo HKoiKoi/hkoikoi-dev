@@ -57,16 +57,16 @@ where (schemaname = 'public' and tablename = 'posts')
    or (schemaname = 'storage' and tablename = 'objects');
 ```
 
-기대: `user_metadata_refs = 0`, `storage_select_policies = 0`, `total_policies = 7`(posts 4개, blog-images 3개). 정책을 추가·삭제했다면 총 개수 기대값도 함께 고친다.
+기대: `user_metadata_refs = 0`, `storage_select_policies = 1`(관리자 전용 `blog_images_select_admin`), `total_policies = 8`(posts 4개, blog-images 4개). 정책을 추가·삭제했다면 총 개수 기대값도 함께 고친다.
 
 ## 검증 대상과 근거
 
-| 대상                                 | 점검                                      | 근거                                                                                           |
-| ------------------------------------ | ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| 비로그인은 `published = true`만 조회 | A, 정책 `posts_select_published_or_admin` | anon에 적용되는 정책은 SELECT 하나이고 admin 식은 anon JWT에서 거짓                            |
-| 일반 로그인 사용자는 쓰기 불가       | C(정책 정의), 쓰기 거부는 아래 한계 참고  | insert/update/delete 정책이 모두 `app_metadata.role = 'admin'`을 요구                          |
-| `user_metadata`로 권한 상승 불가     | B, C                                      | 정책 7개 모두 `auth.jwt() -> 'app_metadata'`만 참조                                            |
-| `blog-images` select 정책 부재       | C                                         | `storage.objects`의 SELECT 정책 0개(list API 노출 방지, 공개 URL은 select 정책 없이 접근 가능) |
+| 대상                                 | 점검                                      | 근거                                                                                                                                                                                   |
+| ------------------------------------ | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 비로그인은 `published = true`만 조회 | A, 정책 `posts_select_published_or_admin` | anon에 적용되는 정책은 SELECT 하나이고 admin 식은 anon JWT에서 거짓                                                                                                                    |
+| 일반 로그인 사용자는 쓰기 불가       | C(정책 정의), 쓰기 거부는 아래 한계 참고  | insert/update/delete 정책이 모두 `app_metadata.role = 'admin'`을 요구                                                                                                                  |
+| `user_metadata`로 권한 상승 불가     | B, C                                      | 정책 8개 모두 `auth.jwt() -> 'app_metadata'`만 참조                                                                                                                                    |
+| `blog-images` select는 관리자 전용   | B, C                                      | `storage.objects`의 SELECT 정책은 `authenticated` + `app_metadata.role = 'admin'` 1개뿐이라 anon·위조 사용자는 목록을 못 얻는다(B의 `objs = 0`). 공개 URL은 select 정책 없이 접근 가능 |
 
 ## 한계
 
