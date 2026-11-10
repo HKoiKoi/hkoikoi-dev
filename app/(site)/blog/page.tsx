@@ -89,7 +89,11 @@ async function FilteredPosts({
 
   return (
     <>
-      <SearchForm current={current} total={q ? total : undefined} />
+      <SearchForm
+        current={current}
+        total={q ? total : undefined}
+        categories={taxonomy.categories}
+      />
       <TaxonomyFilter taxonomy={taxonomy} current={current} />
       <PostFilterBar category={category} tag={tag} q={q} />
       {total > 0 && page > totalPages ? (

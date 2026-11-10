@@ -5,7 +5,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 
 interface SearchResetLinkProps {
-  /** q를 뺀 현재 목록 주소 */
+  /** 모든 조건(검색어·카테고리·태그)을 푼 목록 주소 */
   href: string;
 }
 

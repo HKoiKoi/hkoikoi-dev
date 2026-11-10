@@ -118,33 +118,30 @@ test.describe("블로그 태그·카테고리 필터", () => {
     );
   });
 
-  test("태그 선택 상태에서 카테고리 칩은 AND로 좁히고, 선택 칩을 다시 누르면 그 조건만 해제된다", async ({
+  test("태그 선택 상태에서 카테고리 select는 AND로 좁히고, 전체로 되돌리면 그 조건만 해제된다", async ({
     page,
   }) => {
     await page.goto(`/blog?tag=${TAG_SHARED}`);
 
-    await chip(page, CAT_ONE).click();
+    await page.getByLabel("카테고리").selectOption(CAT_ONE);
     await expect(page).toHaveURL(
       new RegExp(`/blog\\?category=${CAT_ONE}&tag=${TAG_SHARED}$`),
     );
     await expect(postLink(page, POST_A)).toBeVisible();
     await expect(postLink(page, POST_B)).toHaveCount(0);
     await expect(postLink(page, POST_C)).toHaveCount(0);
-    await expect(chip(page, CAT_ONE)).toHaveAttribute("aria-current", "true");
+    await expect(page.getByLabel("카테고리")).toHaveValue(CAT_ONE);
     await expect(chip(page, TAG_SHARED)).toHaveAttribute(
       "aria-current",
       "true",
     );
 
-    // 선택된 카테고리 칩을 다시 누르면 카테고리만 해제되고 태그는 유지된다.
-    await chip(page, CAT_ONE).click();
+    // 카테고리를 '전체'로 되돌리면 카테고리만 해제되고 태그는 유지된다.
+    await page.getByLabel("카테고리").selectOption("");
     await expect(page).toHaveURL(new RegExp(`/blog\\?tag=${TAG_SHARED}$`));
     await expect(postLink(page, POST_A)).toBeVisible();
     await expect(postLink(page, POST_B)).toBeVisible();
-    await expect(chip(page, CAT_ONE)).not.toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+    await expect(page.getByLabel("카테고리")).toHaveValue("");
 
     // 남은 태그 칩을 다시 누르면 필터가 모두 풀린다.
     await chip(page, TAG_SHARED).click();

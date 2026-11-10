@@ -1,19 +1,28 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { buildBlogHref, type ListParams } from "@/lib/posts/list-params";
+import type { ListParams } from "@/lib/posts/list-params";
+import type { Taxonomy } from "@/lib/posts/taxonomy";
+
+import { CategorySelect } from "./category-select";
 
 import { SearchResetLink } from "./search-reset-link";
 
 interface SearchFormProps {
   current: ListParams;
+  /** 카테고리 선택 목록 (글 수 포함) */
+  categories?: Taxonomy["categories"];
   /** 검색 결과 전체 건수. 검색 중일 때만 넘긴다 */
   total?: number;
 }
 
 // 블로그 검색 폼. JavaScript 없이 GET 제출로 동작하는 서버 컴포넌트다.
-// category·tag는 hidden으로 유지하고 page는 넣지 않아 검색하면 1페이지로 돌아간다.
-export function SearchForm({ current, total }: SearchFormProps) {
+// 카테고리는 select로 고르고 tag는 hidden으로 유지하며, page는 넣지 않아 검색하면 1페이지로 돌아간다.
+export function SearchForm({
+  current,
+  total,
+  categories = [],
+}: SearchFormProps) {
   const { category, tag, q, qTooShort, rawQ } = current;
 
   return (
@@ -33,9 +42,9 @@ export function SearchForm({ current, total }: SearchFormProps) {
           autoComplete="off"
           aria-describedby={qTooShort ? "blog-search-hint" : undefined}
         />
-        {category && <input type="hidden" name="category" value={category} />}
+        <CategorySelect categories={categories} category={category} />
         {tag && <input type="hidden" name="tag" value={tag} />}
-        <SearchResetLink href={buildBlogHref(current, { q: undefined })} />
+        <SearchResetLink href="/blog" />
         <Button type="submit">검색</Button>
       </form>
       {qTooShort && (
