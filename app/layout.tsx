@@ -14,6 +14,7 @@ export const metadata: Metadata = {
     template: "%s | hkoikoi.dev",
   },
   description: siteConfig.description,
+  alternates: { types: { "application/rss+xml": "/feed.xml" } },
 };
 
 // 본문 폰트 Pretendard Variable은 위 CSS(unicode-range 분할 서브셋, font-display: swap)로 로드하고,
