@@ -14,6 +14,10 @@ describe("SearchForm", () => {
     expect(input).toHaveAttribute("name", "q");
     expect(input).toHaveAttribute("maxlength", "50");
     expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("link", { name: "초기화" })).toHaveAttribute(
+      "href",
+      "/blog",
+    );
   });
 
   it("category·tag는 hidden으로 유지하고 page는 넣지 않는다", () => {
@@ -28,12 +32,12 @@ describe("SearchForm", () => {
     expect(container.querySelector('input[name="page"]')).toBeNull();
   });
 
-  it("검색 중이면 입력값·결과 수·검색어 지우기 링크를 보여 준다", () => {
+  it("검색 중이면 입력값·결과 수·초기화 링크를 보여 준다", () => {
     render(<SearchForm current={{ q: "캐시", category: "개발" }} total={3} />);
 
     expect(screen.getByLabelText("블로그 검색")).toHaveValue("캐시");
     expect(screen.getByRole("status")).toHaveTextContent("검색 결과 3개");
-    expect(screen.getByRole("link", { name: "검색어 지우기" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "초기화" })).toHaveAttribute(
       "href",
       `/blog?category=${encodeURIComponent("개발")}`,
     );
@@ -44,6 +48,9 @@ describe("SearchForm", () => {
 
     expect(screen.getByLabelText("블로그 검색")).toHaveValue("a");
     expect(screen.getByRole("status")).toHaveTextContent("두 글자 이상");
-    expect(screen.queryByRole("link", { name: "검색어 지우기" })).toBeNull();
+    expect(screen.getByRole("link", { name: "초기화" })).toHaveAttribute(
+      "href",
+      "/blog",
+    );
   });
 });

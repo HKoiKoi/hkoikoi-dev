@@ -693,7 +693,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [ ] 적용 뒤 `generate_typescript_types`, `get_advisors`(security: `function_search_path_mutable`·`extension_in_public` 없음 확인, performance)
   - [ ] `q` 파싱: trim, NFC 정규화, 2~50자(1자는 검색하지 않고 안내, 50자 초과는 자름)
   - [x] 캐싱 결정(확정: a, 캐시 없음): `use-cache.md` 확인 결과 캐시 키가 직렬화된 인자라 `q`마다 항목이 생긴다. `searchPosts`(`lib/queries/posts.ts`)는 `'use cache'` 없이 `createPublicClient()`로 RPC 두 개(행·count)를 병렬 호출하고, 호출 측이 Suspense 안에서 요청 시점에 조회한다. 아래는 원래 결정 항목: 검색어는 키 공간이 사실상 무한이라 `'use cache'`로 저장하면 캐시가 커질 수 있다. `node_modules/next/dist/docs/`의 `use cache`·`cacheLife` 문서를 확인한 뒤 (a) 캐시 없이 Suspense 안에서 요청 시점 조회, (b) 짧은 `cacheLife` + `cacheTag('posts')` 중 결정(기본: a)
-  - [ ] `SearchForm`: `<form action="/blog" method="get" role="search">`(JavaScript 없이 동작), 라벨, 현재 `category`·`tag`는 hidden으로 유지하고 `page`는 초기화. 결과 수와 "검색어 지우기" 링크
+  - [ ] `SearchForm`: `<form action="/blog" method="get" role="search">`(JavaScript 없이 동작), 라벨, 현재 `category`·`tag`는 hidden으로 유지하고 `page`는 초기화. 결과 수와 검색어 옆 "초기화" 링크
   - [ ] 검색 결과 화면은 `robots: { index: false }`(검색어 URL 색인 방지)
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 발행 글 `e2e-search-캐시무효화-정리` 시드 → `/blog`에서 "캐시" 검색 → 해당 글 표시, URL `?q=캐시`

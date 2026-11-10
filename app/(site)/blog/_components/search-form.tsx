@@ -1,9 +1,9 @@
-import Link from "next/link";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buildBlogHref, type ListParams } from "@/lib/posts/list-params";
+
+import { SearchResetLink } from "./search-reset-link";
 
 interface SearchFormProps {
   current: ListParams;
@@ -23,6 +23,7 @@ export function SearchForm({ current, total }: SearchFormProps) {
           블로그 검색
         </Label>
         <Input
+          key={q ?? rawQ ?? ""}
           id="blog-search"
           type="search"
           name="q"
@@ -34,6 +35,7 @@ export function SearchForm({ current, total }: SearchFormProps) {
         />
         {category && <input type="hidden" name="category" value={category} />}
         {tag && <input type="hidden" name="tag" value={tag} />}
+        <SearchResetLink href={buildBlogHref(current, { q: undefined })} />
         <Button type="submit">검색</Button>
       </form>
       {qTooShort && (
@@ -45,12 +47,6 @@ export function SearchForm({ current, total }: SearchFormProps) {
         <p role="status" className="text-sm text-muted-foreground">
           <span className="break-all">&lsquo;{q}&rsquo;</span> 검색 결과{" "}
           {total ?? 0}개
-          <Link
-            href={buildBlogHref(current, { q: undefined })}
-            className="ml-3 underline underline-offset-4 hover:text-foreground"
-          >
-            검색어 지우기
-          </Link>
         </p>
       )}
     </div>
