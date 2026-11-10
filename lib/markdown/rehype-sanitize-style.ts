@@ -11,7 +11,7 @@ const FORBIDDEN_VALUE =
 const PROPERTY_NAME = /^-?[a-z][a-z0-9-]*$/i;
 
 // 문자열·괄호 안은 건너뛰고 stops 중 하나가 처음 나오는 위치를 돌려준다. 없으면 -1.
-function findOutside(css: string, from: number, stops: string): number {
+export function findOutside(css: string, from: number, stops: string): number {
   let depth = 0;
   let quote: string | null = null;
   for (let i = from; i < css.length; i++) {
@@ -31,7 +31,7 @@ function findOutside(css: string, from: number, stops: string): number {
   return -1;
 }
 
-function splitOutside(css: string, separator: string): string[] {
+export function splitOutside(css: string, separator: string): string[] {
   const parts: string[] = [];
   let start = 0;
   for (;;) {
