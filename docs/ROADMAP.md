@@ -759,11 +759,11 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 의존성: Task 021(권장). 스키마 변경 없음. Task 016(Shadow DOM 미리보기)과 호환 필요
   - 관련 파일: `lib/markdown/rehype-scope-style.ts`(+test), `lib/markdown/plugins.ts`, `components/markdown/markdown-content.tsx`, `app/(site)/blog/[slug]/page.tsx`, `app/admin/posts/_components/markdown-preview.tsx`, `README.md`(작성 규칙)
   - 수락 기준: 상세와 미리보기에서 `<style>`의 모든 선택자가 글 래퍼 클래스(`.post-scope-<글 id 기반 값>`) 하위로 바뀌고, 본문 밖 요소(헤더·푸터·`.post-content` 등 사이트 클래스)에 매칭되지 않음. 기존 글의 본문 안 스타일 결과는 같음
-  - [ ] 방식 결정·기록: (a) 선택자 접두 변환(sanitize-style 다음 단계에서 `.post-box` → `.post-scope-x .post-box`, 모든 브라우저에서 동작) — 기본안. (b) CSS `@scope` 래핑 — 방문자 브라우저 지원을 확인해야 하고, 지금 sanitize-style이 `@` 규칙을 모두 지우므로 정책 변경이 필요해 보류
-  - [ ] 플러그인 순서: remark-gfm/remark-math → rehype-raw → rehype-sanitize → rehype-sanitize-style → **rehype-scope-style** → rehype-katex → rehype-highlight. scope 값은 `MarkdownContent`의 prop(`scopeId`)으로 받고 래퍼에 같은 클래스를 붙임(sanitize 뒤에 붙이므로 class 허용 규칙과 무관)
-  - [ ] `scopeId`: 글 id 기반(슬러그 변경에도 안정). 미리보기는 Shadow DOM 안이라 고정 값 사용
+  - [x] 방식 결정·기록: (a) 선택자 접두 변환(sanitize-style 다음 단계에서 `.post-box` → `.post-scope-x .post-box`, 모든 브라우저에서 동작) — 기본안. (b) CSS `@scope` 래핑 — 방문자 브라우저 지원을 확인해야 하고, 지금 sanitize-style이 `@` 규칙을 모두 지우므로 정책 변경이 필요해 보류
+  - [x] 플러그인 순서: remark-gfm/remark-math → rehype-raw → rehype-sanitize → rehype-sanitize-style → **rehype-scope-style** → rehype-katex → rehype-highlight. scope 값은 `MarkdownContent`의 prop(`scopeId`)으로 받고 래퍼에 같은 클래스를 붙임(sanitize 뒤에 붙이므로 class 허용 규칙과 무관)
+  - [x] `scopeId`: 글 id 기반(슬러그 변경에도 안정). 미리보기는 Shadow DOM 안이라 고정 값 사용
   - [ ] 선택적 확장(별도 결정): 스코프가 생기면 요소 선택자(`h2`, `table` 등)를 스코프 아래에서 허용할 수 있다. 작성은 쉬워지지만 sanitize-style 허용 규칙을 바꿔야 하므로 기본은 기존 제한 유지
-  - [ ] README의 `<style>` 작성 규칙 갱신, PRD 트레이드오프 문구 갱신 필요 여부를 사용자에게 보고(PRD는 사용자 결정 후 수정)
+  - [x] README의 `<style>` 작성 규칙 갱신, PRD 트레이드오프 문구 갱신 필요 여부를 사용자에게 보고(PRD는 사용자 결정 후 수정)
   - 테스트 체크리스트:
     - 정상: `rehype-scope-style.test.ts` → `.post-box{color:red}` + scopeId `abc` → `.post-scope-abc .post-box{color:red}`, 선택자 목록(`.post-a, .post-b`)은 각각 접두
     - 정상: Playwright MCP → `<style>.post-box{color:red}</style><div class="post-box">x</div>` 발행 글(시드 `e2e-scope-`) → 본문 div가 빨간색
@@ -771,7 +771,12 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: `rehype-scope-style.test.ts` → 빈 규칙·주석·sanitize-style이 이미 지운 규칙 → 예외 없이 처리
     - 엣지: 단위 테스트 → `#user-content-intro` 선택자 → 접두 뒤에도 본문 요소에 매칭
     - 엣지: 터미널 → `npx playwright test e2e/admin-preview.spec.ts` → Shadow DOM 미리보기 결과와 편집기 UI 격리 유지
-  - 테스트 결과: (미수행)
+  - 결정 기록: (a) 선택자 접두 변환을 채택했다. (b) `@scope`는 sanitize-style이 `@` 규칙을 모두 지워 정책 변경이 필요하고 방문자 브라우저 지원도 확인하지 못해 보류했다. `scopeCss`는 `@` 규칙을 남기지 않고 버린다. 선택적 확장(스코프 아래 요소 선택자 허용)은 하지 않고 기존 제한을 유지했다.
+  - 테스트 결과(2026-11-10):
+    - 단위: `npx vitest run lib/markdown`·`components/markdown` 통과(`.post-box`→`.post-scope-abc .post-box`, 선택자 목록 각각 접두, `#user-content-intro` 접두, 빈 입력·빈 prelude·주석·`@import;`·`@media`·닫히지 않은 블록, 정규화, uuid, 플러그인 순서·`{ scopeId }` 전달, 래퍼 클래스, `.post-content` 규칙이 래퍼에 매칭되지 않음). 접두 뒤 `#user-content-intro`가 실제 요소에 매칭되는지는 브라우저에서 확인하지 않았고 접두 결과만 단위 테스트로 확인했다.
+    - e2e: `npx playwright test e2e/post-style-scope.spec.ts e2e/admin-preview.spec.ts` 7개 통과(10.4초). 새 spec은 Playwright MCP 대신 spec 파일로 `e2e-scope-` 발행 글의 `.post-box`가 `rgb(255, 0, 0)`이고 `.post-content{display:none}`이 있어도 래퍼가 보임을 확인하며, 미리보기 격리 6개는 그대로 통과했다. 전체 e2e는 로그인 횟수 제한 때문에 돌리지 않았다.
+    - 게이트: `npm run check`(Vitest 49 파일 / 482개)·`npm run build`·`npm run knip` 통과(knip은 기존 `@testing-library/user-event` 설정 힌트 1건 출력).
+    - PRD: 289행 "스코프 변환은 MVP 밖"과 75행 "`<style>`의 글 단위 스코프 변환"(MVP 제외 목록)은 이번 구현과 어긋나 갱신이 필요해 보이며, 수정하지 않고 사용자에게 보고했다.
 
 - **Task 029: 스토리지 고아 이미지 정리 도구 구축**
   - 관련 기능: F022(제안: 스토리지 고아 이미지 정리), F009
@@ -824,7 +829,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 의존성: Task 021(권장). 방식에 따라 스키마 변경 여부가 달라짐(기본안은 변경 없음). **방식은 시작 전에 사용자 결정 필요**
   - 관련 파일: `components/blog/comments.tsx`(신규, Client), `app/(site)/blog/[slug]/page.tsx`, `lib/site-config.ts`(설정값), `next.config.ts`(CSP 확인)
   - 수락 기준: 발행 글 상세 하단에서 댓글을 읽고 쓸 수 있고, 라이트/다크 테마가 사이트와 맞춰지며, 댓글 영역은 화면에 들어올 때만 로드되어 상세 Lighthouse(모바일) 성능 90 이상 유지. 슬러그를 바꿔도 기존 댓글이 같은 글에 남음
-  - [ ] 방식 결정·기록: (a) **Giscus(GitHub Discussions)** — 기본안. DB·스팸 방지·모더레이션을 GitHub에 맡기고 회원가입 차단 정책과 충돌하지 않는다. 댓글을 쓰려면 GitHub 계정이 필요하다. (b) Supabase 자체 댓글 테이블 — 익명 작성이면 스팸 대책(CAPTCHA)·모더레이션 UI·개인정보(이메일·닉네임) 처리 부담이 크고, 회원가입을 열어야 하면 현재 인증 정책과 충돌한다. (c) Disqus 등 — 광고·추적 때문에 제외
+  - [x] 방식 결정·기록: (a) **Giscus(GitHub Discussions)** — 기본안. DB·스팸 방지·모더레이션을 GitHub에 맡기고 회원가입 차단 정책과 충돌하지 않는다. 댓글을 쓰려면 GitHub 계정이 필요하다. (b) Supabase 자체 댓글 테이블 — 익명 작성이면 스팸 대책(CAPTCHA)·모더레이션 UI·개인정보(이메일·닉네임) 처리 부담이 크고, 회원가입을 열어야 하면 현재 인증 정책과 충돌한다. (c) Disqus 등 — 광고·추적 때문에 제외
   - [ ] (a 채택 시, 사용자 수동 작업) 저장소 Discussions 활성화, giscus 앱 설치, 댓글용 카테고리 생성
   - [ ] 매핑은 `data-mapping="specific"` + `data-term=<글 id>`(pathname 매핑은 슬러그를 바꾸면 끊긴다)
   - [ ] `Comments`(Client): `IntersectionObserver`로 지연 로드, `next-themes` 테마가 바뀌면 iframe에 `postMessage`로 전달, 로드 실패 시 안내 문구. 초안·없는 글에는 렌더링하지 않음
