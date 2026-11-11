@@ -12,7 +12,7 @@ import {
 } from "react";
 import { autosaveDraft, savePost } from "@/app/admin/posts/actions";
 import { AutosaveStatus } from "@/app/admin/posts/_components/autosave-status";
-import { FieldError } from "@/app/admin/posts/_components/field-error";
+import { FieldError } from "@/app/admin/_components/field-error";
 import { ImageUploadButton } from "@/app/admin/posts/_components/image-upload-button";
 import { MarkdownPreview } from "@/app/admin/posts/_components/markdown-preview";
 import { PostMetaFields } from "@/app/admin/posts/_components/post-meta-fields";

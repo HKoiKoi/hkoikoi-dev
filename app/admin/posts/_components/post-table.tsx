@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { DeletePostDialog } from "@/app/admin/posts/_components/delete-post-dialog";
+import { DeleteItemDialog } from "@/app/admin/_components/delete-item-dialog";
+import { deletePost } from "@/app/admin/posts/actions";
 import { formatDate } from "@/lib/format-date";
 import type { PostSummary } from "@/lib/types/post";
 
@@ -82,7 +83,12 @@ export function PostTable({
                   >
                     수정
                   </Link>
-                  <DeletePostDialog postId={post.id} postTitle={post.title} />
+                  <DeleteItemDialog
+                    itemName={post.title}
+                    title="글을 삭제할까요?"
+                    description={`\u2018${post.title}\u2019 글을 삭제하면 되돌릴 수 없습니다.`}
+                    onDelete={deletePost.bind(null, post.id)}
+                  />
                 </div>
               </td>
             </tr>
