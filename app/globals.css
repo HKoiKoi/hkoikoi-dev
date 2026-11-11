@@ -192,6 +192,26 @@ samp,
   text-decoration: inherit;
 }
 
+/*
+ * 글 본문 제목 색: 브랜드 색(--primary)을 본문 글자색(--foreground)과 섞어 단계별로 옅게 한다.
+ * 변수를 :root가 아니라 .post-content에 선언하는 것은 미리보기(Shadow DOM)의 .dark가 래퍼에 붙기 때문이다.
+ * prose 제목 색은 :where라 특이도가 0이어서 이 규칙이 우선한다. 사이트 전체 제목이 바뀌지 않게 반드시 .post-content 아래로 한정한다.
+ */
+.post-content {
+  --post-h2: var(--primary);
+  --post-h3: color-mix(in oklab, var(--primary) 80%, var(--foreground));
+  --post-h4: color-mix(in oklab, var(--primary) 60%, var(--foreground));
+}
+.post-content h2 {
+  color: var(--post-h2);
+}
+.post-content h3 {
+  color: var(--post-h3);
+}
+.post-content h4 {
+  color: var(--post-h4);
+}
+
 /* 글 본문 코드 블록: prose 기본 색 대신 테마 토큰과 highlight.js 토큰 색을 쓴다. */
 .post-content pre {
   background: var(--muted);
