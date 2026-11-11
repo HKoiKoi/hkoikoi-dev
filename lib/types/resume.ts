@@ -1,3 +1,21 @@
+import type { Tables } from "@/lib/supabase/database.types";
+
+/** DB 행 타입. 공개 화면에는 아래 표시용 타입으로 바꿔 넘긴다(`lib/queries/resume.ts`의 매퍼). */
+export type ResumeEntryRow = Tables<"resume_entries">;
+export type ProjectRow = Tables<"projects">;
+export type PublicationRow = Tables<"publications">;
+
+/** `resume_entries.section` check 제약과 같은 6종 */
+export const RESUME_SECTIONS = [
+  "education",
+  "career",
+  "certifications",
+  "volunteer",
+  "languages",
+  "activities",
+] as const;
+export type ResumeSection = (typeof RESUME_SECTIONS)[number];
+
 /** 학력·경력·자격증·사회봉사·어학·사회활동 공통 항목 */
 export type ResumeEntry = {
   title: string;
