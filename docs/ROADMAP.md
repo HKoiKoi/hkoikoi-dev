@@ -778,7 +778,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 게이트: `npm run check`(Vitest 49 파일 / 482개)·`npm run build`·`npm run knip` 통과(knip은 기존 `@testing-library/user-event` 설정 힌트 1건 출력).
     - PRD: 289행 "스코프 변환은 MVP 밖"과 75행 "`<style>`의 글 단위 스코프 변환"(MVP 제외 목록)은 이번 구현과 어긋나 갱신이 필요해 보이며, 수정하지 않고 사용자에게 보고했다.
 
-- **Task 029: 스토리지 고아 이미지 정리 도구 구축**
+- **Task 029: 스토리지 고아 이미지 정리 도구 구축** ✅ - 완료 2026-11-11 (실제 삭제·공개 URL 비반환 확인, 후보 선택 e2e, 삭제 직전 경합 재현, 초기 정리는 미확인 — 2026-11-12 이후 사용자가 `/admin/storage`에서 수동 수행, `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F022(제안: 스토리지 고아 이미지 정리), F009
   - 목표: 어떤 글에서도 참조하지 않는 `blog-images` 객체(삭제·교체된 이미지, e2e 테스트 이미지)를 관리자가 확인한 뒤 지울 수 있게 한다
   - 제약(CLAUDE.md "알려진 예외", Task 017 기록): `blog-images`에는 `storage.objects` SELECT 정책이 없어(list API 노출 방지) 관리자 세션의 Storage API 삭제가 403이다(Storage `remove`는 객체 SELECT와 DELETE 권한이 모두 필요하다). SQL `delete from storage.objects`는 `storage.protect_delete()` 트리거가 막고, 트리거를 끄고 지우면 실제 파일은 남고 메타데이터만 사라지므로 하지 않는다. 따라서 삭제는 **Storage API로만** 하고, 이를 위해 권한 경로를 하나 열어야 한다
@@ -805,17 +805,18 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 테스트 결과: 2026-11-10 `npm run check`(526개 테스트), `npm run build`, `npm run knip`(미사용 항목 없음, 기존 설정 hint 1건) 통과. `npx playwright test e2e/admin-storage.spec.ts e2e/access-control.spec.ts` 통과(admin-storage 4건 통과·1건 skip). 확인한 시나리오: 비로그인 `/admin/storage` → `/auth/login`, 관리자 목록·빈 상태 표시, 초안이 참조하는 방금 올린 이미지는 후보 아님, 단위 테스트로 삭제 직전 재검사(참조 조회를 두 번째 호출에서 바꿔 모킹)·참조 조회 실패 시 무삭제·remove 일부 실패 요약.
   - 제한 사항·미확인: 운영 `blog-images` 121개가 모두 업로드 7일 이내(가장 오래된 것 2026-11-05)라 후보가 0건이었다. 그래서 후보 선택 e2e(1건 skip), 실제 삭제와 공개 URL 비반환 확인, 삭제 직전 경합 재현(수동)은 수행하지 못했다. e2e는 운영 스토리지를 실제로 지우지 않는다. 초기 정리는 사용자가 2026-11-12 이후 `/admin/storage`에서 직접 수행하기로 했고, 그때 실제 삭제·공개 URL 비반환 확인과 위 미확인 항목을 확인한다(이 Task에서는 확인하지 않았다).
 
-- **Task 030: 블로그 글 조회수 집계 구현**
+- **Task 030: 블로그 글 조회수 집계 구현** ✅ - 완료 2026-11-11 (쿠키 동의 배너 필요 여부 미확인, 초안 글 조회수 가시성·운영 배포 후 동작은 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F023(제안: 글 조회수), F006
   - 목표: 글별 누적 조회수를 기록하고 상세(선택: 관리자 글 목록)에 표시한다
   - 의존성: Task 022(상세 하단 레이아웃 정리 뒤 권장). **스키마 변경 있음**
   - 관련 파일: `supabase/migrations/<timestamp>_create_post_views.sql`, `lib/supabase/database.types.ts`, `app/api/posts/[id]/view/route.ts`(신규), `app/(site)/blog/[slug]/_components/{view-tracker,view-count}.tsx`(신규), `lib/queries/post-views.ts`, `lib/views/is-bot.ts`(+test), `app/admin/posts/_components/post-table.tsx`
   - 수락 기준: 발행 글 상세를 연 방문자 1명당 24시간에 1회만 늘고, 봇·관리자 세션·초안은 집계하지 않음. 조회수 표시는 캐시된 본문과 분리되어 본문 캐시(`posts` 태그)를 무효화하지 않음. IP·User-Agent 원문 같은 개인정보를 저장하지 않음
-  - [ ] 스키마: `post_views(post_id uuid primary key references posts(id) on delete cascade, view_count bigint not null default 0, updated_at timestamptz not null default now())`. RLS 활성화, anon·authenticated는 발행 글의 행만 SELECT, 직접 INSERT·UPDATE·DELETE 불가. 과잉 GRANT `revoke`
-  - [ ] 증가 RPC `increment_post_view(p_post_id uuid)`: `security definer`, `set search_path = ''`, 발행 글일 때만 `insert … on conflict do update set view_count = view_count + 1`. EXECUTE는 `revoke from public` 뒤 anon·authenticated에만 부여. advisor의 security definer 관련 경고는 사유를 기록
-  - [ ] 증가 경로: 상세의 작은 Client Component가 마운트 뒤 1회 `POST /api/posts/<id>/view` 호출. Route Handler는 `post_viewed_<id>` httpOnly 쿠키(24시간)로 중복을 막고, User-Agent 봇 패턴과 관리자 claims는 제외. 링크 프리페치·프리렌더로는 늘지 않음
-  - [ ] 표시: `ViewCount`를 별도 `<Suspense>` 안에서 요청 시점 조회(`connection()`), 본문 `'use cache'`와 분리. 실패하면 숫자를 숨김
-  - [ ] 개인정보: 원문 IP·UA 저장 없음, 기능 쿠키만 쓰므로 동의 배너가 필요 없는지 확인해 기록
+  - [x] 스키마: `post_views(post_id uuid primary key references posts(id) on delete cascade, view_count bigint not null default 0, updated_at timestamptz not null default now())`. RLS 활성화, anon·authenticated는 발행 글의 행만 SELECT, 직접 INSERT·UPDATE·DELETE 불가. 과잉 GRANT `revoke`
+  - [x] 증가 RPC `increment_post_view(p_post_id uuid)`: `security definer`, `set search_path = ''`, 발행 글일 때만 `insert … on conflict do update set view_count = view_count + 1`. EXECUTE는 `revoke from public` 뒤 anon·authenticated에만 부여. advisor의 security definer 관련 경고는 사유를 기록
+  - [x] 증가 경로: 상세의 작은 Client Component가 마운트 뒤 1회 `POST /api/posts/<id>/view` 호출. Route Handler는 `post_viewed_<id>` httpOnly 쿠키(24시간)로 중복을 막고, User-Agent 봇 패턴과 관리자 claims는 제외. 링크 프리페치·프리렌더로는 늘지 않음
+  - [x] 표시: `ViewCount`를 별도 `<Suspense>` 안에서 요청 시점 조회(`connection()`), 본문 `'use cache'`와 분리. 실패하면 숫자를 숨김
+  - [x] 개인정보(저장 범위): 원문 IP·UA는 저장하지 않는다. UA는 요청 중 `isBot` 판정에만 쓰고 로깅하지 않으며, DB에는 글별 누적 숫자만 남는다. 방문자 식별 값도 서버에 저장하지 않는다
+  - [ ] 개인정보(동의 배너): `post_viewed_<id>`는 중복 집계 방지 전용 httpOnly·24시간 쿠키(광고·추적 용도 아님)이고 이 사이트에는 동의 배너가 없다. 다만 이 쿠키가 배너 없이 허용되는지는 법적 판단이라 확인하지 못했다. 사용자가 판단해 이 항목을 갱신한다
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 비로그인 새 컨텍스트로 발행 글 상세 → 조회수 +1, 같은 컨텍스트에서 새로고침 → 그대로
     - 정상: Playwright MCP → 또 다른 새 컨텍스트 → +1
@@ -824,7 +825,16 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지: `is-bot.test.ts` → Googlebot·bingbot·HeadlessChrome UA → 봇, 일반 Chrome UA → 봇 아님
     - 엣지: Playwright MCP → 관리자 로그인 상태로 상세 → 증가 없음
     - 엣지: 글 삭제 → `post_views` 행 cascade 삭제(Supabase MCP 읽기 전용 조회로 확인)
-  - 테스트 결과: (미수행)
+  - 구현 메모(2026-11-11): 마이그레이션 `supabase/migrations/20261111022854_create_post_views.sql`(운영 DB 적용, version은 원격과 일치). `increment_post_view`는 증가했을 때만 `true`를 돌려주고 Route Handler는 `true`일 때만 쿠키를 설정한다. Route Handler(`app/api/posts/[id]/view/route.ts`)는 `POST`만 export해 링크 프리페치·GET으로는 늘지 않고(GET은 405), 잘못된 id는 400, 그 외 제외 사유(쿠키·봇·관리자·초안·RPC 오류)는 모두 204다. `connection()`은 쓰지 않았다(문서상 Cache Components의 프리렌더 대상이 `GET` 핸들러뿐이라는 근거, 빌드는 통과). 표시는 `ViewCount`가 별도 `<Suspense fallback={null}>`에서 `connection()` 뒤 `getPostViewCount`(캐시 없음)를 호출해 본문 `'use cache'`·`posts` 태그와 분리되며 조회수 증가는 `updateTag`를 호출하지 않는다. 글 상세는 `조회수 N`, 관리자 글 목록에는 '조회수' 열(기록 없으면 0, 조회 실패 시 '-')이 있다.
+  - advisor 사유: `get_advisors(security)`에 `anon_security_definer_function_executable`·`authenticated_security_definer_function_executable` 경고가 `increment_post_view`에 각 1건 뜬다. 의도한 동작이다. 비로그인 방문자도 호출해야 하고, `anon`·`authenticated`에 `post_views` 쓰기 권한을 주지 않으려고 쓰기 경로를 이 함수 하나로 제한하는 것이 `security definer`를 쓴 이유다. 함수는 `search_path = ''`이며 발행 글이 아니면 아무것도 쓰지 않는다. 이 밖의 새 경고는 없고 기존 `auth_leaked_password_protection`은 "알려진 예외"대로다.
+  - 알려진 한계: (1) 쿠키 기반 중복 방지라 방문자가 쿠키를 지우거나 쿠키 없이 요청하면 다시 집계된다. DB의 RPC도 `anon`이 직접 반복 호출할 수 있어 조회수 부풀리기를 완전히 막지는 못한다(레이트 리밋 없음). (2) UA 봇 판정은 위조할 수 있는 1차 필터다. Playwright 기본 UA는 `HeadlessChrome`이라 e2e 방문자 컨텍스트는 일반 브라우저 UA를 지정해야 집계된다. (3) `proxy.ts`가 `/api` 요청에도 `updateSession`을 돌려 `getClaims()`가 요청당 2회 호출된다. proxy의 claims를 핸들러에 안전하게 넘길 방법이 없어 감수했다. (4) 첫 방문 화면은 증가 전 값이고 새로고침해야 반영된다(표시가 요청 시점이고 집계 POST가 마운트 뒤에 나가기 때문).
+  - 테스트 결과(2026-11-11):
+    - 단위: `lib/views/is-bot.test.ts` 6개, `app/api/posts/[id]/view/route.test.ts` 9개(잘못된 id·쿠키·봇·UA 없음·관리자·RPC false/true·RPC 오류·`createClient` 예외), `lib/queries/post-views.test.ts` 4개, `view-tracker.test.tsx` 3개, `admin-posts.test.ts`의 조회수 4개. `npm run check`(Vitest 58 파일 / 555개)·`npm run build`·`npm run knip`(기존 설정 hint 1건뿐) 통과. 빌드에서 `/blog/[slug]`는 `◐ Partial Prerender` 1d/1w 그대로이고 `/api/posts/[id]/view`는 `ƒ`.
+    - DB(Supabase MCP, 운영, `begin … rollback`): `anon` insert·update는 `permission denied for table post_views`(42501), `anon`·`authenticated`의 테이블 권한은 `SELECT`뿐, 함수는 `security definer`·`search_path=""`·`public` 실행 권한 없음, 존재하지 않는 id RPC는 `false`.
+    - curl(`next start`, 운영 DB 연결): 초안 id POST → 204·`Set-Cookie` 없음·`post_views` 0행, 잘못된 id → 400, GET → 405, `Googlebot` UA → 204.
+    - e2e: `npx playwright test e2e/post-views.spec.ts` 7개 통과(setup 포함, 6.2초): 새 방문자 컨텍스트는 새로고침하면 `조회수 1`이고 24시간 쿠키(`post_viewed_`)가 실리며, 같은 컨텍스트에서 다시 열고 새로고침해도 1, 다른 새 컨텍스트는 `조회수 2`, 봇 UA·관리자 세션은 `Set-Cookie` 없이 2 그대로, 관리자 글 목록 조회수 열이 2. 테스트 글은 `e2e-views-` 접두이고 `afterAll`에서 지웠으며, 지운 뒤 `post_views`가 0행이라 글 삭제 시 cascade 삭제도 확인했다.
+    - 회귀: `visitor-flow`·`cache-invalidation`·`a11y`·`seo`·`post-navigation`·`post-style-scope`·`access-control`을 함께 돌렸을 때 `post-navigation`의 시드 글 연속 배치 확인이 한 번 실패했다(`시드 글이 연달아 놓이지 않았다`). 같은 spec만 다시 돌리면 6개 모두 통과했다. 다른 spec의 발행 시각과 겹친 타이밍 문제로 보이지만 원인을 확정하지는 않았다.
+  - 제한 사항·미확인: (1) 초안이었다가 조회가 쌓인 글의 조회수가 방문자에게 숨고 관리자에게만 보이는 RLS 동작은 조회수가 있는 초안이 없어 확인하지 못했다. (2) 관리자 `user_metadata.role` 위조 사용자가 초안 글 조회수를 못 보는지는 확인하지 않았다. (3) 운영 배포 후 `/blog/[slug]` 정적 셸에서 조회수가 요청 시점에 갱신되는지는 로컬 `next start`에서만 확인했다. (4) 쿠키 동의 배너 필요 여부는 법적 판단이라 확인하지 않았다. (5) 모바일 화면 등 시각 배치는 사용자가 보낸 데스크톱 스크린샷으로만 확인했다.
 
 - **Task 031: 블로그 댓글 기능 도입**
   - 관련 기능: F024(제안: 블로그 댓글), F006
@@ -833,17 +843,25 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 파일: `components/blog/comments.tsx`(신규, Client), `app/(site)/blog/[slug]/page.tsx`, `lib/site-config.ts`(설정값), `next.config.ts`(CSP 확인)
   - 수락 기준: 발행 글 상세 하단에서 댓글을 읽고 쓸 수 있고, 라이트/다크 테마가 사이트와 맞춰지며, 댓글 영역은 화면에 들어올 때만 로드되어 상세 Lighthouse(모바일) 성능 90 이상 유지. 슬러그를 바꿔도 기존 댓글이 같은 글에 남음
   - [x] 방식 결정·기록: (a) **Giscus(GitHub Discussions)** — 기본안. DB·스팸 방지·모더레이션을 GitHub에 맡기고 회원가입 차단 정책과 충돌하지 않는다. 댓글을 쓰려면 GitHub 계정이 필요하다. (b) Supabase 자체 댓글 테이블 — 익명 작성이면 스팸 대책(CAPTCHA)·모더레이션 UI·개인정보(이메일·닉네임) 처리 부담이 크고, 회원가입을 열어야 하면 현재 인증 정책과 충돌한다. (c) Disqus 등 — 광고·추적 때문에 제외
-  - [ ] (a 채택 시, 사용자 수동 작업) 저장소 Discussions 활성화, giscus 앱 설치, 댓글용 카테고리 생성
-  - [ ] 매핑은 `data-mapping="specific"` + `data-term=<글 id>`(pathname 매핑은 슬러그를 바꾸면 끊긴다)
-  - [ ] `Comments`(Client): `IntersectionObserver`로 지연 로드, `next-themes` 테마가 바뀌면 iframe에 `postMessage`로 전달, 로드 실패 시 안내 문구. 초안·없는 글에는 렌더링하지 않음
-  - [ ] CSP: 지금은 `frame-src`·`script-src`를 두지 않아 giscus가 허용되지만, CSP를 강화하면 `giscus.app`을 추가해야 함을 "알려진 트레이드오프"에 기록
+  - [x] (a 채택 시, 사용자 수동 작업) 저장소 Discussions 활성화, giscus 앱 설치, 댓글용 카테고리 생성 (2026-11-11 사용자가 완료. 카테고리 `Comments`는 Announcement 형식이며 형식은 사용자 스크린샷으로, giscus 앱 설치는 giscus.app 저장소 검사 통과 화면으로 확인했다. `repoId`·`categoryId`는 `gh api graphql`로 조회)
+  - [x] 매핑은 `data-mapping="specific"` + `data-term=<글 id>`(pathname 매핑은 슬러그를 바꾸면 끊긴다)
+  - [x] `Comments`(Client): `IntersectionObserver`로 지연 로드, `next-themes` 테마가 바뀌면 iframe에 `postMessage`로 전달, 로드 실패 시 안내 문구. 초안·없는 글에는 렌더링하지 않음 (초안·없는 글은 `getPostBySlug`가 `null`이라 `notFound()`로 처리되어 `Comments`까지 오지 않는다)
+  - [x] CSP: 지금은 `frame-src`·`script-src`를 두지 않아 giscus가 허용되지만, CSP를 강화하면 `giscus.app`을 추가해야 함을 "알려진 트레이드오프"에 기록
+  - 구현 메모(2026-11-11): `components/blog/comments.tsx`(Client)는 설정(`lib/site-config.ts`의 `siteConfig.giscus`: `repo`·`repoId`·`category`·`categoryId`) 중 하나라도 비면 `null`을 돌려주고, 아니면 `key={postId}`를 붙인 내부 `GiscusEmbed`를 렌더링한다. 화면 200px 앞에서 `https://giscus.app/client.js`를 주입하고(`data-strict=0`, `data-lang=ko`, `data-loading=lazy`), `resolvedTheme`이 정해지기 전에는 불러오지 않으며, 스크립트 `onerror` 또는 15초 안에 `iframe.giscus-frame`이 없으면 안내 문구를 보인다. 테마 변경은 이미 뜬 iframe에 `giscus.app` origin으로만 `setConfig`를 보낸다. 상세 페이지에서는 `PostPager` 뒤(맨 아래)에 `<Comments postId={post.id} />`를 둔다(댓글 iframe이 길어져도 이전·다음 글 링크가 밀리지 않게). `@giscus/react`는 쓰지 않아 의존성 변경은 없다.
+  - 알려진 한계: (1) iframe이 로드되는 중에 테마를 바꾸면 `setConfig` 메시지가 유실될 수 있다(초기 `data-theme`만 적용). (2) 스크립트는 받았지만 giscus iframe 안에서 위젯이 실패하는 경우는 감지하지 못한다. (3) 댓글 작성에는 GitHub 계정이 필요하다. (4) e2e는 `giscus.app`을 가로채 가짜 `client.js`로 검증하며 about:blank iframe은 메시지를 받지 못해 `postMessage` 호출 인자만 확인한다.
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 발행 글 상세 하단으로 스크롤 → giscus iframe 로드, 스크롤 전에는 iframe 없음
     - 정상: Playwright MCP → 테마 전환 → iframe 테마 반영
     - 오류: Playwright MCP → `giscus.app` 요청을 `route.abort` → 안내 문구, 본문·페이지 오류 없음
     - 엣지: 슬러그 변경 후 같은 글 상세(수동 확인) → 같은 Discussion 연결
     - 엣지: Lighthouse 모바일 → 상세 성능 90 이상
-  - 테스트 결과: (미수행)
+  - 테스트 결과(2026-11-11):
+    - 단위: `components/blog/comments.test.tsx` 16개(설정 4종 중 하나라도 비면 렌더링 없음, 교차 전 스크립트 없음, 교차 후 글 id 매핑 스크립트 1회·관찰 중지, 다크 `data-theme`, 테마 미확정 시 미로드, IntersectionObserver 없으면 즉시 로드, 테마 변경 시 `giscus.app`으로 `postMessage`, iframe 없을 때 테마 변경 무오류, `onerror`·15초 타임아웃 안내, iframe이 생기면 안내 없음, 언마운트 정리, 글 변경 시 재주입). `npm run check`(Vitest 59 파일 / 571개)·`npm run build`·`npm run knip`(기존 설정 hint 1건뿐) 통과. 빌드에서 `/blog/[slug]`는 `◐ Partial Prerender` 1d/1w 그대로.
+    - e2e: `npx playwright test e2e/post-comments.spec.ts` 4개 통과(setup 제외 시, 글 생성 포함 6.5초). `giscus.app`을 `page.route`로 가로채 실제 Discussion을 만들지 않았다. 스크롤 전에는 `giscus.app` 요청 0건·iframe 없음, 댓글 영역에 가까워지면 `client.js`만 요청되어 iframe 1개와 `data-mapping=specific`·`data-term`(글 id)·`data-theme=light`, 다크 전환 시 `{ giscus: { setConfig: { theme: 'dark' } } }`가 `https://giscus.app`으로만 기록되고 스크립트는 재주입되지 않음, `route.abort` 시 안내 문구·본문 유지·`pageerror` 없음. 설정이 비면 `test.skip`(이번엔 설정이 있어 건너뛴 항목 없음).
+    - 회귀: `a11y`·`visitor-flow`·`post-views`와 함께 23개를 7회 돌려 5회는 모두 통과했다. 첫 실행에서는 dev 서버가 중간에 연결 거부 상태가 되어 4개가 실패했고(원인 미확인, 같은 서버 로그에 통과한 실행에도 `ECONNRESET` uncaughtException이 있다), 한 번은 `toBeFocused` 단언 1개가 실패했다(어느 테스트인지 확인하지 못했다). 둘 다 다시 돌리면 사라졌다.
+    - Lighthouse 모바일(실제 env 빌드를 `next start`로 띄운 로컬, 기존 발행 글 1개, 3회): 성능 100·100·100, LCP 1.2s, TBT 0~10ms, CLS 0~0.016. 네트워크 요청 42건 중 giscus 0건(스크롤하지 않으므로 지연 로드가 의도대로 동작). 운영 도메인의 네트워크 지연은 반영되지 않았고, giscus가 로드된 뒤의 성능은 측정하지 않았다.
+    - 수동(Playwright MCP, 실제 giscus, 댓글 작성 없음): 스크롤 전 스크립트·iframe 없음, 스크롤 후 `giscus.app/ko/widget` iframe 로드(높이 372px, `theme=light`), 요청에 `term=<글 id>`·`category=Comments` 포함, 라이트·다크 전환 시 iframe까지 테마 반영(스크린샷으로 확인). 콘솔의 404 2건과 giscus 경고 2건은 이 글에 Discussion이 아직 없어서 나는 정상 동작이다.
+  - 제한 사항·미확인: (1) 슬러그를 바꾼 뒤 같은 Discussion에 연결되는지는 확인하지 못했다. 확인하려면 첫 댓글을 써서 GitHub에 Discussion을 만들어야 한다. 요청에 글 id(`term`)가 실리는 것까지만 확인했다. (2) 실제 giscus의 `setConfig` 수신은 iframe 외관이 바뀐 것으로만 확인했고 메시지 내용은 e2e에서 호출 인자로만 검증했다. (3) 운영 배포 뒤 `/blog/[slug]`에서의 동작과 Lighthouse는 확인하지 않았다. (4) 모바일 화면 배치는 확인하지 않았다.
 
 - **Task 032: 정적 섹션 DB 스키마 및 공개 조회 전환**
   - 관련 기능: F025(제안: 정적 섹션 DB 저장·관리자 편집), F002, F003, F004
@@ -1163,6 +1181,7 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
 - RLS 검증 후속(2026-10-28, 계획: `shrimp_data/branch-review-followup-3.md`): 아래 두 건은 아직 하지 않았다.
   - [x] `test/admin-post-actions`: 이미 `app/admin/posts/actions.test.ts`(커밋 `bd3d647`)가 `savePost`·`deletePost` 모두 `requireAdmin` 거부 시 예외가 전파되고 `createClient`가 호출되지 않음을 단언한다(`vi.mock`으로 `requireAdmin`·`createClient`를 분리). 후속 항목을 만들 때 이 테스트 파일을 확인하지 못하고 "없음"으로 적은 오류였고, 추가 코드 변경 없이 닫는다(2026-10-28 확인, `npx vitest run app/admin/posts/actions.test.ts` 통과).
   - [x] `fix/posts-grants`(2026-10-28): 원격 `posts`의 과잉 GRANT를 `20261028133002_revoke_excess_posts_grants.sql`로 회수했다. 적용 전 사용자 확인을 받았고 원격 프로젝트(`gfrewivdclcitgysgsbi`)를 확인했다. 회수 전에는 anon이 `INSERT·UPDATE·DELETE·TRUNCATE·REFERENCES·TRIGGER`, authenticated가 `TRUNCATE·REFERENCES·TRIGGER`를 추가로 갖고 있었는데(`public` 스키마 default privileges가 원인), 회수 후 anon은 `SELECT`, authenticated는 `SELECT·INSERT·UPDATE·DELETE`만 남았다(`service_role`·`postgres`는 기본값 유지). `get_advisors`(security)는 기존 예외 `auth_leaked_password_protection` 1건뿐이고, 점검 A(anon 조회 pub 1 / drafts 0)와 C(정책 7개, `user_metadata` 참조 0, storage SELECT 0)를 다시 돌려 같은 결과를 확인했다. default privileges는 바꾸지 않아 새 테이블은 같은 과잉 권한을 받으므로 가이드에 기록했다. `npm run check`·`npm run knip`·`npm run build`(placeholder env) 통과. `npm run test:e2e`는 66개 중 61개 통과, `e2e/admin-image-upload.spec.ts`의 '여러 파일 선택' 1개 실패(전체 실행 2회 모두 실패, 같은 파일 단독 실행은 7회 중 6회 통과), 그 뒤 같은 파일의 4개는 미실행이다. 실패 시점에 본문이 빈 문자열이고 오류 알림도 없어 업로드 입력 핸들러가 붙기 전에 `setInputFiles`가 실행된(하이드레이션 경합) 것으로 보이며, 이 페이지는 `posts`를 조회하지 않아 GRANT와 무관해 보이지만 원인은 확정하지 못했다(GRANT를 되돌려 비교하지 않음). 이후 `test/stabilize-image-upload-e2e`에서 `beforeEach`에 하이드레이션 대기(`image-upload-input`에 `__reactProps$` 부착 확인)를 추가했고, 실행 사이를 6분 이상 둔 전체 e2e 4회가 모두 66개 통과했다(수정 전 전체 실행은 2회 모두 실패). 연속 실행에서는 `login()`이 `/auth/login`에 머물러 실패했고 간격을 두자 사라져 Supabase Auth 로그인 횟수 제한으로 추정하나 오류 문구는 확인하지 못했다. e2e는 한 번에 로그인이 약 45번이라 5분 이상 간격을 두고 돌린다. 관리자 글 CRUD e2e(`admin-posts`·`admin-flow` 등)는 통과했다.
+- giscus 댓글과 CSP(Task 031, 2026-11-11): 지금 CSP에는 `script-src`·`frame-src`가 없어 `https://giscus.app/client.js`와 giscus iframe이 그대로 허용된다. 나중에 CSP를 강화하면 `script-src`(스크립트)와 `frame-src`(iframe)에 `https://giscus.app`을 추가해야 하고, 빠뜨리면 댓글이 로드되지 않아 안내 문구만 보인다. 댓글 작성에는 GitHub 계정이 필요하며 스팸 방지·모더레이션은 GitHub Discussions에 맡긴다.
 
 ## MVP 이후 범위
 

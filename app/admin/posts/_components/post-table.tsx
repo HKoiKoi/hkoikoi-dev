@@ -5,7 +5,14 @@ import { DeletePostDialog } from "@/app/admin/posts/_components/delete-post-dial
 import { formatDate } from "@/lib/format-date";
 import type { PostSummary } from "@/lib/types/post";
 
-export function PostTable({ posts }: { posts: PostSummary[] }) {
+export function PostTable({
+  posts,
+  viewCounts,
+}: {
+  posts: PostSummary[];
+  // 글 id별 조회수. 조회 실패(null)면 조회수 열을 '-'로 표시하고, 기록이 없는 글은 0이다.
+  viewCounts: Record<string, number> | null;
+}) {
   if (posts.length === 0) {
     return (
       <p className="rounded-xl border p-8 text-center text-sm text-muted-foreground">
@@ -28,6 +35,9 @@ export function PostTable({ posts }: { posts: PostSummary[] }) {
             </th>
             <th scope="col" className="px-4 py-3 font-medium">
               카테고리
+            </th>
+            <th scope="col" className="px-4 py-3 text-right font-medium">
+              조회수
             </th>
             <th scope="col" className="px-4 py-3 font-medium">
               수정일
@@ -53,6 +63,11 @@ export function PostTable({ posts }: { posts: PostSummary[] }) {
                 </Badge>
               </td>
               <td className="px-4 py-3 whitespace-nowrap">{post.category}</td>
+              <td className="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                {viewCounts === null
+                  ? "-"
+                  : (viewCounts[post.id] ?? 0).toLocaleString("ko-KR")}
+              </td>
               <td className="px-4 py-3 whitespace-nowrap">
                 {formatDate(post.updated_at)}
               </td>

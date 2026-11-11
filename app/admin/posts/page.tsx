@@ -3,7 +3,10 @@ import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { PostTable } from "@/app/admin/posts/_components/post-table";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { getAdminPosts } from "@/lib/queries/admin-posts";
+import {
+  getAdminPostViewCounts,
+  getAdminPosts,
+} from "@/lib/queries/admin-posts";
 
 export default function AdminPostsPage() {
   return (
@@ -18,7 +21,10 @@ async function AdminPostsContent() {
   await requireAdmin();
 
   // 초안 포함 전체 글을 최근 수정순으로 조회한다. 반드시 requireAdmin() 이후에 호출한다.
-  const posts = await getAdminPosts();
+  const [posts, viewCounts] = await Promise.all([
+    getAdminPosts(),
+    getAdminPostViewCounts(),
+  ]);
 
   return (
     <div className="grid gap-6">
@@ -28,7 +34,7 @@ async function AdminPostsContent() {
           새 글
         </Link>
       </div>
-      <PostTable posts={posts} />
+      <PostTable posts={posts} viewCounts={viewCounts} />
     </div>
   );
 }

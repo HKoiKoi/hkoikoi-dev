@@ -7,6 +7,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: createClientMock }));
 import {
   getAdminPostById,
   getAdminPostReferences,
+  getAdminPostViewCounts,
   getAdminPosts,
 } from "./admin-posts";
 
@@ -146,5 +147,36 @@ describe("getAdminPostReferences", () => {
 
     createClientMock.mockRejectedValue(new Error("down"));
     await expect(getAdminPostReferences()).resolves.toBeNull();
+  });
+});
+
+describe("getAdminPostViewCounts", () => {
+  it("post_id별 조회수 맵을 돌려준다", async () => {
+    const { from } = createBuilder(
+      ok([
+        { post_id: "a", view_count: 3 },
+        { post_id: "b", view_count: 10 },
+      ]),
+    );
+
+    expect(await getAdminPostViewCounts()).toEqual({ a: 3, b: 10 });
+    expect(from).toHaveBeenCalledWith("post_views");
+  });
+
+  it("기록이 없으면 빈 맵", async () => {
+    createBuilder(ok([]));
+    expect(await getAdminPostViewCounts()).toEqual({});
+  });
+
+  it("쿼리 오류면 null", async () => {
+    createBuilder({ data: null, error: { message: "boom" } });
+    expect(await getAdminPostViewCounts()).toBeNull();
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it("예외가 나도 null", async () => {
+    createClientMock.mockRejectedValue(new Error("no client"));
+    expect(await getAdminPostViewCounts()).toBeNull();
+    expect(errorSpy).toHaveBeenCalled();
   });
 });
