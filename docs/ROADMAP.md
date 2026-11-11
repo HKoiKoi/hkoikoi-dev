@@ -778,7 +778,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 게이트: `npm run check`(Vitest 49 파일 / 482개)·`npm run build`·`npm run knip` 통과(knip은 기존 `@testing-library/user-event` 설정 힌트 1건 출력).
     - PRD: 289행 "스코프 변환은 MVP 밖"과 75행 "`<style>`의 글 단위 스코프 변환"(MVP 제외 목록)은 이번 구현과 어긋나 갱신이 필요해 보이며, 수정하지 않고 사용자에게 보고했다.
 
-- **Task 029: 스토리지 고아 이미지 정리 도구 구축**
+- **Task 029: 스토리지 고아 이미지 정리 도구 구축** ✅ - 완료 2026-11-11 (실제 삭제·공개 URL 비반환 확인, 후보 선택 e2e, 삭제 직전 경합 재현, 초기 정리는 미확인 — 2026-11-12 이후 사용자가 `/admin/storage`에서 수동 수행, `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F022(제안: 스토리지 고아 이미지 정리), F009
   - 목표: 어떤 글에서도 참조하지 않는 `blog-images` 객체(삭제·교체된 이미지, e2e 테스트 이미지)를 관리자가 확인한 뒤 지울 수 있게 한다
   - 제약(CLAUDE.md "알려진 예외", Task 017 기록): `blog-images`에는 `storage.objects` SELECT 정책이 없어(list API 노출 방지) 관리자 세션의 Storage API 삭제가 403이다(Storage `remove`는 객체 SELECT와 DELETE 권한이 모두 필요하다). SQL `delete from storage.objects`는 `storage.protect_delete()` 트리거가 막고, 트리거를 끄고 지우면 실제 파일은 남고 메타데이터만 사라지므로 하지 않는다. 따라서 삭제는 **Storage API로만** 하고, 이를 위해 권한 경로를 하나 열어야 한다
