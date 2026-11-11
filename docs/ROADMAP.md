@@ -970,16 +970,22 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지(수행): `npm run check`(단위 테스트 70파일 703건 포함)·`npm run knip` 종료 코드 0. knip이 `@testing-library/user-event`를 `ignoreDependencies`에서 지우라는 설정 힌트를 낸다(기존 항목, 이번 변경과 무관, 미처리)
     - 미수행·미확인: (1) 운영(`https://hkoikoi.dev`) 반영. 글 재저장 또는 재배포가 필요하고 확인하지 않았다. (2) 단계 구분을 사람 눈으로 본 판단은 사용자 확정에 의존했다. (3) 모바일 폭. (4) 비교한 글은 구축기 1편과 코딩 테스트 1편뿐이다. (5) 라이트에서는 `####`가 `##`보다 어둡고 다크에서는 밝다(채도는 `##`가 가장 높다)
 
-- **Task 046: 편집기 모바일 탭 tabpanel·aria-controls 연결** (번호는 Task 045 뒤에 이어 붙였고, 순서상 Task 034 앞에서 진행한다)
+- **Task 046: 편집기 모바일 탭 tabpanel·aria-controls 연결** ✅ - 완료 2026-11-11 (운영 반영은 미확인 — `테스트 결과`의 제한 사항 참고) (번호는 Task 045 뒤에 이어 붙였고, 순서상 Task 034 앞에서 진행한다)
   - 관련 기능: F006
   - 목표: 편집기 모바일 탭(작성/미리보기)이 WAI-ARIA 탭 패턴을 따르도록 `role="tabpanel"`과 탭의 `aria-controls`를 연결한다
-  - 현재 상태(Task 021 검증, 2026-11-09): 모바일 탭에 `role="tabpanel"`이 0개이고 `TabsTrigger`에 `aria-controls`가 없다(`post-editor.tsx`는 `Tabs`·`TabsList`·`TabsTrigger`만 쓴다). 편집기가 두 패널을 항상 마운트해 입력값을 유지하는 설계라 `TabsContent`로 바로 바꿀 수 없다
-  - 보류 사유: 관리자 1인이 쓰는 화면이라 우선순위가 낮다. 코드는 고치지 않았다
-  - 방식 후보: 두 패널 래퍼에 `role="tabpanel"`·`id`·`aria-labelledby`를 직접 달고 탭에 `aria-controls`를 연결하거나, `TabsContent`에 `keepMounted`류 옵션이 있는지 Base UI 문서로 확인한다
+  - 기존 상태(Task 021 검증, 2026-11-09): 모바일 탭에 `role="tabpanel"`이 0개이고 `TabsTrigger`에 `aria-controls`가 없었다. 편집기가 두 패널을 항상 마운트해 입력값을 유지하는 설계라 `TabsContent`로 바로 바꿀 수 없다
+  - 구현 방식: 수동 ARIA. `TabsTrigger`에 `id`(`editor-tab-write`·`editor-tab-preview`)와 `aria-controls`(`editor-panel-write`·`editor-panel-preview`)를 넘기고, 본문 입력 div와 미리보기 section에 `role="tabpanel"`·`id`·`aria-labelledby`를 달았다. Base UI `TabsTab`은 기본 props 뒤에 사용자 props를 합쳐 넘긴 `id`·`aria-controls`가 자동 부여값보다 우선한다(소스로 확인). 두 패널은 계속 CSS hidden으로만 숨겨 상시 마운트하고 `components/ui/tabs.tsx`는 수정하지 않았다
+  - 부수 변경: 미리보기 section의 `aria-label`을 `aria-labelledby`로 바꾸면서 role이 `region`에서 `tabpanel`로 바뀌어, `admin-preview`·`admin-image-upload` e2e의 locator를 `getByRole("tabpanel", { name: "미리보기" })`로 고쳤다(접근 가능한 이름은 그대로)
+  - 알려진 한계: (1) lg 이상에서는 탭이 숨지지만 `role="tabpanel"`은 남는다. (2) `PostMetaFields`는 2열 grid 레이아웃을 지키려고 tabpanel 밖에 둬서 모바일 "작성" 탭의 패널이 메타 필드를 포함하지 않는다
   - 의존성: 없음. 스키마 변경 없음
   - 관련 파일: `app/admin/posts/_components/post-editor.tsx`, `components/ui/tabs.tsx`, `e2e/a11y.spec.ts`
   - 수락 기준: 모바일 폭에서 탭마다 `aria-controls`가 실제 `tabpanel` id를 가리키고 `tabpanel`이 2개이며, 탭 전환 뒤에도 입력값이 유지됨
-  - 테스트 결과: (미수행)
+  - 테스트 결과(2026-11-11, 개발 서버 `localhost:3000`, 관리자 세션, DB 쓰기 없음):
+    - 정상(수행): `e2e/a11y.spec.ts` 신규 시나리오(390x844, `/admin/posts/new`) → 탭마다 `aria-controls` 대상이 존재하고 `role=tabpanel`, `[role="tabpanel"]` 총 2개, 본문 입력 후 미리보기·작성 탭을 오가도 값 유지. `a11y.spec.ts` 11건 통과
+    - 오류(수행): `post-editor.tsx`를 변경 전으로 되돌리면 신규 시나리오가 `aria-controls` 누락으로 실패함을 확인한 뒤 복원
+    - 엣지(수행): `e2e/admin-preview.spec.ts` 6건 통과(375px 탭 전환 입력 유지 포함)
+    - 엣지(수행): `npm run check`(typecheck·lint·format:check·단위 테스트 70파일 703건) 종료 코드 0
+    - 미수행·미확인: (1) `e2e/admin-image-upload.spec.ts`는 locator만 바꿨고 실행하지 않았다(테스트 이미지가 스토리지에 남는다). (2) lg 폭 레이아웃(2열·70vh)을 눈으로 확인하지 않았다. (3) 스크린 리더로 읽은 결과는 확인하지 않았다. (4) `build`·`knip`은 라우트·의존성 변경이 없어 돌리지 않았다. (5) 운영(`https://hkoikoi.dev`) 반영은 확인하지 않았다
 
 - **Task 034: Post-MVP 통합 회귀 테스트 및 배포 검증**
   - 관련 기능: F015~F026(제안), F001~F014 회귀
