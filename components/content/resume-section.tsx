@@ -1,38 +1,27 @@
-import { EmptyState } from "@/components/content/empty-state";
+import type { ReactNode } from "react";
+
 import { PageHeader } from "@/components/content/page-header";
-import { ResumeEntryItem } from "@/components/content/resume-entry-item";
-import type { ResumeEntry } from "@/lib/types/resume";
 import { cn } from "@/lib/utils";
 
 interface ResumeSectionProps {
   title: string;
   description?: string;
-  entries: ResumeEntry[];
+  /** 목록 영역. 데이터를 읽는 컴포넌트는 호출하는 쪽에서 Suspense로 감싼다. */
+  children: ReactNode;
   className?: string;
 }
 
-// 이력 섹션 (제목 + 항목 목록, 비었을 때 빈 상태 표시)
+// 이력 섹션 (정적 제목 영역 + 목록 슬롯)
 export function ResumeSection({
   title,
   description,
-  entries,
+  children,
   className,
 }: ResumeSectionProps) {
   return (
     <section className={cn(className)}>
       <PageHeader title={title} description={description} />
-      {entries.length === 0 ? (
-        <EmptyState title="아직 등록된 항목이 없습니다" />
-      ) : (
-        <ul className="grid gap-4">
-          {entries.map((entry) => (
-            <ResumeEntryItem
-              key={`${entry.title}-${entry.period ?? ""}`}
-              {...entry}
-            />
-          ))}
-        </ul>
-      )}
+      {children}
     </section>
   );
 }
