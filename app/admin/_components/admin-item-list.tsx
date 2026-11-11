@@ -74,7 +74,7 @@ export function AdminItemList({
         </p>
       )}
       <div className="overflow-x-auto rounded-xl border">
-        <table className="w-full min-w-xl text-left text-sm">
+        <table className="w-full min-w-3xl text-left text-sm">
           <caption className="sr-only">{caption}</caption>
           <thead className="border-b bg-muted/50 text-muted-foreground">
             <tr>
@@ -112,8 +112,8 @@ export function AdminItemList({
                     {item.visible ? "공개" : "숨김"}
                   </Badge>
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap justify-end gap-2">
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="flex flex-nowrap items-center justify-end gap-2">
                     {moveAction && (
                       <>
                         <Button
