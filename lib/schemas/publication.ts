@@ -33,8 +33,6 @@ export const publicationSchema = z.object({
   link: optionalHttpsUrl("링크", PUBLICATION_LIMITS.link),
 });
 
-export type PublicationInput = z.output<typeof publicationSchema>;
-
 /** FormData를 publicationSchema 입력 객체로 바꾼다. 숫자가 아닌 연도는 NaN이 되어 거부된다. */
 export function parsePublicationFormData(formData: FormData) {
   const year = formString(formData, "year").trim();

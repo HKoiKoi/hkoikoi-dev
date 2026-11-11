@@ -76,8 +76,6 @@ export const resumeEntrySchema = z.object({
   link: optionalHttpsUrl("링크", RESUME_LIMITS.link),
 });
 
-export type ResumeEntryInput = z.output<typeof resumeEntrySchema>;
-
 /** FormData를 resumeEntrySchema 입력 객체로 바꾼다. */
 export function parseResumeFormData(formData: FormData) {
   return {

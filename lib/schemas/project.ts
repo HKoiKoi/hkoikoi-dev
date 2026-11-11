@@ -31,8 +31,6 @@ export const projectSchema = z.object({
   featured: z.boolean(),
 });
 
-export type ProjectInput = z.output<typeof projectSchema>;
-
 /** FormData를 projectSchema 입력 객체로 바꾼다. 체크박스는 체크됐을 때만 값이 온다. */
 export function parseProjectFormData(formData: FormData) {
   return {
