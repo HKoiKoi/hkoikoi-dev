@@ -12,14 +12,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { deletePost } from "@/app/admin/posts/actions";
 
-interface DeletePostDialogProps {
-  postId: string;
-  postTitle: string;
+interface DeleteItemDialogProps {
+  // 트리거 버튼의 aria-label(`<itemName> 삭제`)에 쓰는 항목 이름
+  itemName: string;
+  title: string;
+  description: string;
+  onDelete: () => Promise<{ ok: boolean; message?: string }>;
 }
 
-export function DeletePostDialog({ postId, postTitle }: DeletePostDialogProps) {
+// 글·이력·프로젝트·논문 등 관리자 삭제 확인 다이얼로그. 실제 삭제는 onDelete(Server Action)가 한다.
+export function DeleteItemDialog({
+  itemName,
+  title,
+  description,
+  onDelete,
+}: DeleteItemDialogProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -34,11 +42,11 @@ export function DeletePostDialog({ postId, postTitle }: DeletePostDialogProps) {
   function handleDelete() {
     setError(null);
     startTransition(async () => {
-      const result = await deletePost(postId);
+      const result = await onDelete();
       if (result.ok) {
         setOpen(false);
       } else {
-        setError(result.message ?? "글을 삭제하지 못했습니다.");
+        setError(result.message ?? "삭제하지 못했습니다.");
       }
     });
   }
@@ -47,16 +55,14 @@ export function DeletePostDialog({ postId, postTitle }: DeletePostDialogProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={<Button variant="destructive" size="sm" />}
-        aria-label={`${postTitle} 삭제`}
+        aria-label={`${itemName} 삭제`}
       >
         삭제
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>글을 삭제할까요?</DialogTitle>
-          <DialogDescription>
-            &lsquo;{postTitle}&rsquo; 글을 삭제하면 되돌릴 수 없습니다.
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         {error && (
           <p role="alert" className="text-sm text-destructive">

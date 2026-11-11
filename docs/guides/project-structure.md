@@ -104,9 +104,12 @@ app/
 ├── admin/                  # 관리자 영역 (로그인 필요)
 │   ├── layout.tsx          # 헤더 + Suspense 안의 AdminGuard
 │   ├── actions.ts          # logout Server Action (+ actions.test.ts)
-│   ├── _components/        # admin-guard.tsx, admin-nav.tsx, logout-button.tsx
+│   ├── _components/        # admin-guard.tsx, admin-nav.tsx(메뉴 항목·현재 경로 판별은 lib/admin/nav.ts), logout-button.tsx, 이력·프로젝트·논문 공용 admin-item-list.tsx(목록 표·이동·공개 토글·삭제)·delete-item-dialog.tsx·form-field.tsx·form-actions.tsx·field-error.tsx
 │   ├── storage/            # 고아 이미지 정리: page.tsx(후보 표, 드라이런), actions.ts(deleteOrphans Server Action, 삭제 직전 재검사) + 테스트, _components/orphan-list.tsx(선택·확인 대화상자)
-│   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx(메타 필드 post-meta-fields.tsx, 썸네일 thumbnail-field.tsx, 본문 이미지 업로드 버튼 image-upload-button.tsx와 업로드 훅 use-content-upload.ts, 자동 저장 훅 use-autosave.ts·상태 표시 autosave-status.tsx·복원 배너 restore-banner.tsx, 필드 오류 field-error.tsx로 분리), 목록 post-table.tsx와 삭제 확인 delete-post-dialog.tsx, 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·autosaveDraft·deletePost Server Action)
+│   ├── resume/             # 이력 6종 관리: [section]/(목록, 섹션 링크 nav) + [section]/new + [section]/[id]/edit, actions.ts(saveResumeEntry·deleteResumeEntry·toggleResumeVisibility·moveResumeEntry) + 테스트, _components/resume-form.tsx
+│   ├── projects/           # 프로젝트 관리: page.tsx(목록) + new + [id]/edit, actions.ts(saveProject·deleteProject·toggleProjectVisibility·moveProject) + 테스트, _components/project-form.tsx
+│   ├── publications/       # 논문 관리: page.tsx(목록, 연도 내림차순이라 이동 없음) + new + [id]/edit, actions.ts(savePublication·deletePublication·togglePublicationVisibility) + 테스트, _components/publication-form.tsx
+│   └── posts/              # 글 목록 + new/(작성) + [id]/edit/(수정), 공용 편집기는 _components/post-editor.tsx(메타 필드 post-meta-fields.tsx, 썸네일 thumbnail-field.tsx, 본문 이미지 업로드 버튼 image-upload-button.tsx와 업로드 훅 use-content-upload.ts, 자동 저장 훅 use-autosave.ts·상태 표시 autosave-status.tsx·복원 배너 restore-banner.tsx, 필드 오류는 공용 admin/_components/field-error.tsx), 목록 post-table.tsx(삭제 확인은 공용 admin/_components/delete-item-dialog.tsx), 실시간 미리보기(Shadow DOM 격리)는 _components/markdown-preview.tsx, actions.ts(savePost·autosaveDraft·deletePost Server Action)
 └── auth/
     ├── layout.tsx          # noindex 메타데이터
     ├── login/              # 로그인 (actions.ts: login Server Action + 테스트, _components/login-form.tsx)
@@ -169,11 +172,12 @@ lib/
 ├── storage/               # validate-image.ts: ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES, validateImage, buildImagePath / upload-image.ts: uploadImage (브라우저 전용, + 테스트)
 ├── editor/                # insert-at-cursor.ts: insertAtCursor, replaceOnce, replaceWithCaret, createUploadPlaceholder (+ 테스트), draft-storage.ts: PostDraft, draftKey, readDraft, writeDraft, clearDraft (+ 테스트)
 ├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts(ResumeEntryRow·ProjectRow·PublicationRow는 Tables에서 파생, ResumeEntry·Project·Publication은 표시용)
-├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
-├── queries/               # resume.ts: getResumeEntries / getProjects / getPublications('use cache' + cacheTag resume·resume:<section>·projects·publications, public 클라이언트, 행→표시용 매퍼), posts.ts: getLatestPosts / getPublishedPosts / getTaxonomy / getPostBySlug('use cache' + cacheTag, public 클라이언트), searchPosts(캐시 없음, 검색 RPC), admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
+├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState / resume.ts·project.ts·publication.ts: 한도 상수, 스키마, FormData 파서, 수정 폼 값 변환 / fields.ts: 공용 필드 규칙(https 링크 등) / admin-form.ts: AdminFormState·validationFailure (+ 테스트)
+├── queries/               # resume.ts: getResumeEntries / getProjects / getPublications('use cache' + cacheTag resume·resume:<section>·projects·publications, public 클라이언트, 행→표시용 매퍼), posts.ts: getLatestPosts / getPublishedPosts / getTaxonomy / getPostBySlug('use cache' + cacheTag, public 클라이언트), searchPosts(캐시 없음, 검색 RPC), admin-posts.ts: getAdminPosts / getAdminPostById, admin-resume.ts: 이력·프로젝트·논문 관리자 조회 6종(숨김 포함, 캐시 없음), columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
 ├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), rehype-sanitize-style.ts(`<style>` CSS 내용 검사), rehype-scope-style.ts(`scopeClassName`·`scopeCss`·`rehypeScopeStyle`: 검사를 통과한 선택자 앞에 `.post-scope-<scopeId>` 접두), plugins.ts(`createRehypePlugins(scopeId)`: remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
 ├── posts/                 # slugify.ts, form-data.ts, published-at.ts, sort-tags.ts(태그 정렬 규칙), list-params.ts(/blog URL 상태 파싱·href, 검색어 q 포함), taxonomy.ts(카테고리·태그 집계와 상위 태그 분리), pagination.ts(총 페이지 수·range·번호 목록 계산), page-size.ts(요청 헤더로 기기 판별: 모바일 6개·그 외 10개), list-metadata.ts(/blog title·canonical) (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
+├── admin/                 # nav.ts(관리자 메뉴·현재 경로 판별), reorder.ts(moveInList), mock-supabase.ts(액션 테스트용 쿼리 체인 목) (+ 테스트)
 ├── auth/                  # is-admin.ts, is-admin-path.ts, require-admin.ts (+ 테스트)
 ├── site-config.ts         # siteConfig, navItems
 ├── site-url.ts            # getSiteUrl, absoluteUrl (NEXT_PUBLIC_SITE_URL 기준, + 테스트)

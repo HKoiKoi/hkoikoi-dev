@@ -232,6 +232,11 @@ export type Database = {
     };
     Functions: {
       increment_post_view: { Args: { p_post_id: string }; Returns: boolean };
+      reorder_projects: { Args: { p_ids: string[] }; Returns: number };
+      reorder_resume_entries: {
+        Args: { p_ids: string[]; p_section: string };
+        Returns: number;
+      };
       search_published_posts: {
         Args: {
           p_category?: string;
