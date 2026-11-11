@@ -124,7 +124,8 @@ test.describe("블로그 키워드 검색", () => {
     await expect(page.getByRole("link", { name: DRAFT.title })).toHaveCount(0);
   });
 
-  for (const value of ["%", "_", "a,b)", "' or 1=1 --"]) {
+  // 1자 검색어는 검색하지 않고 전체 목록을 보여 주므로, 와일드카드 문자는 2자로 검증한다.
+  for (const value of ["%%", "__", "a,b)", "' or 1=1 --"]) {
     test(`특수문자 검색어 ${JSON.stringify(value)}는 오류 없이 문자 그대로 검색한다`, async ({
       page,
     }) => {

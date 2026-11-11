@@ -51,23 +51,22 @@ test.describe("이전·다음 글 내비게이션", () => {
   let middle: Seed;
   let newest: Seed;
 
-  // /blog 목록(같은 정렬)에서 세 시드 글이 oldest ← middle ← newest 순으로 연달아 있는지 본다.
-  // 다른 스펙이 병렬로 발행한 글이 시드 사이에 끼면 인접 관계가 깨지므로 그때는 다시 만든다.
+  // middle 상세에서 이전이 oldest, 다음이 newest인지 본다(테스트가 보는 인접 관계 그대로).
+  // 다른 스펙이 병렬로 발행한 글이 시드 사이에 끼면 이 관계가 깨지므로 그때는 다시 만든다.
+  // 목록 1페이지에는 의존하지 않는다(다른 글이 많으면 시드가 밀려난다).
   async function seedsAreConsecutive(page: Page) {
-    await page.goto("/blog");
-    await expect(page.getByRole("link", { name: newest.title })).toBeVisible();
-    const hrefs = await page
-      .locator('a[href^="/blog/"]')
-      .evaluateAll((links) =>
-        links.map((link) => link.getAttribute("href") ?? ""),
-      );
-    const unique = [...new Set(hrefs)];
-    const at = unique.indexOf(hrefOf(newest));
-    return (
-      at >= 0 &&
-      unique[at + 1] === hrefOf(middle) &&
-      unique[at + 2] === hrefOf(oldest)
-    );
+    await page.goto(hrefOf(middle));
+    try {
+      await expect(prevLink(page)).toHaveAttribute("href", hrefOf(oldest), {
+        timeout: 3_000,
+      });
+      await expect(nextLink(page)).toHaveAttribute("href", hrefOf(newest), {
+        timeout: 3_000,
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async function seedPosts(browser: Browser) {
@@ -75,7 +74,7 @@ test.describe("이전·다음 글 내비게이션", () => {
     const page = await context.newPage();
     try {
       await login(page);
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      for (let attempt = 1; attempt <= 5; attempt++) {
         const make = (label: string, slug?: string): Seed => {
           const title = uniqueName(PREFIX, label);
           return { title, slug: slug ?? title };
@@ -97,6 +96,8 @@ test.describe("이전·다음 글 내비게이션", () => {
   }
 
   test.beforeAll(async ({ browser }) => {
+    // 글 3개 발행을 겹침 때마다 반복하므로 병렬 부하에서는 기본 30초를 넘길 수 있다.
+    test.setTimeout(120_000);
     await seedPosts(browser);
   });
 
