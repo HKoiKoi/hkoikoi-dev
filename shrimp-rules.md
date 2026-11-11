@@ -29,7 +29,7 @@
 - 단위 테스트는 대상 파일 옆 `*.test.ts(x)`. e2e는 `e2e/*.spec.ts`.
 - 한 라우트에서만 쓰는 컴포넌트는 그 폴더의 `_components/`에 둔다.
 - 공개 페이지는 Route Group `app/(site)/`, 관리자는 `app/admin/`, 인증은 `app/auth/`(ROADMAP 라우트 맵 기준).
-- 정적 데이터(이력·프로젝트·논문)는 `data/*.ts`에 둔다.
+- 이력·프로젝트·논문은 DB 테이블(`resume_entries`·`projects`·`publications`)에 두고 `lib/queries/resume.ts`로 조회한다. `data/`에는 `profile.ts`만 둔다.
 - import 방향은 `components/ui` ← `components/<domain>` ← `app/` 단방향만 허용한다.
 - 새 디렉터리는 필요해질 때만 만든다: `lib/schemas/`, `lib/types/`, `lib/queries/`, `hooks/`, `supabase/`.
 - DB 타입은 Supabase MCP `generate_typescript_types`로 생성해 `lib/supabase/database.types.ts`에 둔다.
@@ -123,7 +123,7 @@
 - `.agents/`, `e2e/` 외 영역에서 Vitest가 제외된 경로에 단위 테스트 배치.
 
 ```
-OK : app/(site)/projects/page.tsx → data/projects.ts에서 읽기 → components/projects/project-card.tsx
+OK : app/(site)/projects/page.tsx → lib/queries/resume.ts의 getProjects()로 읽기 → components/content/project-card.tsx
 NG : app/projects/page.tsx 생성 후 proxy 접근 조건·라우트 맵 미갱신
 OK : npx shadcn@latest add dialog
 NG : components/ui/dialog.tsx를 직접 작성
