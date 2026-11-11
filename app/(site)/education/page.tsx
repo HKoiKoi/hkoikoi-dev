@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
+import { ListSkeleton } from "@/components/content/list-skeleton";
 import { ResumeSection } from "@/components/content/resume-section";
-import { education } from "@/data/education";
+
+import { ResumeEntries } from "../_components/resume-entries";
 
 export const metadata: Metadata = {
   title: "학력",
@@ -14,8 +17,11 @@ export default function EducationPage() {
       <ResumeSection
         title="학력"
         description="학력 사항을 정리한 페이지입니다."
-        entries={education}
-      />
+      >
+        <Suspense fallback={<ListSkeleton />}>
+          <ResumeEntries section="education" />
+        </Suspense>
+      </ResumeSection>
     </div>
   );
 }

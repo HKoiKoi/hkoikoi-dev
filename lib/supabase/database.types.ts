@@ -85,12 +85,158 @@ export type Database = {
         };
         Relationships: [];
       };
+      projects: {
+        Row: {
+          created_at: string;
+          demo_url: string | null;
+          featured: boolean;
+          github_url: string | null;
+          id: string;
+          is_visible: boolean;
+          name: string;
+          period: string;
+          role: string;
+          sort_order: number;
+          stack: string[];
+          summary: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          demo_url?: string | null;
+          featured?: boolean;
+          github_url?: string | null;
+          id?: string;
+          is_visible?: boolean;
+          name: string;
+          period?: string;
+          role?: string;
+          sort_order?: number;
+          stack?: string[];
+          summary?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          demo_url?: string | null;
+          featured?: boolean;
+          github_url?: string | null;
+          id?: string;
+          is_visible?: boolean;
+          name?: string;
+          period?: string;
+          role?: string;
+          sort_order?: number;
+          stack?: string[];
+          summary?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      publications: {
+        Row: {
+          authors: string;
+          created_at: string;
+          id: string;
+          is_visible: boolean;
+          link: string | null;
+          sort_order: number;
+          title: string;
+          updated_at: string;
+          venue: string;
+          year: number;
+        };
+        Insert: {
+          authors?: string;
+          created_at?: string;
+          id?: string;
+          is_visible?: boolean;
+          link?: string | null;
+          sort_order?: number;
+          title: string;
+          updated_at?: string;
+          venue?: string;
+          year: number;
+        };
+        Update: {
+          authors?: string;
+          created_at?: string;
+          id?: string;
+          is_visible?: boolean;
+          link?: string | null;
+          sort_order?: number;
+          title?: string;
+          updated_at?: string;
+          venue?: string;
+          year?: number;
+        };
+        Relationships: [];
+      };
+      resume_entries: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          grade: string | null;
+          grade_label: string | null;
+          id: string;
+          is_visible: boolean;
+          link: string | null;
+          period: string | null;
+          section: string;
+          sort_order: number;
+          subtitle: string | null;
+          tag_groups: Json;
+          tags: string[];
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          grade?: string | null;
+          grade_label?: string | null;
+          id?: string;
+          is_visible?: boolean;
+          link?: string | null;
+          period?: string | null;
+          section: string;
+          sort_order?: number;
+          subtitle?: string | null;
+          tag_groups?: Json;
+          tags?: string[];
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          grade?: string | null;
+          grade_label?: string | null;
+          id?: string;
+          is_visible?: boolean;
+          link?: string | null;
+          period?: string | null;
+          section?: string;
+          sort_order?: number;
+          subtitle?: string | null;
+          tag_groups?: Json;
+          tags?: string[];
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
       increment_post_view: { Args: { p_post_id: string }; Returns: boolean };
+      reorder_projects: { Args: { p_ids: string[] }; Returns: number };
+      reorder_resume_entries: {
+        Args: { p_ids: string[]; p_section: string };
+        Returns: number;
+      };
       search_published_posts: {
         Args: {
           p_category?: string;

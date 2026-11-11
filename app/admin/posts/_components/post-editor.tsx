@@ -12,7 +12,7 @@ import {
 } from "react";
 import { autosaveDraft, savePost } from "@/app/admin/posts/actions";
 import { AutosaveStatus } from "@/app/admin/posts/_components/autosave-status";
-import { FieldError } from "@/app/admin/posts/_components/field-error";
+import { FieldError } from "@/app/admin/_components/field-error";
 import { ImageUploadButton } from "@/app/admin/posts/_components/image-upload-button";
 import { MarkdownPreview } from "@/app/admin/posts/_components/markdown-preview";
 import { PostMetaFields } from "@/app/admin/posts/_components/post-meta-fields";
@@ -360,8 +360,20 @@ function PostEditorForm({
         className="lg:hidden"
       >
         <TabsList className="w-full">
-          <TabsTrigger value="write">작성</TabsTrigger>
-          <TabsTrigger value="preview">미리보기</TabsTrigger>
+          <TabsTrigger
+            value="write"
+            id="editor-tab-write"
+            aria-controls="editor-panel-write"
+          >
+            작성
+          </TabsTrigger>
+          <TabsTrigger
+            value="preview"
+            id="editor-tab-preview"
+            aria-controls="editor-panel-preview"
+          >
+            미리보기
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -401,6 +413,9 @@ function PostEditorForm({
         {/* 본문 입력과 미리보기를 나란히 둔다. 모바일에서는 탭으로 전환한다. */}
         <div className="grid gap-4 lg:h-[70vh] lg:grid-cols-2 lg:items-stretch lg:gap-8">
           <div
+            role="tabpanel"
+            id="editor-panel-write"
+            aria-labelledby="editor-tab-write"
             className={cn(
               "gap-2 lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]",
               mobileTab === "write" ? "grid" : "hidden lg:grid",
@@ -441,7 +456,9 @@ function PostEditorForm({
 
           {/* 본문은 Shadow DOM으로 격리해 렌더링하므로 본문 <style>이 편집기 UI에 영향을 주지 않는다. */}
           <section
-            aria-label="미리보기"
+            role="tabpanel"
+            id="editor-panel-preview"
+            aria-labelledby="editor-tab-preview"
             className={cn(
               "min-w-0 gap-2 lg:grid lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]",
               mobileTab === "preview" ? "grid grid-rows-[auto_1fr]" : "hidden",

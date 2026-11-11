@@ -29,7 +29,8 @@
 - 단위 테스트는 대상 파일 옆 `*.test.ts(x)`. e2e는 `e2e/*.spec.ts`.
 - 한 라우트에서만 쓰는 컴포넌트는 그 폴더의 `_components/`에 둔다.
 - 공개 페이지는 Route Group `app/(site)/`, 관리자는 `app/admin/`, 인증은 `app/auth/`(ROADMAP 라우트 맵 기준).
-- 정적 데이터(이력·프로젝트·논문)는 `data/*.ts`에 둔다.
+- 이력·프로젝트·논문은 DB 테이블(`resume_entries`·`projects`·`publications`)에 두고 `lib/queries/resume.ts`로 조회한다. `data/`에는 `profile.ts`만 둔다.
+- 이력·프로젝트·논문 관리자 화면은 `app/admin/{resume,projects,publications}/`에 두고 공용 부품은 `app/admin/_components/`를 쓴다. 모든 page와 Server Action은 `requireAdmin()`을 직접 호출하고, 액션은 검증 → 쓰기 → 영향 행 확인 → `updateTag` 순서이며 `/admin/*`만 `revalidatePath`를 쓴다. 순서 변경은 `reorder_*` RPC로 한 번에 처리하고, 서버→클라이언트 컴포넌트에는 함수 prop 대신 문자열·Server Action만 넘긴다.
 - import 방향은 `components/ui` ← `components/<domain>` ← `app/` 단방향만 허용한다.
 - 새 디렉터리는 필요해질 때만 만든다: `lib/schemas/`, `lib/types/`, `lib/queries/`, `hooks/`, `supabase/`.
 - DB 타입은 Supabase MCP `generate_typescript_types`로 생성해 `lib/supabase/database.types.ts`에 둔다.
@@ -85,17 +86,18 @@
 
 ## 함께 수정해야 하는 파일
 
-| 변경                      | 같이 수정                                                                                      |
-| ------------------------- | ---------------------------------------------------------------------------------------------- |
-| 라우트 경로 추가·변경     | `docs/ROADMAP.md` 라우트 맵, `lib/site-config.ts` 헤더 메뉴, `lib/supabase/proxy.ts` 접근 조건 |
-| 공개/보호 경로 정책 변경  | `lib/supabase/proxy.ts`, `docs/guides/project-structure.md`                                    |
-| 폴더 구조·컨벤션 변경     | `docs/guides/project-structure.md`, `CLAUDE.md`                                                |
-| 새 환경 변수              | `.env.example`, `.github/workflows/ci.yml`(빌드에 필요한 경우), `CLAUDE.md`                    |
-| 새 npm 스크립트·품질 도구 | `CLAUDE.md` 명령어 섹션, `.github/workflows/ci.yml`                                            |
-| 기능 구현 완료            | `docs/ROADMAP.md` Task 체크(✅)와 `테스트 결과` 갱신                                           |
-| 기능 범위 변경            | `docs/PRD.md` 먼저, 그 다음 `docs/ROADMAP.md`                                                  |
-| DB 스키마 변경            | 마이그레이션, `lib/supabase/database.types.ts` 재생성, RLS 정책                                |
-| 의존성 추가·제거          | `package.json`, `package-lock.json`, `npm run knip` 통과                                       |
+| 변경                       | 같이 수정                                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| 라우트 경로 추가·변경      | `docs/ROADMAP.md` 라우트 맵, `lib/site-config.ts` 헤더 메뉴, `lib/supabase/proxy.ts` 접근 조건 |
+| 공개/보호 경로 정책 변경   | `lib/supabase/proxy.ts`, `docs/guides/project-structure.md`                                    |
+| 관리자 메뉴 항목 추가·변경 | `lib/admin/nav.ts`(메뉴·현재 경로 판별 + 테스트), `docs/ROADMAP.md` 라우트 맵                  |
+| 폴더 구조·컨벤션 변경      | `docs/guides/project-structure.md`, `CLAUDE.md`                                                |
+| 새 환경 변수               | `.env.example`, `.github/workflows/ci.yml`(빌드에 필요한 경우), `CLAUDE.md`                    |
+| 새 npm 스크립트·품질 도구  | `CLAUDE.md` 명령어 섹션, `.github/workflows/ci.yml`                                            |
+| 기능 구현 완료             | `docs/ROADMAP.md` Task 체크(✅)와 `테스트 결과` 갱신                                           |
+| 기능 범위 변경             | `docs/PRD.md` 먼저, 그 다음 `docs/ROADMAP.md`                                                  |
+| DB 스키마 변경             | 마이그레이션, `lib/supabase/database.types.ts` 재생성, RLS 정책                                |
+| 의존성 추가·제거           | `package.json`, `package-lock.json`, `npm run knip` 통과                                       |
 
 ## ROADMAP 작업 흐름
 
@@ -123,7 +125,7 @@
 - `.agents/`, `e2e/` 외 영역에서 Vitest가 제외된 경로에 단위 테스트 배치.
 
 ```
-OK : app/(site)/projects/page.tsx → data/projects.ts에서 읽기 → components/projects/project-card.tsx
+OK : app/(site)/projects/page.tsx → lib/queries/resume.ts의 getProjects()로 읽기 → components/content/project-card.tsx
 NG : app/projects/page.tsx 생성 후 proxy 접근 조건·라우트 맵 미갱신
 OK : npx shadcn@latest add dialog
 NG : components/ui/dialog.tsx를 직접 작성
