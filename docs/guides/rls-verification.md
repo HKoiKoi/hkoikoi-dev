@@ -240,3 +240,30 @@ where p.pronamespace = 'public'::regnamespace
 ### 실행 기록
 
 - 2026-11-11, `main PRODUCTION`, Task 033: 마이그레이션 `20261111052304_reorder_resume_items` 적용 뒤 F1은 `anon_exec = false`, `auth_exec = true`, `proacl = {postgres=X, authenticated=X, service_role=X}`였다. F2는 위 기대값과 모두 일치했고(education 섹션 3건·프로젝트 4건 사용), 종료 뒤 이력 9건·프로젝트 4건·논문 3건과 `sort_order`가 점검 전과 같았다. `get_advisors`(security·performance)에는 새 경고가 없었다(기존 `increment_post_view` 공개 실행 경고, `auth_leaked_password_protection`, 미사용 인덱스 INFO만 남음).
+
+## G. 쓰기 거부 종합 점검(anon·user_metadata 위조 사용자)
+
+점검 E·F를 한 번에 돌리고 `blog-images` INSERT, `post_views` 직접 쓰기, `increment_post_view` 호출까지 넣은 롤백되는 DO 블록이다. 행위자 두 명(`anon`, `app_metadata.role = 'user'`이고 `user_metadata.role`만 `admin`인 위조 `authenticated`)을 `set local role`과 `request.jwt.claims`로 흉내 내 각 시도를 `begin … exception when others` 안에서 실행하고 결과(`sqlstate` 또는 영향 행 수)를 문자열에 모은 뒤, 마지막 `raise exception`으로 전체를 롤백한다. 시도 항목은 세 테이블의 INSERT·UPDATE·DELETE, `reorder_resume_entries('education', …)`·`reorder_projects(…)`, `storage.objects`에 `blog-images` INSERT, `post_views`의 INSERT·UPDATE·DELETE, `increment_post_view`(발행 글·없는 글)이다. 점검 전후로 행 수와 `sort_order`를 비교해 롤백을 확인한다.
+
+기대값과 결과(2026-11-11, `main PRODUCTION`):
+
+| 대상                                              | anon                             | 위조 사용자                        |
+| ------------------------------------------------- | -------------------------------- | ---------------------------------- |
+| `resume_entries`·`projects`·`publications` INSERT | `DENIED 42501`                   | `DENIED 42501`                     |
+| 같은 테이블 UPDATE·DELETE                         | `DENIED 42501`(GRANT가 SELECT뿐) | 영향 행 0                          |
+| `reorder_resume_entries`·`reorder_projects`       | `DENIED 42501`                   | `DENIED 22023`(`reorder mismatch`) |
+| `blog-images` INSERT(`storage.objects`)           | `DENIED 42501`                   | `DENIED 42501`                     |
+| `post_views` INSERT·UPDATE·DELETE                 | `DENIED 42501`                   | `DENIED 42501`(GRANT가 SELECT뿐)   |
+| `increment_post_view`(발행 글 / 없는 글)          | `true` / `false`                 | `true` / `false`                   |
+
+- 쓰기가 성공한 경로는 없었다(`ALLOWED(!)` 0건).
+- `increment_post_view`는 발행 글이면 조회수가 1 늘고(`0 → 1`) 없는 글이면 `false`를 돌려주는 설계대로 동작했다. 블록 전체가 롤백돼 조회수는 남지 않았다(`post_views` 합계 8, 4행 그대로).
+- 점검 전후 비교: `resume_entries` 9, `projects` 4, `publications` 3, `posts` 37, `post_views` 4행(합계 8), `blog-images` 객체 141, 이력·프로젝트 `sort_order` 모두 같다.
+- 정적 점검: 이력 3개 테이블·`post_views`의 anon GRANT는 `SELECT`뿐, authenticated는 이력 3개 테이블이 `DELETE, INSERT, SELECT, UPDATE`이고 `post_views`는 `SELECT`뿐이다. 점검 대상 테이블·`storage.objects` 정책에 `user_metadata` 참조는 0건이다. `reorder_*`는 `security invoker`, `anon` 실행 불가, `authenticated` 실행 가능이고 `increment_post_view`는 `security definer`, anon·authenticated 실행 가능(알려진 예외)이다.
+- `get_advisors`: security는 기존 경고 3건(`increment_post_view` anon·authenticated 실행 2건, `auth_leaked_password_protection`)뿐이고 performance는 미사용 인덱스 INFO 3건(`posts_title_trgm_idx`, `posts_excerpt_trgm_idx`, `posts_tags_idx`)뿐이라 새 경고가 없다.
+
+한계:
+
+- 프로젝트 이름이 `main PRODUCTION`인지는 `get_project_url`의 URL이 `.mcp.json`의 `project_ref`와 일치하는 것으로 간접 확인했다. 이름 자체는 조회하지 않았다.
+- `request.jwt.claims` 흉내는 서명 검증을 거치지 않으므로 실제 비관리자 계정 세션 검증은 하지 않았다(관리자 1인 방침).
+- `blog-images` 업로드는 DB 수준 INSERT 거부만 확인했다. Storage API 경로(`/storage/v1/object`)로 직접 올리는 시도는 하지 않았다.
