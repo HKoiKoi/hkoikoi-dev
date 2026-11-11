@@ -11,6 +11,9 @@ import { buildPostMetadata } from "@/lib/post-metadata";
 import { sortTags } from "@/lib/posts/sort-tags";
 import { getAdjacentPosts, getPostBySlug } from "@/lib/queries/posts";
 
+import { ViewCount } from "./_components/view-count";
+import { ViewTracker } from "./_components/view-tracker";
+
 // params는 퍼센트 인코딩된 채로 전달되므로(한글 슬러그 등) 직접 디코딩한다.
 // 잘못된 인코딩(URIError)이면 원문을 그대로 쓴다.
 function decodeSlug(slug: string) {
@@ -49,6 +52,9 @@ async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
             <time dateTime={date} className="text-sm text-muted-foreground">
               {formatDateTime(date)}
             </time>
+            <Suspense fallback={null}>
+              <ViewCount postId={post.id} />
+            </Suspense>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight break-words sm:text-3xl">
             {post.title}
@@ -64,6 +70,7 @@ async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
           )}
         </header>
         <MarkdownContent content={post.content} scopeId={post.id} />
+        <ViewTracker postId={post.id} />
       </article>
       <PostPager prev={prev} next={next} />
     </div>
