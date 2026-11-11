@@ -76,7 +76,7 @@ where (schemaname = 'public' and tablename = 'posts')
 
 ## 테이블 권한(GRANT)
 
-RLS는 행을 거르고, GRANT는 명령 자체를 허용한다. `public` 스키마의 default privileges가 새 테이블에 `anon`, `authenticated`, `service_role`의 모든 권한을 자동으로 주기 때문에, 마이그레이션의 `grant`만으로는 권한이 좁혀지지 않는다. `posts`는 `20261028133002_revoke_excess_posts_grants.sql`로 회수했다.
+RLS는 행을 거르고, GRANT는 명령 자체를 허용한다. `public` 스키마의 default privileges가 새 테이블에 `anon`, `authenticated`, `service_role`의 모든 권한을 자동으로 주기 때문에, 마이그레이션의 `grant`만으로는 권한이 좁혀지지 않는다. `posts`는 `20261111013117_revoke_excess_posts_grants.sql`로 회수했다.
 
 ### D. posts GRANT 점검
 

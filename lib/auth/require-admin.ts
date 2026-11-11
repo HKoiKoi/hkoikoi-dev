@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { connection } from "next/server";
 import { isAdmin } from "@/lib/auth/is-admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -7,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 // 환경변수가 없으면 createClient()가 먼저 실패하므로 /admin은 열리지 않고 오류로 닫힌다.
 // redirect/notFound는 예외를 던지므로 try/catch 밖에서 호출한다.
 export async function requireAdmin() {
+  // getClaims()가 만료 판정에 Date.now()를 쓰므로 프리렌더 단계에서 멈추고 요청 시점에 실행한다.
+  await connection();
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
