@@ -9,7 +9,4 @@
     ".agents/**", // 스킬 사본
     "lib/supabase/database.types.ts", // generate_typescript_types 생성물
   ],
-  "ignoreDependencies": [
-    "@testing-library/user-event", // 테스트에서 import하면 제거
-  ],
 }
