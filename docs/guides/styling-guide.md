@@ -247,6 +247,22 @@ const mounted = useSyncExternalStore(
 
 오류 메시지처럼 의미가 있는 색은 `text-destructive`를 사용하고 `text-red-600`을 하드코딩하지 않습니다. 성공/경고 색상이 필요하면 토큰을 먼저 추가합니다 (현재 없음).
 
+### 글 본문 제목 색
+
+글 본문(`.post-content`)의 `##`·`###`·`####`는 브랜드 색 `--primary`를 본문 글자색 `--foreground`와 섞어 단계별로 옅게 칠합니다. 규칙은 `app/globals.css`의 한 곳에만 있습니다.
+
+| 제목   | 변수        | 값                                                           | 라이트 대비 | 다크 대비 |
+| ------ | ----------- | ------------------------------------------------------------ | ----------- | --------- |
+| `##`   | `--post-h2` | `var(--primary)`                                             | 4.66:1      | 6.16:1    |
+| `###`  | `--post-h3` | `color-mix(in oklab, var(--primary) 80%, var(--foreground))` | 6.15:1      | 7.63:1    |
+| `####` | `--post-h4` | `color-mix(in oklab, var(--primary) 60%, var(--foreground))` | 8.12:1      | 9.34:1    |
+
+- 대비는 `getComputedStyle` 색을 sRGB로 바꿔 배경(`body`)과 계산한 실측값이며 모두 4.5:1 이상입니다. 토큰이 테마에 따라 바뀌므로 라이트·다크 값을 따로 쓰지 않습니다.
+- 변수는 `:root`가 아니라 `.post-content`에 선언합니다. 편집기 미리보기(Shadow DOM)의 `.dark`는 래퍼 div에 붙어서 `:root` 변수로는 다크 값이 따라오지 않습니다. 규칙은 반드시 `.post-content` 아래로 한정합니다. `h2`에 바로 걸면 홈·이력·관리자 UI 제목까지 바뀝니다.
+- 라이트에서는 단계가 내려갈수록 `--foreground`에 가까워져 `####`가 `##`보다 어둡고, 다크에서는 더 밝습니다. `##`가 채도가 가장 높습니다.
+- `h1`·`h5`·`h6`은 색을 지정하지 않으며, 제목 안 인라인 코드(`> code`)는 `color: inherit`로 제목 색을 따릅니다.
+- 작성 규칙: 글 제목에 `<span style="color: …">`를 넣지 않습니다. 인라인 span 색은 CSS보다 우선해 색 체계를 깨뜨립니다(span의 `style`은 `color: #hex`만 통과). 기존 글의 제목 span은 2026-11-09에 모두 제거했습니다.
+
 ## 애니메이션
 
 `tw-animate-css` 유틸리티(`animate-in`, `fade-in-0`, `zoom-in-95`, `slide-in-from-top-2` 등)는 `dropdown-menu`처럼 오버레이 컴포넌트의 열림/닫힘 전환에 쓰입니다. 기본 제공 `animate-spin`, `animate-pulse`, `animate-bounce`도 사용할 수 있습니다.
