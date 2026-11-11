@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { parseProjectFormData, PROJECT_LIMITS, projectSchema } from "./project";
+import {
+  parseProjectFormData,
+  PROJECT_LIMITS,
+  projectSchema,
+  projectToFormValues,
+} from "./project";
 
 const valid = {
   name: "프로젝트",
@@ -78,5 +83,36 @@ describe("parseProjectFormData", () => {
     });
     fd.delete("featured");
     expect(parseProjectFormData(fd).featured).toBe(false);
+  });
+});
+
+describe("projectToFormValues", () => {
+  it("저장된 프로젝트를 폼 입력값으로 바꾼다", () => {
+    expect(
+      projectToFormValues({
+        id: "i",
+        name: "p",
+        summary: "s",
+        period: "2024",
+        role: "dev",
+        stack: ["a", "b"],
+        github_url: null,
+        demo_url: "https://a.com",
+        featured: true,
+        is_visible: true,
+        sort_order: 10,
+        created_at: "",
+        updated_at: "",
+      }),
+    ).toEqual({
+      name: "p",
+      summary: "s",
+      period: "2024",
+      role: "dev",
+      stack: "a, b",
+      github_url: "",
+      demo_url: "https://a.com",
+      featured: "on",
+    });
   });
 });

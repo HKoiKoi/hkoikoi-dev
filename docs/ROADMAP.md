@@ -58,23 +58,30 @@ hkoikoi.dev는 채용 담당자·동료 개발자(방문자)와 관리자 본인
 
 PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는 아래 안으로 진행하고, 바꾸면 이 표와 헤더 메뉴 설정(`lib/site-config.ts`)을 함께 고친다.
 
-| 페이지         | 경로                              | 파일 (예정)                               | 인증        | 기능 ID                |
-| -------------- | --------------------------------- | ----------------------------------------- | ----------- | ---------------------- |
-| 메인           | `/`                               | `app/(site)/page.tsx`                     | 불필요      | F001, F003, F005, F013 |
-| 학력           | `/education`                      | `app/(site)/education/page.tsx`           | 불필요      | F002                   |
-| 경력           | `/career`                         | `app/(site)/career/page.tsx`              | 불필요      | F002                   |
-| 자격증         | `/certifications`                 | `app/(site)/certifications/page.tsx`      | 불필요      | F002                   |
-| 사회봉사       | `/volunteer`                      | `app/(site)/volunteer/page.tsx`           | 불필요      | F002                   |
-| 어학           | `/languages`                      | `app/(site)/languages/page.tsx`           | 불필요      | F002                   |
-| 사회활동       | `/activities`                     | `app/(site)/activities/page.tsx`          | 불필요      | F002                   |
-| 프로젝트       | `/projects`                       | `app/(site)/projects/page.tsx`            | 불필요      | F003                   |
-| 논문           | `/publications`                   | `app/(site)/publications/page.tsx`        | 불필요      | F004                   |
-| 블로그 목록    | `/blog?category=&tag=`            | `app/(site)/blog/page.tsx`                | 불필요      | F005                   |
-| 블로그 상세    | `/blog/{slug}` (한글 슬러그 허용) | `app/(site)/blog/[slug]/page.tsx`         | 불필요      | F006, F007, F014       |
-| 로그인         | `/auth/login`                     | `app/auth/login/page.tsx` (스타터 재사용) | 불필요      | F012                   |
-| 관리자 글 목록 | `/admin/posts`                    | `app/admin/posts/page.tsx`                | 관리자 역할 | F010, F011, F012       |
-| 새 글 작성     | `/admin/posts/new`                | `app/admin/posts/new/page.tsx`            | 관리자 역할 | F007~F010, F012        |
-| 글 수정        | `/admin/posts/[id]/edit`          | `app/admin/posts/[id]/edit/page.tsx`      | 관리자 역할 | F007~F010, F012        |
+| 페이지             | 경로                                                       | 파일 (예정)                                                                        | 인증        | 기능 ID                |
+| ------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------- | ---------------------- |
+| 메인               | `/`                                                        | `app/(site)/page.tsx`                                                              | 불필요      | F001, F003, F005, F013 |
+| 학력               | `/education`                                               | `app/(site)/education/page.tsx`                                                    | 불필요      | F002                   |
+| 경력               | `/career`                                                  | `app/(site)/career/page.tsx`                                                       | 불필요      | F002                   |
+| 자격증             | `/certifications`                                          | `app/(site)/certifications/page.tsx`                                               | 불필요      | F002                   |
+| 사회봉사           | `/volunteer`                                               | `app/(site)/volunteer/page.tsx`                                                    | 불필요      | F002                   |
+| 어학               | `/languages`                                               | `app/(site)/languages/page.tsx`                                                    | 불필요      | F002                   |
+| 사회활동           | `/activities`                                              | `app/(site)/activities/page.tsx`                                                   | 불필요      | F002                   |
+| 프로젝트           | `/projects`                                                | `app/(site)/projects/page.tsx`                                                     | 불필요      | F003                   |
+| 논문               | `/publications`                                            | `app/(site)/publications/page.tsx`                                                 | 불필요      | F004                   |
+| 블로그 목록        | `/blog?category=&tag=`                                     | `app/(site)/blog/page.tsx`                                                         | 불필요      | F005                   |
+| 블로그 상세        | `/blog/{slug}` (한글 슬러그 허용)                          | `app/(site)/blog/[slug]/page.tsx`                                                  | 불필요      | F006, F007, F014       |
+| 로그인             | `/auth/login`                                              | `app/auth/login/page.tsx` (스타터 재사용)                                          | 불필요      | F012                   |
+| 관리자 글 목록     | `/admin/posts`                                             | `app/admin/posts/page.tsx`                                                         | 관리자 역할 | F010, F011, F012       |
+| 새 글 작성         | `/admin/posts/new`                                         | `app/admin/posts/new/page.tsx`                                                     | 관리자 역할 | F007~F010, F012        |
+| 글 수정            | `/admin/posts/[id]/edit`                                   | `app/admin/posts/[id]/edit/page.tsx`                                               | 관리자 역할 | F007~F010, F012        |
+| 이력 관리          | `/admin/resume/[section]`                                  | `app/admin/resume/[section]/page.tsx`                                              | 관리자 역할 | F025(제안), F012       |
+| 이력 새 항목       | `/admin/resume/[section]/new`                              | `app/admin/resume/[section]/new/page.tsx`                                          | 관리자 역할 | F025(제안), F012       |
+| 이력 수정          | `/admin/resume/[section]/[id]/edit`                        | `app/admin/resume/[section]/[id]/edit/page.tsx`                                    | 관리자 역할 | F025(제안), F012       |
+| 프로젝트 관리      | `/admin/projects`                                          | `app/admin/projects/page.tsx`                                                      | 관리자 역할 | F025(제안), F012       |
+| 프로젝트 작성·수정 | `/admin/projects/new`, `/admin/projects/[id]/edit`         | `app/admin/projects/new/page.tsx`, `app/admin/projects/[id]/edit/page.tsx`         | 관리자 역할 | F025(제안), F012       |
+| 논문 관리          | `/admin/publications`                                      | `app/admin/publications/page.tsx`                                                  | 관리자 역할 | F025(제안), F012       |
+| 논문 작성·수정     | `/admin/publications/new`, `/admin/publications/[id]/edit` | `app/admin/publications/new/page.tsx`, `app/admin/publications/[id]/edit/page.tsx` | 관리자 역할 | F025(제안), F012       |
 
 - 공개 페이지는 Route Group `app/(site)/`의 `layout.tsx`가 공통 헤더·푸터를 제공한다. 관리자 영역(`app/admin/`)과 로그인(`app/auth/`)은 별도 레이아웃을 쓴다.
 - 접근 정책: `proxy.ts`(`lib/supabase/proxy.ts`)는 **`/admin` 경로만** 비로그인 시 `/auth/login`으로 리다이렉트하고, 나머지는 공개한다. 관리자 역할 검사는 proxy가 아니라 서버 코드(`requireAdmin()`)와 RLS가 담당하며, 로그인했지만 관리자가 아니면 `notFound()`로 처리한다.
@@ -900,7 +907,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 의존성: Task 032
   - 관련 파일: `app/admin/{resume,projects,publications}/**`(신규), `app/admin/_components/admin-nav.tsx`, `lib/schemas/{resume,project,publication}.ts`(+test), `lib/queries/admin-resume.ts`, `e2e/admin-resume.spec.ts`(신규)
   - 수락 기준: 관리자 메뉴에서 각 섹션 목록·편집 화면으로 들어가 항목을 CRUD하고 순서를 바꿀 수 있으며, 저장 즉시(운영 포함) 공개 페이지에 반영. 모든 페이지와 Server Action이 `requireAdmin()`을 직접 호출. 검증 실패는 필드 옆 오류로 표시하고 입력값 유지
-  - [ ] 라우트: `/admin/resume/[section]`, `/admin/projects`, `/admin/publications`와 각 `new`·`[id]/edit`. 라우트 맵 표와 `AdminNav` 갱신
+  - [x] 라우트: `/admin/resume/[section]`, `/admin/projects`, `/admin/publications`와 각 `new`·`[id]/edit`. 라우트 맵 표와 `AdminNav` 갱신(구현 메모: 이력 섹션 전환은 라우트가 바뀌므로 `Tabs` 컴포넌트 대신 `aria-current` 링크 `nav`로 구현했고, `AdminNav`는 이력을 한 링크로 두고 메뉴가 넘치면 가로 스크롤한다. 서버→클라이언트 컴포넌트로는 함수 prop을 넘길 수 없어 목록의 수정 링크는 `editBasePath` 문자열로 받는다)
   - [ ] zod 스키마(길이·링크는 `https:`만·태그/스택 최대 개수) + 단위 테스트, Server Action(`requireAdmin()` → 검증 → 쓰기 → `updateTag`로 해당 태그 만료, `/admin/*`만 `revalidatePath`)
   - [ ] 정렬: 위/아래 이동 버튼(키보드 접근성, 드래그앤드롭은 선택), `sort_order` 재계산은 RPC나 단일 쿼리로 한 번에(중간 상태 노출 방지)
     - **결정(2026-11-11, 사용자)**: (1) 이력·프로젝트 이동은 **RPC 방식**: `reorder_resume_entries(p_section, p_ids)`·`reorder_projects(p_ids)`(`security invoker`)가 `sort_order`를 10 단위로 한 번에 재배치한다(마이그레이션은 별도 Task). (2) 논문은 공개 화면이 연도 내림차순이므로 **이동 버튼과 `movePublication` 액션을 만들지 않고** 관리자 목록에 안내 문구만 둔다. 관리자 논문 목록은 공개 화면과 같은 `year desc → sort_order → id` 순이다

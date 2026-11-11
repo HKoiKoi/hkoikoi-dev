@@ -4,6 +4,7 @@ import {
   parsePublicationFormData,
   PUBLICATION_LIMITS,
   publicationSchema,
+  publicationToFormValues,
 } from "./publication";
 
 const valid = {
@@ -71,5 +72,24 @@ describe("parsePublicationFormData", () => {
     expect(parsePublicationFormData(fd).year).toBeNaN();
     fd.set("year", "");
     expect(parsePublicationFormData(fd).year).toBeNaN();
+  });
+});
+
+describe("publicationToFormValues", () => {
+  it("저장된 논문을 폼 입력값으로 바꾼다", () => {
+    expect(
+      publicationToFormValues({
+        id: "i",
+        title: "t",
+        authors: "a",
+        venue: "v",
+        year: 2024,
+        link: null,
+        is_visible: true,
+        sort_order: 10,
+        created_at: "",
+        updated_at: "",
+      }),
+    ).toEqual({ title: "t", authors: "a", venue: "v", year: "2024", link: "" });
   });
 });

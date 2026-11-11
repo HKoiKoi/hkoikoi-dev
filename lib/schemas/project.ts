@@ -8,6 +8,7 @@ import {
   text,
 } from "@/lib/schemas/fields";
 import { parseTags } from "@/lib/schemas/post";
+import type { ProjectRow } from "@/lib/types/resume";
 
 // DB check 제약과 같은 한도
 export const PROJECT_LIMITS = {
@@ -42,5 +43,19 @@ export function parseProjectFormData(formData: FormData) {
     github_url: formString(formData, "github_url"),
     demo_url: formString(formData, "demo_url"),
     featured: formData.get("featured") === "on",
+  };
+}
+
+/** 저장된 프로젝트를 수정 폼의 입력값(문자열)으로 바꾼다. 체크박스는 체크됐을 때 "on"이다. */
+export function projectToFormValues(row: ProjectRow): Record<string, string> {
+  return {
+    name: row.name,
+    summary: row.summary,
+    period: row.period,
+    role: row.role,
+    stack: row.stack.join(", "),
+    github_url: row.github_url ?? "",
+    demo_url: row.demo_url ?? "",
+    featured: row.featured ? "on" : "",
   };
 }

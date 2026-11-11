@@ -8,6 +8,7 @@ import {
   tagList,
 } from "@/lib/schemas/fields";
 import { parseTags } from "@/lib/schemas/post";
+import type { ResumeEntryRow } from "@/lib/types/resume";
 
 // DB check 제약과 같은 한도
 export const RESUME_LIMITS = {
@@ -88,5 +89,36 @@ export function parseResumeFormData(formData: FormData) {
     tags: parseTags(formString(formData, "tags")),
     tag_groups: parseTagGroups(formString(formData, "tag_groups")),
     link: formString(formData, "link"),
+  };
+}
+
+/** jsonb는 형태를 보장하지 않으므로 [{ label, tags[] }]가 아닌 값은 버린다. */
+function coerceTagGroups(value: unknown): TagGroup[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item !== "object" || item === null) return [];
+    const { label, tags } = item as { label?: unknown; tags?: unknown };
+    if (typeof label !== "string" || !Array.isArray(tags)) return [];
+    return [
+      {
+        label,
+        tags: tags.filter((tag): tag is string => typeof tag === "string"),
+      },
+    ];
+  });
+}
+
+/** 저장된 이력 항목을 수정 폼의 입력값(문자열)으로 바꾼다. */
+export function entryToFormValues(row: ResumeEntryRow): Record<string, string> {
+  return {
+    title: row.title,
+    subtitle: row.subtitle ?? "",
+    period: row.period ?? "",
+    description: row.description ?? "",
+    grade: row.grade ?? "",
+    grade_label: row.grade_label ?? "",
+    tags: row.tags.join(", "),
+    tag_groups: formatTagGroups(coerceTagGroups(row.tag_groups)),
+    link: row.link ?? "",
   };
 }

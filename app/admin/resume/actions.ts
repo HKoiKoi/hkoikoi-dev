@@ -13,7 +13,7 @@ import {
 import { formString } from "@/lib/schemas/fields";
 import { parseResumeFormData, resumeEntrySchema } from "@/lib/schemas/resume";
 import { createClient } from "@/lib/supabase/server";
-import { RESUME_SECTIONS, type ResumeSection } from "@/lib/types/resume";
+import { isResumeSection } from "@/lib/types/resume";
 
 const SAVE_FAILED = "항목을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 const DELETE_FAILED = "항목을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.";
@@ -36,10 +36,6 @@ const FORM_KEYS = [
 ] as const;
 
 type ActionResult = { ok: boolean; message?: string };
-
-function isResumeSection(value: string): value is ResumeSection {
-  return (RESUME_SECTIONS as readonly string[]).includes(value);
-}
 
 /**
  * 이력 변경 후 공개 캐시를 태그로 무효화한다(비공개 헬퍼).

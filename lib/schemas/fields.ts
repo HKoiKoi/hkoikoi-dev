@@ -8,8 +8,8 @@ export function requiredText(label: string, max: number) {
   return z
     .string()
     .trim()
-    .min(1, { error: `${label}을(를) 입력해 주세요.` })
-    .max(max, { error: `${label}은(는) ${max}자 이하로 입력해 주세요.` });
+    .min(1, { error: `${label}: 필수 항목입니다.` })
+    .max(max, { error: `${label}: ${max}자 이하로 입력해 주세요.` });
 }
 
 /** 공백을 다듬은 문자열. 빈 값은 허용하고 그대로 둔다(DB가 not null + default '' 인 열용). */
@@ -17,7 +17,7 @@ export function text(label: string, max: number) {
   return z
     .string()
     .trim()
-    .max(max, { error: `${label}은(는) ${max}자 이하로 입력해 주세요.` });
+    .max(max, { error: `${label}: ${max}자 이하로 입력해 주세요.` });
 }
 
 /** 공백을 다듬은 선택 문자열. 빈 값은 null로 바꾼다(DB가 nullable인 열용). */
@@ -33,12 +33,12 @@ export function tagList(label: string, maxCount: number, maxLength: number) {
         .string()
         .trim()
         .max(maxLength, {
-          error: `${label}은(는) ${maxLength}자 이하로 입력해 주세요.`,
+          error: `${label}: ${maxLength}자 이하로 입력해 주세요.`,
         }),
     )
     .transform((tags) => [...new Set(tags.filter(Boolean))])
     .refine((tags) => tags.length <= maxCount, {
-      error: `${label}은(는) 최대 ${maxCount}개까지 사용할 수 있습니다.`,
+      error: `${label}: 최대 ${maxCount}개까지 사용할 수 있습니다.`,
     });
 }
 
@@ -57,9 +57,9 @@ export function optionalHttpsUrl(label: string, max: number) {
   return z
     .string()
     .trim()
-    .max(max, { error: `${label}은(는) ${max}자 이하로 입력해 주세요.` })
+    .max(max, { error: `${label}: ${max}자 이하로 입력해 주세요.` })
     .refine((value) => value === "" || isHttpsUrl(value), {
-      error: `${label}은(는) https:// 로 시작하는 올바른 주소여야 합니다.`,
+      error: `${label}: https:// 로 시작하는 올바른 주소를 입력해 주세요.`,
     })
     .transform((value) => value || null);
 }

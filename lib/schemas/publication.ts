@@ -6,6 +6,7 @@ import {
   requiredText,
   text,
 } from "@/lib/schemas/fields";
+import type { PublicationRow } from "@/lib/types/resume";
 
 // DB check 제약과 같은 한도
 export const PUBLICATION_LIMITS = {
@@ -42,5 +43,18 @@ export function parsePublicationFormData(formData: FormData) {
     venue: formString(formData, "venue"),
     year: /^\d+$/.test(year) ? Number(year) : Number.NaN,
     link: formString(formData, "link"),
+  };
+}
+
+/** 저장된 논문을 수정 폼의 입력값(문자열)으로 바꾼다. */
+export function publicationToFormValues(
+  row: PublicationRow,
+): Record<string, string> {
+  return {
+    title: row.title,
+    authors: row.authors,
+    venue: row.venue,
+    year: String(row.year),
+    link: row.link ?? "",
   };
 }

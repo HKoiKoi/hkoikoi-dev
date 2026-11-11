@@ -16,6 +16,20 @@ export const RESUME_SECTIONS = [
 ] as const;
 export type ResumeSection = (typeof RESUME_SECTIONS)[number];
 
+export function isResumeSection(value: string): value is ResumeSection {
+  return (RESUME_SECTIONS as readonly string[]).includes(value);
+}
+
+/** 관리자 화면의 섹션 이름(공개 페이지 제목과 같다) */
+export const RESUME_SECTION_LABELS: Record<ResumeSection, string> = {
+  education: "학력",
+  career: "경력",
+  certifications: "자격증",
+  volunteer: "사회봉사",
+  languages: "어학",
+  activities: "사회활동",
+};
+
 /** 학력·경력·자격증·사회봉사·어학·사회활동 공통 항목 */
 export type ResumeEntry = {
   title: string;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  entryToFormValues,
   formatTagGroups,
   parseResumeFormData,
   parseTagGroups,
@@ -160,5 +161,47 @@ describe("parseResumeFormData", () => {
       tags: ["a", "b"],
       tag_groups: [{ label: "개발", tags: ["x", "y"] }],
     });
+  });
+});
+
+describe("entryToFormValues", () => {
+  const row = {
+    id: "i",
+    section: "career",
+    title: "회사",
+    subtitle: null,
+    period: "2024",
+    description: null,
+    grade: "3.8",
+    grade_label: null,
+    tags: ["a", "b"],
+    tag_groups: [
+      { label: "개발", tags: ["x", "y"] },
+      "깨진 값",
+      { label: 1, tags: [] },
+    ],
+    link: null,
+    is_visible: true,
+    sort_order: 10,
+    created_at: "",
+    updated_at: "",
+  };
+
+  it("null은 빈 문자열로, 배열은 폼 입력 형식으로 바꾼다", () => {
+    expect(entryToFormValues(row)).toEqual({
+      title: "회사",
+      subtitle: "",
+      period: "2024",
+      description: "",
+      grade: "3.8",
+      grade_label: "",
+      tags: "a, b",
+      tag_groups: "개발: x, y",
+      link: "",
+    });
+  });
+
+  it("형태가 깨진 tag_groups는 버리고 빈 문자열로 둔다", () => {
+    expect(entryToFormValues({ ...row, tag_groups: "x" }).tag_groups).toBe("");
   });
 });
