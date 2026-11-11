@@ -14,6 +14,32 @@ export type Database = {
   };
   public: {
     Tables: {
+      post_views: {
+        Row: {
+          post_id: string;
+          updated_at: string;
+          view_count: number;
+        };
+        Insert: {
+          post_id: string;
+          updated_at?: string;
+          view_count?: number;
+        };
+        Update: {
+          post_id?: string;
+          updated_at?: string;
+          view_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "post_views_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: true;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       posts: {
         Row: {
           category: string;
@@ -64,6 +90,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      increment_post_view: { Args: { p_post_id: string }; Returns: boolean };
       search_published_posts: {
         Args: {
           p_category?: string;
