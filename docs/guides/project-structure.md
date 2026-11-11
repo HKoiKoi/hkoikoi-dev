@@ -97,7 +97,7 @@ app/
 ├── (site)/                 # 공개 사이트 (Route Group, URL에 나타나지 않음)
 │   ├── layout.tsx          # 헤더·푸터
 │   ├── page.tsx            # /
-│   ├── _components/        # latest-posts.tsx (메인의 최신 글)
+│   ├── _components/        # latest-posts.tsx(메인의 최신 글), resume-entries·project-list·publication-list(이력·프로젝트·논문 조회, 호출하는 쪽이 Suspense로 감쌈)
 │   ├── education/ career/ certifications/ languages/   # 이력
 │   ├── volunteer/ activities/ projects/ publications/
 │   └── blog/               # /blog, /blog/[slug], _components/ (search-form 키워드 검색 GET 폼과 category-select·search-reset-link, taxonomy-filter 카테고리·태그 칩, post-filter-bar 현재 필터, post-list, pagination 페이지 이동)
