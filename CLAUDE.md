@@ -26,7 +26,7 @@ npx vitest run -t "테스트 이름"            # 이름으로 필터
 npx playwright test e2e/routes.spec.ts    # 단일 e2e 파일
 ```
 
-- 단위 테스트는 대상 파일 옆에 `*.test.ts(x)`로 두고, e2e는 `e2e/*.spec.ts`(`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-resume`, `admin-image-upload`, `admin-preview`, `admin-autosave`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`, `blog-filter`, `blog-pagination`, `blog-search`, `post-style-scope`), 공용 헬퍼는 `e2e/fixtures/admin.ts`. Vitest는 `e2e`, `.agents`를 제외한다.
+- 단위 테스트는 대상 파일 옆에 `*.test.ts(x)`로 두고, e2e는 `e2e/*.spec.ts`(`home`, `routes`, `static-pages`, `admin-auth`, `admin-posts`, `admin-resume`, `admin-image-upload`, `admin-preview`, `admin-autosave`, `visitor-flow`, `admin-flow`, `access-control`, `seo`, `a11y`, `cache-invalidation`, `blog-filter`, `blog-pagination`, `blog-search`, `post-style-scope`, `post-navigation`, `post-views`, `post-comments`, `admin-storage`), 공용 헬퍼는 `e2e/fixtures/admin.ts`. Vitest는 `e2e`, `.agents`를 제외한다.
 - Git 훅(Husky): `pre-commit`은 lint-staged(eslint --fix --max-warnings=0 + prettier), `commit-msg`는 commitlint, `pre-push`는 `typecheck && lint`. `--no-verify`는 settings에서 deny되어 있다.
 - 커밋 메시지는 컨벤셔널 형식 `타입: 제목` / `타입(scope): 제목`, 제목은 한국어 허용, 헤더 100자 이내.
 - CI(`.github/workflows/ci.yml`)는 typecheck → lint → format:check → test → build 순서로 실행하며 빌드에는 placeholder Supabase 환경변수를 주입한다. 별도 `e2e-smoke` job이 시크릿 없이 `e2e/access-control.spec.ts`만 돌린다. `main` push에서는 둘이 통과한 뒤 `deploy` job이 홈 서버의 self-hosted runner(`[self-hosted, macOS, homeserver]`)에서 `deploy/deploy.sh`를 실행한다(PR에서는 skipped). 나머지 E2E(관리자 계정·DB 쓰기 필요)와 knip은 CI에서 실행하지 않으므로 로컬에서 돌린다.
@@ -55,6 +55,7 @@ Next.js App Router + Supabase. `src/` 없이 루트에 `app/`, `components/`, `l
 
 ## 알려진 예외
 
+- Supabase advisor 보안 경고 `anon_security_definer_function_executable`·`authenticated_security_definer_function_executable`(대상은 `public.increment_post_view`)는 의도한 설계라 예외 수용했다. 방문자가 호출하는 RPC라 anon·authenticated의 EXECUTE가 필요하고, 본문은 발행 글(`published = true`)만 증가시키며 `search_path`를 비워 둔다. 남는 위험은 anon이 `/rest/v1/rpc/increment_post_view`를 직접 반복 호출해 발행 글 조회수를 부풀릴 수 있다는 점이다(쿠키·봇 필터는 API 라우트에만 있다). 막으려면 EXECUTE를 회수하고 `service_role` 전용으로 옮겨야 하는데 라우트에 서버 전용 키가 필요해 설계가 바뀌므로 하지 않았다(Task 034 점검, 2026-11-11).
 - Supabase advisor 보안 경고 `auth_leaked_password_protection`은 Pro 플랜 미사용으로 예외 수용했다. 완화책으로 회원가입 차단, 최소 비밀번호 12자, 대소문자·숫자·기호 필수를 적용했다. 새 advisor 경고가 생기면 이 항목과 별개로 처리한다.
 - `knip.jsonc`에는 지금 영구 제외(생성·외부 파일)만 있고 임시 예외는 없다. 임시 예외를 추가하면 각 항목에 제거 조건을 주석으로 적는다.
 - e2e 관리자 로그인은 `setup` 프로젝트(`e2e/auth.setup.ts`)가 1회만 하고 세션 쿠키를 `e2e/.auth/admin.json`(git 제외)에 저장한다. `e2e/fixtures/admin.ts`의 `login()`은 이 쿠키를 재사용하고, 새 세션이 필요한 테스트(로그아웃 검증 등)만 `loginWithForm()`으로 폼 로그인한다. 모든 테스트가 같은 세션을 공유하므로 그 세션을 로그아웃하는 테스트에서 `login()`을 쓰면 안 된다. 이전에는 로그인을 약 40번 해서 Supabase Auth `/auth/v1/token`의 IP당 버스트 한도(30건)에 걸렸지만, 지금은 전체 `npx playwright test`가 대시보드 한도 조정이나 파일 분할 없이 한 번에 통과한다(`/token` 요청 13건). 이 원격은 `main PRODUCTION` 프로젝트다.
