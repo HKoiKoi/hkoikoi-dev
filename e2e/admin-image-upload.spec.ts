@@ -83,7 +83,7 @@ test.describe("관리자 이미지 업로드", () => {
     await expect(box).toHaveValue(new RegExp(`^앞${IMAGE_MARKDOWN.source}뒤$`));
     await expect(box).not.toHaveValue(/업로드 중/);
     await expect(
-      page.getByRole("region", { name: "미리보기" }).locator("img"),
+      page.getByRole("tabpanel", { name: "미리보기" }).locator("img"),
     ).toBeVisible();
   });
 

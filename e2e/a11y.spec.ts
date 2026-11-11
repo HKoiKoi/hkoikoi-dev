@@ -53,6 +53,39 @@ test.describe("접근성: 랜드마크와 현재 페이지", () => {
   });
 });
 
+test.describe("접근성: 편집기 모바일 탭", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("탭의 aria-controls가 tabpanel을 가리키고 전환 뒤에도 입력이 유지된다", async ({
+    page,
+  }) => {
+    test.skip(!hasAdmin, "관리자 계정 환경변수 필요");
+    // 저장하지 않으므로 DB 쓰기가 없고, 공유 세션을 쓰므로 로그아웃하지 않는다.
+    await login(page);
+    await page.goto("/admin/posts/new");
+
+    const tabs = page.getByRole("tab");
+    await expect(tabs).toHaveCount(2);
+    for (const tab of await tabs.all()) {
+      const panelId = await tab.getAttribute("aria-controls");
+      expect(panelId).toBeTruthy();
+      const panel = page.locator(`[id="${panelId}"]`);
+      await expect(panel).toHaveCount(1);
+      await expect(panel).toHaveAttribute("role", "tabpanel");
+      await expect(panel).toHaveAttribute("aria-labelledby", /.+/);
+    }
+    // 두 패널은 숨겨져 있어도 DOM에 남으므로 role 조회가 아니라 속성으로 센다.
+    await expect(page.locator('[role="tabpanel"]')).toHaveCount(2);
+
+    const box = page.getByLabel("본문");
+    await box.fill("탭 전환 확인");
+    await page.getByRole("tab", { name: "미리보기" }).click();
+    await expect(box).toBeHidden();
+    await page.getByRole("tab", { name: "작성" }).click();
+    await expect(box).toHaveValue("탭 전환 확인");
+  });
+});
+
 test.describe("접근성: 키보드 조작", () => {
   test("관리자 글 목록·작성·수정 화면에 main이 하나만 있다", async ({
     page,
