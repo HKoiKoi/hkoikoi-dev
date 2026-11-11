@@ -186,7 +186,7 @@ lib/
 - `lib/supabase/server.ts`는 `next/headers`를 쓰는 서버 전용 모듈이므로 Client Component에서 import하지 않습니다. 필요하면 상단에 `import "server-only"`를 추가합니다 (패키지 설치 필요).
 - `lib/types/post.ts`의 `PostSummary`/`Post`/`PostInput`은 `Tables<'posts'>`에서 파생합니다. 컬럼을 바꾸면 마이그레이션 → 타입 재생성 순서로 진행합니다.
 - 검증 스키마(zod)는 `lib/schemas/`에, 관리자 조회는 `lib/queries/admin-posts.ts`에 둡니다. 훅이 생기면 루트 `hooks/`를 추가합니다 (`components.json`의 `hooks` 별칭은 `@/hooks`).
-- `lib/storage/`의 상수(허용 MIME 4종, 5MB)는 `supabase/migrations/20261026105803_create_blog_images_bucket.sql`의 버킷 설정과 같아야 합니다. 한쪽을 바꾸면 다른 쪽도 바꿉니다. `upload-image.ts`는 `client.ts`(브라우저 클라이언트)를 쓰는 브라우저 전용 모듈이라 `server.ts`를 import하지 않습니다. 버킷의 select 정책은 관리자 전용(`blog_images_select_admin`)이라 anon은 목록을 볼 수 없고, 고아 파일은 `/admin/storage`에서 Storage API로만 지웁니다(service role 키 미사용).
+- `lib/storage/`의 상수(허용 MIME 4종, 5MB)는 `supabase/migrations/20261111013114_create_blog_images_bucket.sql`의 버킷 설정과 같아야 합니다. 한쪽을 바꾸면 다른 쪽도 바꿉니다. `upload-image.ts`는 `client.ts`(브라우저 클라이언트)를 쓰는 브라우저 전용 모듈이라 `server.ts`를 import하지 않습니다. 버킷의 select 정책은 관리자 전용(`blog_images_select_admin`)이라 anon은 목록을 볼 수 없고, 고아 파일은 `/admin/storage`에서 Storage API로만 지웁니다(service role 키 미사용).
 - 순수 로직은 `lib/<도메인>/`에 함수로 분리하고 옆에 `*.test.ts`를 둡니다. 컴포넌트에는 화면 코드만 남깁니다.
 
 ## supabase/ — 마이그레이션

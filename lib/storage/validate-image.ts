@@ -1,5 +1,5 @@
 // 이미지 업로드 전 검증과 스토리지 경로 생성 (순수 함수, DOM·Supabase 비의존)
-// 상수 값은 supabase/migrations/20261026105803_create_blog_images_bucket.sql의
+// 상수 값은 supabase/migrations/20261111013114_create_blog_images_bucket.sql의
 // 버킷 설정(file_size_limit 5242880, allowed_mime_types 4종)과 일치해야 한다. 한쪽을 바꾸면 다른 쪽도 바꾼다.
 
 // MIME 타입 -> 확장자. SVG는 스크립트 삽입 위험이 있어 의도적으로 제외한다.
