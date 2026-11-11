@@ -903,6 +903,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [ ] 라우트: `/admin/resume/[section]`, `/admin/projects`, `/admin/publications`와 각 `new`·`[id]/edit`. 라우트 맵 표와 `AdminNav` 갱신
   - [ ] zod 스키마(길이·링크는 `https:`만·태그/스택 최대 개수) + 단위 테스트, Server Action(`requireAdmin()` → 검증 → 쓰기 → `updateTag`로 해당 태그 만료, `/admin/*`만 `revalidatePath`)
   - [ ] 정렬: 위/아래 이동 버튼(키보드 접근성, 드래그앤드롭은 선택), `sort_order` 재계산은 RPC나 단일 쿼리로 한 번에(중간 상태 노출 방지)
+    - **결정(2026-11-11, 사용자)**: (1) 이력·프로젝트 이동은 **RPC 방식**: `reorder_resume_entries(p_section, p_ids)`·`reorder_projects(p_ids)`(`security invoker`)가 `sort_order`를 10 단위로 한 번에 재배치한다(마이그레이션은 별도 Task). (2) 논문은 공개 화면이 연도 내림차순이므로 **이동 버튼과 `movePublication` 액션을 만들지 않고** 관리자 목록에 안내 문구만 둔다. 관리자 논문 목록은 공개 화면과 같은 `year desc → sort_order → id` 순이다
   - [ ] 폼은 글 편집기와 같은 Server Action + `useActionState` 패턴(`forms-react-hook-form.md` 확인), 삭제 확인 `Dialog`, 숨김(`is_visible`) 토글
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 관리자로 경력 항목(`e2e-` 접두) 추가 → 비로그인 `/career` 새로고침 → 즉시 표시(운영에서도 확인)
