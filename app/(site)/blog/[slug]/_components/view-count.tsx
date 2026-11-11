@@ -12,7 +12,7 @@ export async function ViewCount({ postId }: { postId: string }) {
 
   return (
     <span className="text-sm text-muted-foreground">
-      조회 {numberFormat.format(count)}
+      조회수 {numberFormat.format(count)}
     </span>
   );
 }
