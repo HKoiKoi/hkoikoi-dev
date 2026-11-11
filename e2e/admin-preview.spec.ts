@@ -4,7 +4,8 @@ import { hasAdmin, login } from "./fixtures/admin";
 
 // 글을 저장하지 않고 편집기 화면만 확인하므로 DB 정리는 필요 없다.
 // 미리보기는 Shadow DOM 안에 렌더링되며 Playwright locator는 기본적으로 shadow DOM을 관통한다.
-const preview = (page: Page) => page.getByRole("region", { name: "미리보기" });
+const preview = (page: Page) =>
+  page.getByRole("tabpanel", { name: "미리보기" });
 
 test.describe("편집기 미리보기", () => {
   test.skip(!hasAdmin, "관리자 자격 증명 없음");
