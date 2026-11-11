@@ -204,3 +204,39 @@ end $$;
 ### 실행 기록
 
 - 2026-11-11, `main PRODUCTION`, Task 032: 세 테이블 모두 위 기대값과 일치했고 종료 뒤 세 테이블 행 수 0, 정책 점검 C(이력 3개 테이블) `user_metadata_refs = 0`, `select_policies = 3`, `total_policies = 12`, GRANT 점검 D'는 기대와 같음.
+
+## F. 순서 변경 RPC 점검(`reorder_resume_entries`, `reorder_projects`)
+
+두 함수는 `security invoker`라 호출자의 RLS가 그대로 적용된다(쓰기는 `app_metadata.role = 'admin'`만). 비관리자는 UPDATE 정책이 모든 행을 가려 갱신 행이 0이 되고, 함수가 `reorder mismatch`(`22023`)로 되돌린다. 실행 권한은 `PUBLIC`·`anon`을 회수하고 `authenticated`에만 열었다(`service_role`은 기본 ACL대로 남음, 서버 전용 키).
+
+### F1. 실행 권한 정적 점검
+
+```sql
+select p.proname, p.prosecdef, p.proconfig::text, p.proacl::text,
+  has_function_privilege('anon', p.oid, 'execute') as anon_exec,
+  has_function_privilege('authenticated', p.oid, 'execute') as auth_exec
+from pg_proc p
+where p.pronamespace = 'public'::regnamespace
+  and p.proname in ('reorder_resume_entries', 'reorder_projects');
+```
+
+기대: `prosecdef = false`, `proconfig`에 `search_path=""`, `proacl`에 `=X`(PUBLIC)와 `anon=X` 없음, `anon_exec = false`, `auth_exec = true`.
+
+### F2. 호출 거부·성공 점검(롤백되는 DO 블록)
+
+점검 E와 같은 방식이다. 블록 안에서 `set local role`과 `request.jwt.claims`로 anon, `user_metadata`만 admin인 위조 사용자, `app_metadata` admin을 차례로 흉내 내 두 함수를 호출하고 결과를 문자열에 모은 뒤 `raise exception`으로 끝내 모두 롤백한다. 시험 행을 넣지 않고 기존 행의 순서를 뒤집는 방식이므로, 종료 뒤 각 섹션의 `sort_order`가 점검 전과 같은지 조회해 롤백을 확인한다.
+
+기대값:
+
+| 항목                                                 | 기대                |
+| ---------------------------------------------------- | ------------------- |
+| `anon_entries`, `anon_projects`                      | `DENIED 42501`      |
+| `forged_entries`, `forged_projects`                  | `DENIED 22023`      |
+| 위조 호출 뒤 순서(`after_forged_orders`)             | 변하지 않음         |
+| `admin_entries_returned` / `admin_projects_returned` | 항목 수와 같음      |
+| `admin_entries_reversed`                             | `true` (순서 반영)  |
+| 항목 누락·중복 id·빈 배열·다른 테이블 id             | 모두 `DENIED 22023` |
+
+### 실행 기록
+
+- 2026-11-11, `main PRODUCTION`, Task 033: 마이그레이션 `20261111052304_reorder_resume_items` 적용 뒤 F1은 `anon_exec = false`, `auth_exec = true`, `proacl = {postgres=X, authenticated=X, service_role=X}`였다. F2는 위 기대값과 모두 일치했고(education 섹션 3건·프로젝트 4건 사용), 종료 뒤 이력 9건·프로젝트 4건·논문 3건과 `sort_order`가 점검 전과 같았다. `get_advisors`(security·performance)에는 새 경고가 없었다(기존 `increment_post_view` 공개 실행 경고, `auth_leaked_password_protection`, 미사용 인덱스 INFO만 남음).
