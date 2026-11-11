@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { CategoryBadge } from "@/components/blog/category-badge";
+import { Comments } from "@/components/blog/comments";
 import { PostPager } from "@/components/blog/post-pager";
 import { TagBadge } from "@/components/blog/tag-badge";
 import { MarkdownContent } from "@/components/markdown/markdown-content";
@@ -73,6 +74,8 @@ async function BlogPost({ params }: Pick<PageProps<"/blog/[slug]">, "params">) {
         <ViewTracker postId={post.id} />
       </article>
       <PostPager prev={prev} next={next} />
+      {/* 댓글 iframe이 길어도 이전·다음 글 링크가 밀리지 않게 맨 아래에 둔다. */}
+      <Comments postId={post.id} />
     </div>
   );
 }
