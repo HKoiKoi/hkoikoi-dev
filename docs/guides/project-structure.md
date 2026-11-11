@@ -35,7 +35,7 @@ hkoikoi-dev/
 │   ├── markdown/           # MarkdownContent (글 본문 렌더링, 서버·클라이언트 공용)
 │   ├── layout/             # 헤더·푸터·내비게이션
 │   └── *.tsx               # ThemeSwitcher
-├── data/                   # 이력·프로젝트·논문 등 정적 콘텐츠 (TypeScript 데이터)
+├── data/                   # profile.ts(이름·소개·연락처, 정적 데이터)와 테스트. 이력·프로젝트·논문은 DB
 ├── lib/
 │   ├── auth/               # is-admin.ts(역할 판별), is-admin-path.ts(/admin 경로 판정), require-admin.ts(서버 가드) + 테스트
 │   ├── supabase/           # client.ts / server.ts / public.ts / proxy.ts / database.types.ts
@@ -44,7 +44,7 @@ hkoikoi-dev/
 │   ├── editor/             # insert-at-cursor.ts(커서 삽입·자리표시 치환 순수 함수), draft-storage.ts(편집기 localStorage 백업) + 테스트
 │   ├── types/              # 도메인 타입 (post, profile, resume)
 │   ├── schemas/            # post.ts(zod 입력 스키마, POST_LIMITS, parseTags) + 테스트
-│   ├── queries/            # posts.ts(공개 글 조회), post-views.ts(조회수, 캐시 없음), admin-posts.ts(관리자 조회·조회수 맵), columns.ts(공용 select 컬럼), 서버 전용 + 테스트
+│   ├── queries/            # resume.ts(이력·프로젝트·논문 공개 조회), posts.ts(공개 글 조회), post-views.ts(조회수, 캐시 없음), admin-posts.ts(관리자 조회·조회수 맵), columns.ts(공용 select 컬럼), 서버 전용 + 테스트
 │   ├── views/              # is-bot.ts(조회수 집계 제외용 봇 UA 판정) + 테스트
 │   ├── posts/ projects/ publications/   # slugify·form-data·published-at·sort-tags·list-params·taxonomy·pagination·page-size·list-metadata 등 순수 함수와 옆의 테스트
 │   ├── site-config.ts      # 사이트 이름, 내비게이션 항목
@@ -97,7 +97,7 @@ app/
 ├── (site)/                 # 공개 사이트 (Route Group, URL에 나타나지 않음)
 │   ├── layout.tsx          # 헤더·푸터
 │   ├── page.tsx            # /
-│   ├── _components/        # latest-posts.tsx (메인의 최신 글)
+│   ├── _components/        # latest-posts.tsx(메인의 최신 글), resume-entries·project-list·publication-list(이력·프로젝트·논문 조회, 호출하는 쪽이 Suspense로 감쌈)
 │   ├── education/ career/ certifications/ languages/   # 이력
 │   ├── volunteer/ activities/ projects/ publications/
 │   └── blog/               # /blog, /blog/[slug], _components/ (search-form 키워드 검색 GET 폼과 category-select·search-reset-link, taxonomy-filter 카테고리·태그 칩, post-filter-bar 현재 필터, post-list, pagination 페이지 이동)
@@ -168,9 +168,9 @@ lib/
 │   └── database.types.ts  # 생성 파일 (직접 편집 금지)
 ├── storage/               # validate-image.ts: ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES, validateImage, buildImagePath / upload-image.ts: uploadImage (브라우저 전용, + 테스트)
 ├── editor/                # insert-at-cursor.ts: insertAtCursor, replaceOnce, replaceWithCaret, createUploadPlaceholder (+ 테스트), draft-storage.ts: PostDraft, draftKey, readDraft, writeDraft, clearDraft (+ 테스트)
-├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts
+├── types/                 # post.ts(DB Row에서 파생), profile.ts, resume.ts(ResumeEntryRow·ProjectRow·PublicationRow는 Tables에서 파생, ResumeEntry·Project·Publication은 표시용)
 ├── schemas/               # post.ts: POST_LIMITS, parseTags, postSchema, PostActionState (+ 테스트)
-├── queries/               # posts.ts: getLatestPosts / getPublishedPosts / getTaxonomy / getPostBySlug('use cache' + cacheTag, public 클라이언트), searchPosts(캐시 없음, 검색 RPC), admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
+├── queries/               # resume.ts: getResumeEntries / getProjects / getPublications('use cache' + cacheTag resume·resume:<section>·projects·publications, public 클라이언트, 행→표시용 매퍼), posts.ts: getLatestPosts / getPublishedPosts / getTaxonomy / getPostBySlug('use cache' + cacheTag, public 클라이언트), searchPosts(캐시 없음, 검색 RPC), admin-posts.ts: getAdminPosts / getAdminPostById, columns.ts: SUMMARY_COLUMNS / POST_COLUMNS (+ 테스트)
 ├── markdown/              # sanitize-schema.ts(확장 sanitize 스키마), rehype-sanitize-style.ts(`<style>` CSS 내용 검사), rehype-scope-style.ts(`scopeClassName`·`scopeCss`·`rehypeScopeStyle`: 검사를 통과한 선택자 앞에 `.post-scope-<scopeId>` 접두), plugins.ts(`createRehypePlugins(scopeId)`: remark/rehype 플러그인 순서 = 보안 경계) (+ 테스트)
 ├── posts/                 # slugify.ts, form-data.ts, published-at.ts, sort-tags.ts(태그 정렬 규칙), list-params.ts(/blog URL 상태 파싱·href, 검색어 q 포함), taxonomy.ts(카테고리·태그 집계와 상위 태그 분리), pagination.ts(총 페이지 수·range·번호 목록 계산), page-size.ts(요청 헤더로 기기 판별: 모바일 6개·그 외 10개), list-metadata.ts(/blog title·canonical) (+ 테스트)
 ├── projects/ publications/ # select-featured.ts, sort.ts (+ 테스트)
@@ -296,22 +296,22 @@ import { cn } from "@/lib/utils";
 
 ## 새 파일 추가 규칙
 
-| 대상                      | 위치                                                            |
-| ------------------------- | --------------------------------------------------------------- |
-| 새 공개 페이지            | `app/(site)/<경로>/page.tsx` (proxy 수정 불필요)                |
-| 관리자 페이지             | `app/admin/<경로>/page.tsx` (proxy가 자동 보호)                 |
-| Route Handler             | `app/<경로>/route.ts`                                           |
-| Server Action             | 기능 옆 `actions.ts` (파일 최상단에 `"use server"`)             |
-| 공통 UI                   | `components/ui/` (shadcn CLI)                                   |
-| 한 페이지 전용 컴포넌트   | 해당 라우트 폴더의 `_components/`                               |
-| 여러 페이지 공용 컴포넌트 | `components/<domain>/`                                          |
-| 정적 콘텐츠(이력 등)      | `data/<이름>.ts` + 타입은 `lib/types/`                          |
-| 순수 로직                 | `lib/<도메인>/<이름>.ts` + 옆에 `*.test.ts`                     |
-| DB 스키마 변경            | `supabase/migrations/` → 적용 → `database.types.ts` 재생성      |
-| 단위 테스트               | 대상 파일 옆 `*.test.ts(x)`                                     |
-| E2E 테스트                | `e2e/<이름>.spec.ts`                                            |
-| 정적 파일                 | `public/` (원본 사진은 두지 않는다: 위치정보 제거·축소 후 추가) |
-| 환경 변수                 | `.env` + `.env.example`에 키 이름 추가                          |
+| 대상                      | 위치                                                              |
+| ------------------------- | ----------------------------------------------------------------- |
+| 새 공개 페이지            | `app/(site)/<경로>/page.tsx` (proxy 수정 불필요)                  |
+| 관리자 페이지             | `app/admin/<경로>/page.tsx` (proxy가 자동 보호)                   |
+| Route Handler             | `app/<경로>/route.ts`                                             |
+| Server Action             | 기능 옆 `actions.ts` (파일 최상단에 `"use server"`)               |
+| 공통 UI                   | `components/ui/` (shadcn CLI)                                     |
+| 한 페이지 전용 컴포넌트   | 해당 라우트 폴더의 `_components/`                                 |
+| 여러 페이지 공용 컴포넌트 | `components/<domain>/`                                            |
+| 이력·프로젝트·논문        | DB 테이블 + `lib/queries/resume.ts` (Profile만 `data/profile.ts`) |
+| 순수 로직                 | `lib/<도메인>/<이름>.ts` + 옆에 `*.test.ts`                       |
+| DB 스키마 변경            | `supabase/migrations/` → 적용 → `database.types.ts` 재생성        |
+| 단위 테스트               | 대상 파일 옆 `*.test.ts(x)`                                       |
+| E2E 테스트                | `e2e/<이름>.spec.ts`                                              |
+| 정적 파일                 | `public/` (원본 사진은 두지 않는다: 위치정보 제거·축소 후 추가)   |
+| 환경 변수                 | `.env` + `.env.example`에 키 이름 추가                            |
 
 ## 코드 조직 원칙
 

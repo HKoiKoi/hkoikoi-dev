@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import { languages } from "../data/languages";
+// 어학 항목은 DB(resume_entries) 시드 값이다. 관리자가 내용을 바꾸면 이 값도 함께 고친다.
+const LANGUAGE_ENTRY = {
+  title: "영어",
+  subtitle: "TOEIC · YBM",
+  grade: "620",
+  period: "2026.08.30",
+} as const;
 
 test.describe("메인 페이지", () => {
   test("연락처 링크와 섹션이 표시된다", async ({ page }) => {
@@ -54,10 +60,10 @@ test.describe("이력·논문 페이지", () => {
   test("어학은 언어·시험·점수·취득일 형식으로 표시된다", async ({ page }) => {
     await page.goto("/languages");
 
-    const [entry] = languages;
+    const entry = LANGUAGE_ENTRY;
     await expect(page.getByText(entry.title, { exact: true })).toBeVisible();
-    await expect(page.getByText(entry.subtitle!)).toBeVisible();
-    await expect(page.getByText(entry.grade!)).toBeVisible();
-    await expect(page.getByText(entry.period!)).toBeVisible();
+    await expect(page.getByText(entry.subtitle)).toBeVisible();
+    await expect(page.getByText(entry.grade)).toBeVisible();
+    await expect(page.getByText(entry.period)).toBeVisible();
   });
 });

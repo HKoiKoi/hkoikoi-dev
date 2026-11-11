@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
+import { ListSkeleton } from "@/components/content/list-skeleton";
 import { ResumeSection } from "@/components/content/resume-section";
-import { activities } from "@/data/activities";
+
+import { ResumeEntries } from "../_components/resume-entries";
 
 export const metadata: Metadata = {
   title: "사회활동",
@@ -14,8 +17,11 @@ export default function ActivitiesPage() {
       <ResumeSection
         title="사회활동"
         description="대외 활동과 사회활동 내역입니다."
-        entries={activities}
-      />
+      >
+        <Suspense fallback={<ListSkeleton />}>
+          <ResumeEntries section="activities" />
+        </Suspense>
+      </ResumeSection>
     </div>
   );
 }

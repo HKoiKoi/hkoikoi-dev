@@ -869,13 +869,14 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 의존성: Task 021(권장). **스키마 변경 있음.** Task 033의 선행
   - 관련 파일: `supabase/migrations/<timestamp>_create_resume_tables.sql`, `supabase/migrations/<timestamp>_seed_resume_data.sql`(또는 시드 생성 스크립트), `lib/supabase/database.types.ts`, `lib/types/resume.ts`, `lib/queries/resume.ts`(+test), `app/(site)/{education,career,certifications,volunteer,languages,activities,projects,publications}/page.tsx`, `app/(site)/page.tsx`(대표 프로젝트), `data/*.ts`, `data/data.test.ts`, `docs/guides/project-structure.md`
   - 수락 기준: 8개 공개 페이지와 메인 대표 프로젝트가 DB 데이터로 전환 전과 같은 내용·순서를 표시하고, 조회 실패 시 빈 안내로 안전하게 처리되며, 쓰기는 관리자만 가능. placeholder env 빌드(CI)가 실패하지 않음
-  - [ ] 범위 결정: 이력 6종·프로젝트·논문을 대상으로 하고 `Profile`(이름·소개·연락처·아바타)은 `data/profile.ts`에 유지(변경 빈도가 낮고 아바타 파일이 `public/`에 있음). 바꾸려면 이 항목 갱신
-  - [ ] 스키마: `resume_entries`(`section` check 6종, `title`, `subtitle`, `period`, `description`, `tags text[]`, `link`, `sort_order int`, `is_visible bool`), `projects`(`name`, `summary`, `period`, `role`, `stack text[]`, 링크 컬럼, `featured`, `sort_order`, `is_visible`), `publications`(`title`, `authors`, `venue`, `year`, `link`, `sort_order`, `is_visible`). 기존 `lib/types` 필드와 1:1, 길이 check는 zod와 같은 값, `updated_at` 트리거는 posts와 같은 함수 재사용
-  - [ ] RLS: anon·authenticated SELECT는 `is_visible = true`, 쓰기는 `app_metadata.role = 'admin'`만. 과잉 GRANT `revoke`. 적용 뒤 `generate_typescript_types`, `get_advisors`, `rls-verification.md` 점검 범위 확장
-  - [ ] 시드: 현재 `data/*.ts` 내용을 그대로 옮김(배열 순서 → `sort_order`, 스크립트로 SQL 생성). 이미 저장소에 공개된 내용이라 노출 범위는 같음
-  - [ ] `lib/queries/resume.ts`: `createPublicClient()` + `'use cache'` + `cacheTag('resume', 'resume:<section>')`·`'projects'`·`'publications'` + `cacheLife('max')`, 실패 `failUncached`, 논문은 기존 `sortPublications` 규칙 유지
-  - [ ] 렌더링 확인: 지금 8개 페이지는 정적(○)이다. DB 조회로 바꾸면 실제 env 빌드에서 캐시 결과가 정적 셸에 포함되며, 운영에서 태그 무효화가 정적 셸에 반영되지 않은 선례(Task 020 sitemap, PR #39 홈 최신 글)가 있다. Task 033에서 운영 반영을 확인하고, 필요하면 데이터 영역을 `<Suspense>` + `connection()`으로 분리
-  - [ ] 전환 뒤 `data/`의 이력·프로젝트·논문 파일과 `data/data.test.ts`의 해당 검사를 제거(시드 검증 테스트로 대체), `knip`·`project-structure.md`·CLAUDE.md 갱신
+  - [x] 결정 기록(사용자 결정, 2026-11-11): (1) `resume_entries`에 `grade`·`grade_label`·`tag_groups jsonb`를 추가해 기존 `ResumeEntry`의 `grade`·`gradeLabel`·`tagGroups`를 보존한다. (2) `projects` 링크는 `github_url`·`demo_url` 두 컬럼이다. (3) SELECT 정책은 `is_visible = true` 또는 관리자다. 전환 전 스냅샷은 작업 중 scratchpad의 `resume-snapshot.json`에 저장했다(이력 6종 3·1·2·1·1·1건, 프로젝트 4건, 논문 3건, 메인 대표 `hkoikoi.dev`·`Distributed Lock Burst Benchmark`·`SCO 순찰 일지`)
+  - [x] 범위 결정: 이력 6종·프로젝트·논문을 대상으로 하고 `Profile`(이름·소개·연락처·아바타)은 `data/profile.ts`에 유지(변경 빈도가 낮고 아바타 파일이 `public/`에 있음). 바꾸려면 이 항목 갱신
+  - [x] 스키마(적용: `20261111044710_create_resume_tables.sql`, 2026-11-11): `resume_entries`(`section` check 6종, `title`, `subtitle`, `period`, `description`, `grade text`, `grade_label text`, `tag_groups jsonb`, `tags text[]`, `link`, `sort_order int`, `is_visible bool`), `projects`(`name`, `summary`, `period`, `role`, `stack text[]`, `github_url`, `demo_url`, `featured`, `sort_order`, `is_visible`), `publications`(`title`, `authors`, `venue`, `year`, `link`, `sort_order`, `is_visible`). 기존 `lib/types` 필드와 1:1, 길이 check는 zod와 같은 값, `updated_at` 트리거는 posts와 같은 함수 재사용
+  - [x] RLS(적용·검증 완료, `get_advisors`에 새 경고 없음, `rls-verification.md`에 점검 C·D'·E 추가): SELECT는 `is_visible = true` 또는 관리자(`app_metadata.role = 'admin'`, `posts`와 같은 방식, Task 033 편집 화면에서 숨김 항목 조회에 필요), 쓰기는 `app_metadata.role = 'admin'`만. 과잉 GRANT `revoke`. 적용 뒤 `generate_typescript_types`, `get_advisors`, `rls-verification.md` 점검 범위 확장
+  - [x] 시드(적용: `20261111045139_seed_resume_data.sql`, 행 수·`sort_order`·`tag_groups`·링크를 원본과 대조): 현재 `data/*.ts` 내용을 그대로 옮김(배열 순서 → `sort_order`, 스크립트로 SQL 생성). 이미 저장소에 공개된 내용이라 노출 범위는 같음
+  - [x] `lib/queries/resume.ts`(`resume.test.ts` 26건): `createPublicClient()` + `'use cache'` + `cacheTag('resume', 'resume:<section>')`·`'projects'`·`'publications'` + `cacheLife('max')`, 실패 `failUncached`, 논문은 기존 `sortPublications` 규칙 유지
+  - [ ] 렌더링 확인(일부만 확인): 실제 env 빌드에서 8개 페이지와 홈이 정적(○)에서 Partial Prerender(◐)로 바뀌었다. 조회가 실패하면 수명 0 결과가 프리렌더에서 동적 접근으로 취급돼 `<Suspense>` 밖에서는 placeholder env 빌드가 실패한다(`Route "/activities": Next.js encountered uncached or runtime data during prerendering`). 그래서 제목은 정적으로 두고 조회는 `app/(site)/_components/`의 async 컴포넌트(`resume-entries.tsx`·`project-list.tsx`·`publication-list.tsx`)로 분리해 `<Suspense>`로 감쌌다. **미확인**: 운영에서 태그 무효화가 정적 셸에 반영되는지(Task 020 sitemap, PR #39 홈 최신 글 선례). 반영되지 않으면 홈 최신 글(`latest-posts.tsx`)처럼 `connection()`으로 요청 시점 렌더링으로 분리한다. Task 033에서 확인 지금 8개 페이지는 정적(○)이다. DB 조회로 바꾸면 실제 env 빌드에서 캐시 결과가 정적 셸에 포함되며, 운영에서 태그 무효화가 정적 셸에 반영되지 않은 선례(Task 020 sitemap, PR #39 홈 최신 글)가 있다. Task 033에서 운영 반영을 확인하고, 필요하면 데이터 영역을 `<Suspense>` + `connection()`으로 분리
+  - [x] 전환 뒤 `data/`의 이력·프로젝트·논문 파일과 `data/data.test.ts`의 해당 검사를 제거(시드 검증 테스트로 대체), `knip`·`project-structure.md`·CLAUDE.md 갱신
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 전환 전후 8개 페이지·메인 대표 프로젝트 → 항목 수·제목·순서 동일(전환 전 스냅샷과 비교)
     - 정상: 터미널 → `npx playwright test e2e/static-pages.spec.ts e2e/visitor-flow.spec.ts` → DB 기준으로 갱신한 뒤 통과
@@ -883,7 +884,15 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: Supabase MCP(읽기 전용, rollback) → anon으로 `is_visible = false` 행 select → 0행, insert → RLS 거부
     - 엣지: Supabase MCP(읽기 전용, rollback) → `user_metadata.role='admin'` 위조 authenticated insert → 거부
     - 엣지: 터미널 → placeholder env로 `npm run build`(CI 조건) → 성공
-  - 테스트 결과: (미수행)
+  - 테스트 결과(2026-11-11, 로컬, 운영 미반영):
+    - `npm run check`(Vitest 574개)·`npm run knip` 통과(knip은 `@testing-library/user-event`의 `ignoreDependencies` 정리 안내 1건만, 이번 변경과 무관)
+    - 실제 env `npm run build` 성공, 8개 페이지와 홈 ◐(`Revalidate 1d`, `Expire 1w`). placeholder env(`https://example.supabase.co`, CI 값) `npm run build` 성공(조회 실패는 로그만 남기고 빈 목록). Suspense로 분리하기 전에는 이 빌드가 실패했다
+    - 정상: 프로덕션 서버(`next start`)에 HTTP 요청으로 스냅샷(`resume-snapshot.json`)과 비교 → 8개 페이지·홈 대표 프로젝트의 항목 수·제목·순서 동일, 학점·봉사 시간·TOEIC 점수·`tagGroups`·데모 링크 표시 확인. Playwright MCP 대신 HTTP 응답 비교로 확인했다
+    - 정상: `npx playwright test e2e/static-pages.spec.ts e2e/visitor-flow.spec.ts` 9개 통과(`static-pages`는 data import 대신 시드 값 상수 사용)
+    - 오류: placeholder 빌드를 그대로 `next start`(Supabase 호출이 모두 `fetch failed`) → 9개 화면 모두 200, 빈 안내 표시, 오류 화면 없음. 셸에 잘못된 URL을 따로 넣은 것이 아니라 빌드된 placeholder URL로 확인했다
+    - 오류·엣지: Supabase MCP 롤백 DO 블록 → anon 숨김 행 0행·insert `42501`, `user_metadata` 위조 insert `42501`·update/delete 0행, `app_metadata` admin 허용(3개 테이블 모두, 종료 뒤 행 수 0)
+    - 엣지(미확인): 항목 0건일 때 빈 안내는 조회 실패 경로로만 확인했고, 숨김 처리(`is_visible = false`) 항목이 공개 화면에서 빠지는 것은 Task 033 편집 UI에서 확인한다
+    - 제한 사항: 운영 반영(`main` 머지·배포 후 실제 화면)과 정적 셸 무효화는 확인하지 않았다. `static-pages` e2e는 시드 어학 항목 값에 의존한다
 
 - **Task 033: 정적 섹션 관리자 편집 UI 구축**
   - 관련 기능: F025(제안), F012

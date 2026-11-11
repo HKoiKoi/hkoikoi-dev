@@ -2,17 +2,15 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { PostListSkeleton } from "@/components/blog/post-list-skeleton";
-import { EmptyState } from "@/components/content/empty-state";
-import { ProjectCard } from "@/components/content/project-card";
+import { ListSkeleton } from "@/components/content/list-skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { profile } from "@/data/profile";
-import { projects } from "@/data/projects";
-import { selectFeatured } from "@/lib/projects/select-featured";
 import { isNavGroup, navItems } from "@/lib/site-config";
 
 import { LatestPosts } from "./_components/latest-posts";
+import { ProjectList } from "./_components/project-list";
 
 // 그룹 메뉴를 펼쳐 이동 가능한 leaf 링크만 평탄화한다.
 const shortcuts = navItems.flatMap((item) =>
@@ -20,8 +18,6 @@ const shortcuts = navItems.flatMap((item) =>
 );
 
 export default function Home() {
-  const featuredProjects = selectFeatured(projects);
-
   return (
     <div className="mx-auto w-full max-w-5xl space-y-14 px-4 py-12">
       <section className="flex flex-col items-center gap-8 text-center sm:flex-row sm:items-center sm:justify-between sm:gap-12 sm:text-left">
@@ -90,17 +86,9 @@ export default function Home() {
         <h2 id="projects-heading" className="text-xl font-semibold">
           대표 프로젝트
         </h2>
-        {featuredProjects.length === 0 ? (
-          <EmptyState title="아직 등록된 프로젝트가 없습니다" />
-        ) : (
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {featuredProjects.map((project) => (
-              <li key={project.name}>
-                <ProjectCard project={project} />
-              </li>
-            ))}
-          </ul>
-        )}
+        <Suspense fallback={<ListSkeleton columns={2} count={3} />}>
+          <ProjectList featuredOnly />
+        </Suspense>
       </section>
 
       <section aria-labelledby="posts-heading" className="space-y-4">
