@@ -44,7 +44,8 @@ hkoikoi-dev/
 │   ├── editor/             # insert-at-cursor.ts(커서 삽입·자리표시 치환 순수 함수), draft-storage.ts(편집기 localStorage 백업) + 테스트
 │   ├── types/              # 도메인 타입 (post, profile, resume)
 │   ├── schemas/            # post.ts(zod 입력 스키마, POST_LIMITS, parseTags) + 테스트
-│   ├── queries/            # posts.ts(공개 글 조회), admin-posts.ts(관리자 조회), columns.ts(공용 select 컬럼), 서버 전용 + 테스트
+│   ├── queries/            # posts.ts(공개 글 조회), post-views.ts(조회수, 캐시 없음), admin-posts.ts(관리자 조회·조회수 맵), columns.ts(공용 select 컬럼), 서버 전용 + 테스트
+│   ├── views/              # is-bot.ts(조회수 집계 제외용 봇 UA 판정) + 테스트
 │   ├── posts/ projects/ publications/   # slugify·form-data·published-at·sort-tags·list-params·taxonomy·pagination·page-size·list-metadata 등 순수 함수와 옆의 테스트
 │   ├── site-config.ts      # 사이트 이름, 내비게이션 항목
 │   ├── site-url.ts         # NEXT_PUBLIC_SITE_URL 기준 절대 URL(getSiteUrl, absoluteUrl) + 테스트
@@ -90,6 +91,7 @@ app/
 ├── not-found.tsx
 ├── robots.ts / sitemap.ts  # 메타데이터 라우트 (+ robots.test.ts, sitemap.test.ts)
 ├── feed.xml/route.ts       # RSS 2.0 Route Handler (connection() 후 최신 20건, buildRss)
+├── api/posts/[id]/view/    # 조회수 증가 Route Handler (POST만, 쿠키·봇·관리자 제외) + route.test.ts
 ├── opengraph-image.png / twitter-image.png   # 1200x630 공유 카드 (hkoikoi.dev용)
 ├── icon.svg                # 파비콘(로고 마크). favicon.ico는 없다
 ├── (site)/                 # 공개 사이트 (Route Group, URL에 나타나지 않음)
