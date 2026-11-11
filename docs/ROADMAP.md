@@ -882,7 +882,7 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - [x] RLS(적용·검증 완료, `get_advisors`에 새 경고 없음, `rls-verification.md`에 점검 C·D'·E 추가): SELECT는 `is_visible = true` 또는 관리자(`app_metadata.role = 'admin'`, `posts`와 같은 방식, Task 033 편집 화면에서 숨김 항목 조회에 필요), 쓰기는 `app_metadata.role = 'admin'`만. 과잉 GRANT `revoke`. 적용 뒤 `generate_typescript_types`, `get_advisors`, `rls-verification.md` 점검 범위 확장
   - [x] 시드(적용: `20261111045139_seed_resume_data.sql`, 행 수·`sort_order`·`tag_groups`·링크를 원본과 대조): 현재 `data/*.ts` 내용을 그대로 옮김(배열 순서 → `sort_order`, 스크립트로 SQL 생성). 이미 저장소에 공개된 내용이라 노출 범위는 같음
   - [x] `lib/queries/resume.ts`(`resume.test.ts` 26건): `createPublicClient()` + `'use cache'` + `cacheTag('resume', 'resume:<section>')`·`'projects'`·`'publications'` + `cacheLife('max')`, 실패 `failUncached`, 논문은 기존 `sortPublications` 규칙 유지
-  - [ ] 렌더링 확인(일부만 확인): 실제 env 빌드에서 8개 페이지와 홈이 정적(○)에서 Partial Prerender(◐)로 바뀌었다. 조회가 실패하면 수명 0 결과가 프리렌더에서 동적 접근으로 취급돼 `<Suspense>` 밖에서는 placeholder env 빌드가 실패한다(`Route "/activities": Next.js encountered uncached or runtime data during prerendering`). 그래서 제목은 정적으로 두고 조회는 `app/(site)/_components/`의 async 컴포넌트(`resume-entries.tsx`·`project-list.tsx`·`publication-list.tsx`)로 분리해 `<Suspense>`로 감쌌다. **미확인**: 운영에서 태그 무효화가 정적 셸에 반영되는지(Task 020 sitemap, PR #39 홈 최신 글 선례). 반영되지 않으면 홈 최신 글(`latest-posts.tsx`)처럼 `connection()`으로 요청 시점 렌더링으로 분리한다. Task 033에서 확인 지금 8개 페이지는 정적(○)이다. DB 조회로 바꾸면 실제 env 빌드에서 캐시 결과가 정적 셸에 포함되며, 운영에서 태그 무효화가 정적 셸에 반영되지 않은 선례(Task 020 sitemap, PR #39 홈 최신 글)가 있다. Task 033에서 운영 반영을 확인하고, 필요하면 데이터 영역을 `<Suspense>` + `connection()`으로 분리
+  - [x] 렌더링 확인(Task 033에서 완료): 실제 env 빌드에서 8개 페이지와 홈이 정적(○)에서 Partial Prerender(◐)로 바뀌었다. 조회가 실패하면 수명 0 결과가 프리렌더에서 동적 접근으로 취급돼 `<Suspense>` 밖에서는 placeholder env 빌드가 실패한다(`Route "/activities": Next.js encountered uncached or runtime data during prerendering`). 그래서 제목은 정적으로 두고 조회는 `app/(site)/_components/`의 async 컴포넌트(`resume-entries.tsx`·`project-list.tsx`·`publication-list.tsx`)로 분리해 `<Suspense>`로 감쌌다. **Task 033에서 확인**: 개발 서버와 `next start` 프로덕션 빌드 모두에서 관리자 저장·이동·숨김이 `/career`·홈·`/projects`·`/publications` 방문자 화면에 즉시 반영됐다(`e2e/admin-resume.spec.ts` 9건). 정적 셸에 포함된 캐시 결과도 `updateTag`로 무효화되므로 `connection()` 분리는 필요 없었다. 운영(`https://hkoikoi.dev`) 반영은 `main` 배포 후에만 확인할 수 있어 **미확인**이다
   - [x] 전환 뒤 `data/`의 이력·프로젝트·논문 파일과 `data/data.test.ts`의 해당 검사를 제거(시드 검증 테스트로 대체), `knip`·`project-structure.md`·CLAUDE.md 갱신
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 전환 전후 8개 페이지·메인 대표 프로젝트 → 항목 수·제목·순서 동일(전환 전 스냅샷과 비교)
@@ -898,20 +898,20 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 정상: `npx playwright test e2e/static-pages.spec.ts e2e/visitor-flow.spec.ts` 9개 통과(`static-pages`는 data import 대신 시드 값 상수 사용)
     - 오류: placeholder 빌드를 그대로 `next start`(Supabase 호출이 모두 `fetch failed`) → 9개 화면 모두 200, 빈 안내 표시, 오류 화면 없음. 셸에 잘못된 URL을 따로 넣은 것이 아니라 빌드된 placeholder URL로 확인했다
     - 오류·엣지: Supabase MCP 롤백 DO 블록 → anon 숨김 행 0행·insert `42501`, `user_metadata` 위조 insert `42501`·update/delete 0행, `app_metadata` admin 허용(3개 테이블 모두, 종료 뒤 행 수 0)
-    - 엣지(미확인): 항목 0건일 때 빈 안내는 조회 실패 경로로만 확인했고, 숨김 처리(`is_visible = false`) 항목이 공개 화면에서 빠지는 것은 Task 033 편집 UI에서 확인한다
+    - 엣지(Task 033에서 확인): 항목 0건일 때 빈 안내는 어학 섹션의 유일한 항목을 숨겨 확인했고(곧바로 복구), 숨김 처리(`is_visible = false`) 항목이 공개 화면에서 빠지고 관리자 목록에는 남는 것도 `e2e/admin-resume.spec.ts`로 확인했다
     - 제한 사항: 운영 반영(`main` 머지·배포 후 실제 화면)과 정적 셸 무효화는 확인하지 않았다. `static-pages` e2e는 시드 어학 항목 값에 의존한다
 
-- **Task 033: 정적 섹션 관리자 편집 UI 구축**
+- **Task 033: 정적 섹션 관리자 편집 UI 구축** ✅ - 완료 2026-11-11 (운영 반영, 모바일·다크 모드, 태그·태그 그룹 입력의 화면 확인은 미확인 — `테스트 결과`의 제한 사항 참고)
   - 관련 기능: F025(제안), F012
   - 목표: 관리자가 이력·프로젝트·논문 항목을 추가·수정·삭제·정렬·숨김 처리하고 공개 화면에 즉시 반영한다
   - 의존성: Task 032
   - 관련 파일: `app/admin/{resume,projects,publications}/**`(신규), `app/admin/_components/admin-nav.tsx`, `lib/schemas/{resume,project,publication}.ts`(+test), `lib/queries/admin-resume.ts`, `e2e/admin-resume.spec.ts`(신규)
   - 수락 기준: 관리자 메뉴에서 각 섹션 목록·편집 화면으로 들어가 항목을 CRUD하고 순서를 바꿀 수 있으며, 저장 즉시(운영 포함) 공개 페이지에 반영. 모든 페이지와 Server Action이 `requireAdmin()`을 직접 호출. 검증 실패는 필드 옆 오류로 표시하고 입력값 유지
   - [x] 라우트: `/admin/resume/[section]`, `/admin/projects`, `/admin/publications`와 각 `new`·`[id]/edit`. 라우트 맵 표와 `AdminNav` 갱신(구현 메모: 이력 섹션 전환은 라우트가 바뀌므로 `Tabs` 컴포넌트 대신 `aria-current` 링크 `nav`로 구현했고, `AdminNav`는 이력을 한 링크로 두고 메뉴가 넘치면 가로 스크롤한다. 서버→클라이언트 컴포넌트로는 함수 prop을 넘길 수 없어 목록의 수정 링크는 `editBasePath` 문자열로 받는다)
-  - [ ] zod 스키마(길이·링크는 `https:`만·태그/스택 최대 개수) + 단위 테스트, Server Action(`requireAdmin()` → 검증 → 쓰기 → `updateTag`로 해당 태그 만료, `/admin/*`만 `revalidatePath`)
-  - [ ] 정렬: 위/아래 이동 버튼(키보드 접근성, 드래그앤드롭은 선택), `sort_order` 재계산은 RPC나 단일 쿼리로 한 번에(중간 상태 노출 방지)
+  - [x] zod 스키마(길이·링크는 `https://`만·태그/스택 최대 개수, DB check와 같은 한도) + 단위 테스트, Server Action(`requireAdmin()` → 검증 → 쓰기 → 영향 행 확인 → `updateTag`로 해당 태그 만료, `/admin/*`만 `revalidatePath`)
+  - [x] 정렬: 위/아래 이동 버튼(버튼 `aria-label`, 첫·끝 항목은 `disabled`, 드래그앤드롭은 만들지 않음), `sort_order` 재계산은 RPC 한 번에(중간 상태 노출 방지). 마이그레이션 `20261111052304_reorder_resume_items` 적용, `rls-verification.md` 점검 F
     - **결정(2026-11-11, 사용자)**: (1) 이력·프로젝트 이동은 **RPC 방식**: `reorder_resume_entries(p_section, p_ids)`·`reorder_projects(p_ids)`(`security invoker`)가 `sort_order`를 10 단위로 한 번에 재배치한다(마이그레이션은 별도 Task). (2) 논문은 공개 화면이 연도 내림차순이므로 **이동 버튼과 `movePublication` 액션을 만들지 않고** 관리자 목록에 안내 문구만 둔다. 관리자 논문 목록은 공개 화면과 같은 `year desc → sort_order → id` 순이다
-  - [ ] 폼은 글 편집기와 같은 Server Action + `useActionState` 패턴(`forms-react-hook-form.md` 확인), 삭제 확인 `Dialog`, 숨김(`is_visible`) 토글
+  - [x] 폼은 글 편집기와 같은 Server Action + `useActionState` 패턴(`react-hook-form` 없이), 삭제 확인 `Dialog`, 숨김(`is_visible`) 토글
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 관리자로 경력 항목(`e2e-` 접두) 추가 → 비로그인 `/career` 새로고침 → 즉시 표시(운영에서도 확인)
     - 정상: Playwright MCP → 항목 위로 이동 → 공개 페이지 순서 반영
@@ -920,7 +920,15 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 오류: 터미널 → 비로그인 상태로 Server Action 재전송(curl) → `/auth/login` 리다이렉트, DB 변경 없음
     - 엣지: Playwright MCP → 숨김 토글 → 공개 페이지에서 사라지고 관리자 목록에는 남음
     - 엣지: Playwright MCP → 섹션 항목 0건 → 공개 페이지 빈 안내
-  - 테스트 결과: (미수행)
+  - 테스트 결과: (2026-11-11, 개발 서버와 `main PRODUCTION` Supabase 프로젝트 기준. 체크리스트의 Playwright MCP 대신 `e2e/admin-resume.spec.ts`와 SQL로 확인했다)
+    - 품질 게이트: `npm run check` 통과(70개 파일 703건), `npm run knip` 새 경고 없음(기존 `@testing-library/user-event` 힌트만 남음), 실제 env `npm run build` 성공(새 관리자 라우트 모두 ◐, `/career`·홈도 ◐), placeholder env(`https://example.supabase.co`, CI 값) `npm run build` 성공(조회 실패는 로그만 남기고 빈 목록)
+    - 단위 테스트: 스키마 3종(경계값 200/201 등, `javascript:`·`http:`·대소문자 `HTTPS://` 거부), 관리자 조회 6종, Server Action 3종(`requireAdmin` 거부 시 DB 미호출, 검증 실패 시 쓰기 없음, 영향 행 0, 태그 만료 호출, DB 오류 원문 비노출), `moveInList`, 메뉴 현재 경로 판별
+    - 정상: `npx playwright test e2e/admin-resume.spec.ts` 9건 통과를 개발 서버와 `npm run build` + `npm run start`(프로덕션 모드) 각각에서 확인. 경력 항목(`e2e-` 접두) 추가 → 비로그인 `/career` 새로고침에 즉시 표시, 위로 이동 → 공개 순서 반영, 프로젝트 `featured` 지정 후 맨 위로 이동 → 홈 대표 프로젝트와 `/projects`에 표시(대표가 이미 3개라 이동 없이는 홈에 나오지 않음), 논문 추가 → `/publications` 표시와 이동 버튼 없음
+    - 오류: 빈 제목(`제목: 필수 항목입니다.`)·`javascript:` 링크(`https://` 안내)·연도 `20a4` → 필드 옆 오류, 저장 안 됨, 입력값 유지, 링크 입력에 `aria-invalid="true"`
+    - 오류: 관리자 화면에서 숨김 토글 액션 ID를 가로채 쿠키 없는 컨텍스트로 `/admin/resume/career`와 `/`에 재전송 → 항목이 계속 공개이고 DB 변경 없음(curl 대신 Playwright `request`로 보냈다)
+    - 엣지: 숨김 토글 → 공개에서 사라지고 관리자 목록에는 `숨김` 배지로 남음, 다시 공개하면 복귀. 어학 섹션의 유일한 항목을 숨기면 공개 화면에 `아직 등록된 항목이 없습니다`, 복구 뒤 다시 표시
+    - DB: 순서 변경 RPC는 롤백 DO 블록으로 anon `42501`, `user_metadata` 위조 `22023`(순서 불변), 관리자 성공과 순서 반영, 목록 누락·중복·빈 배열·다른 테이블 id 거부를 확인하고 `get_advisors`에 새 경고가 없었다(`rls-verification.md` 점검 F). 스펙 실행 전후 SQL로 이력 9건·프로젝트 4건·논문 3건, 전부 공개, `e2e-` 항목 0건임을 확인했다
+    - 제한 사항·미확인: (1) 운영(`https://hkoikoi.dev`) 반영은 `main` 배포 후에만 확인할 수 있어 확인하지 않았다. (2) 모바일 폭과 다크 모드는 눈으로 확인하지 않았다(이력 목록 한 화면만 데스크톱 폭에서 직접 봤다). (3) 태그·기술 스택 그룹(`tag_groups`) 입력과 수정 폼의 저장은 단위 테스트로만 확인했고 e2e는 이 필드를 채우지 않는다. (4) 비로그인 재전송은 DB 불변만 단언하고 두 경로의 응답 상태 코드는 확인하지 않았다. (5) 새 항목의 `sort_order`는 읽기-삽입이라 동시 저장 시 같은 값이 될 수 있다(관리자 1인이라 수용, 다음 이동 RPC가 10 단위로 다시 매긴다). (6) 이동하면 섹션 전체 행의 `updated_at`이 함께 갱신되고, e2e의 프로젝트 이동으로 기존 프로젝트의 `sort_order` 값이 한 번 바뀌었다(상대 순서는 그대로). (7) `/admin/resume`(섹션 없는 경로)는 라우트가 없어 404이고 메뉴는 `/admin/resume/education`으로 연결한다. (8) 섹션 0건 e2e와 모든 e2e는 운영과 같은 DB를 쓰므로 어학 항목이 몇 초 숨겨진다(`finally`로 복구). (9) `e2e/admin-resume.spec.ts`는 관리자 계정이 필요해 CI에서는 실행하지 않는다
 
 - **Task 045: 글 본문 `##`·`###`·`####` 제목 색상 체계 구축** (번호는 Phase 7(035~044) 뒤에 이어 붙였고, 순서상 Task 034 앞에서 진행한다)
   - 관련 기능: F026(제안: 글 본문 제목 색상), F006
