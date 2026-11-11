@@ -141,7 +141,7 @@ app/
 components/
 ├── ui/         # shadcn/ui: avatar, badge, button, card, checkbox, dialog, dropdown-menu,
 │               #            input, label, separator, skeleton, tabs, textarea
-├── blog/       # category-badge, post-card, post-list-skeleton, post-pager, tag-badge
+├── blog/       # category-badge, comments(giscus), post-card, post-list-skeleton, post-pager, tag-badge
 ├── content/    # empty-state, page-header, project-card, publication-item, resume-*, tech-badge
 ├── markdown/   # markdown-content (+ 테스트), code-block, code-copy-button: 동기 컴포넌트라 서버·클라이언트 양쪽에서 쓴다
 ├── layout/     # site-header, site-footer, mobile-nav, nav-group-dropdown, nav-link, admin-link, scroll-to-top, skip-link, site-logo(헤더의 "h" 마크, currentColor 인라인 SVG)

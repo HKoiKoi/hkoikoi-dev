@@ -843,17 +843,25 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
   - 관련 파일: `components/blog/comments.tsx`(신규, Client), `app/(site)/blog/[slug]/page.tsx`, `lib/site-config.ts`(설정값), `next.config.ts`(CSP 확인)
   - 수락 기준: 발행 글 상세 하단에서 댓글을 읽고 쓸 수 있고, 라이트/다크 테마가 사이트와 맞춰지며, 댓글 영역은 화면에 들어올 때만 로드되어 상세 Lighthouse(모바일) 성능 90 이상 유지. 슬러그를 바꿔도 기존 댓글이 같은 글에 남음
   - [x] 방식 결정·기록: (a) **Giscus(GitHub Discussions)** — 기본안. DB·스팸 방지·모더레이션을 GitHub에 맡기고 회원가입 차단 정책과 충돌하지 않는다. 댓글을 쓰려면 GitHub 계정이 필요하다. (b) Supabase 자체 댓글 테이블 — 익명 작성이면 스팸 대책(CAPTCHA)·모더레이션 UI·개인정보(이메일·닉네임) 처리 부담이 크고, 회원가입을 열어야 하면 현재 인증 정책과 충돌한다. (c) Disqus 등 — 광고·추적 때문에 제외
-  - [ ] (a 채택 시, 사용자 수동 작업) 저장소 Discussions 활성화, giscus 앱 설치, 댓글용 카테고리 생성
-  - [ ] 매핑은 `data-mapping="specific"` + `data-term=<글 id>`(pathname 매핑은 슬러그를 바꾸면 끊긴다)
-  - [ ] `Comments`(Client): `IntersectionObserver`로 지연 로드, `next-themes` 테마가 바뀌면 iframe에 `postMessage`로 전달, 로드 실패 시 안내 문구. 초안·없는 글에는 렌더링하지 않음
-  - [ ] CSP: 지금은 `frame-src`·`script-src`를 두지 않아 giscus가 허용되지만, CSP를 강화하면 `giscus.app`을 추가해야 함을 "알려진 트레이드오프"에 기록
+  - [x] (a 채택 시, 사용자 수동 작업) 저장소 Discussions 활성화, giscus 앱 설치, 댓글용 카테고리 생성 (2026-11-11 사용자가 완료. 카테고리 `Comments`는 Announcement 형식이며 형식은 사용자 스크린샷으로, giscus 앱 설치는 giscus.app 저장소 검사 통과 화면으로 확인했다. `repoId`·`categoryId`는 `gh api graphql`로 조회)
+  - [x] 매핑은 `data-mapping="specific"` + `data-term=<글 id>`(pathname 매핑은 슬러그를 바꾸면 끊긴다)
+  - [x] `Comments`(Client): `IntersectionObserver`로 지연 로드, `next-themes` 테마가 바뀌면 iframe에 `postMessage`로 전달, 로드 실패 시 안내 문구. 초안·없는 글에는 렌더링하지 않음 (초안·없는 글은 `getPostBySlug`가 `null`이라 `notFound()`로 처리되어 `Comments`까지 오지 않는다)
+  - [x] CSP: 지금은 `frame-src`·`script-src`를 두지 않아 giscus가 허용되지만, CSP를 강화하면 `giscus.app`을 추가해야 함을 "알려진 트레이드오프"에 기록
+  - 구현 메모(2026-11-11): `components/blog/comments.tsx`(Client)는 설정(`lib/site-config.ts`의 `siteConfig.giscus`: `repo`·`repoId`·`category`·`categoryId`) 중 하나라도 비면 `null`을 돌려주고, 아니면 `key={postId}`를 붙인 내부 `GiscusEmbed`를 렌더링한다. 화면 200px 앞에서 `https://giscus.app/client.js`를 주입하고(`data-strict=0`, `data-lang=ko`, `data-loading=lazy`), `resolvedTheme`이 정해지기 전에는 불러오지 않으며, 스크립트 `onerror` 또는 15초 안에 `iframe.giscus-frame`이 없으면 안내 문구를 보인다. 테마 변경은 이미 뜬 iframe에 `giscus.app` origin으로만 `setConfig`를 보낸다. 상세 페이지에서는 `PostPager` 뒤(맨 아래)에 `<Comments postId={post.id} />`를 둔다(댓글 iframe이 길어져도 이전·다음 글 링크가 밀리지 않게). `@giscus/react`는 쓰지 않아 의존성 변경은 없다.
+  - 알려진 한계: (1) iframe이 로드되는 중에 테마를 바꾸면 `setConfig` 메시지가 유실될 수 있다(초기 `data-theme`만 적용). (2) 스크립트는 받았지만 giscus iframe 안에서 위젯이 실패하는 경우는 감지하지 못한다. (3) 댓글 작성에는 GitHub 계정이 필요하다. (4) e2e는 `giscus.app`을 가로채 가짜 `client.js`로 검증하며 about:blank iframe은 메시지를 받지 못해 `postMessage` 호출 인자만 확인한다.
   - 테스트 체크리스트:
     - 정상: Playwright MCP → 발행 글 상세 하단으로 스크롤 → giscus iframe 로드, 스크롤 전에는 iframe 없음
     - 정상: Playwright MCP → 테마 전환 → iframe 테마 반영
     - 오류: Playwright MCP → `giscus.app` 요청을 `route.abort` → 안내 문구, 본문·페이지 오류 없음
     - 엣지: 슬러그 변경 후 같은 글 상세(수동 확인) → 같은 Discussion 연결
     - 엣지: Lighthouse 모바일 → 상세 성능 90 이상
-  - 테스트 결과: (미수행)
+  - 테스트 결과(2026-11-11):
+    - 단위: `components/blog/comments.test.tsx` 16개(설정 4종 중 하나라도 비면 렌더링 없음, 교차 전 스크립트 없음, 교차 후 글 id 매핑 스크립트 1회·관찰 중지, 다크 `data-theme`, 테마 미확정 시 미로드, IntersectionObserver 없으면 즉시 로드, 테마 변경 시 `giscus.app`으로 `postMessage`, iframe 없을 때 테마 변경 무오류, `onerror`·15초 타임아웃 안내, iframe이 생기면 안내 없음, 언마운트 정리, 글 변경 시 재주입). `npm run check`(Vitest 59 파일 / 571개)·`npm run build`·`npm run knip`(기존 설정 hint 1건뿐) 통과. 빌드에서 `/blog/[slug]`는 `◐ Partial Prerender` 1d/1w 그대로.
+    - e2e: `npx playwright test e2e/post-comments.spec.ts` 4개 통과(setup 제외 시, 글 생성 포함 6.5초). `giscus.app`을 `page.route`로 가로채 실제 Discussion을 만들지 않았다. 스크롤 전에는 `giscus.app` 요청 0건·iframe 없음, 댓글 영역에 가까워지면 `client.js`만 요청되어 iframe 1개와 `data-mapping=specific`·`data-term`(글 id)·`data-theme=light`, 다크 전환 시 `{ giscus: { setConfig: { theme: 'dark' } } }`가 `https://giscus.app`으로만 기록되고 스크립트는 재주입되지 않음, `route.abort` 시 안내 문구·본문 유지·`pageerror` 없음. 설정이 비면 `test.skip`(이번엔 설정이 있어 건너뛴 항목 없음).
+    - 회귀: `a11y`·`visitor-flow`·`post-views`와 함께 23개를 7회 돌려 5회는 모두 통과했다. 첫 실행에서는 dev 서버가 중간에 연결 거부 상태가 되어 4개가 실패했고(원인 미확인, 같은 서버 로그에 통과한 실행에도 `ECONNRESET` uncaughtException이 있다), 한 번은 `toBeFocused` 단언 1개가 실패했다(어느 테스트인지 확인하지 못했다). 둘 다 다시 돌리면 사라졌다.
+    - Lighthouse 모바일(실제 env 빌드를 `next start`로 띄운 로컬, 기존 발행 글 1개, 3회): 성능 100·100·100, LCP 1.2s, TBT 0~10ms, CLS 0~0.016. 네트워크 요청 42건 중 giscus 0건(스크롤하지 않으므로 지연 로드가 의도대로 동작). 운영 도메인의 네트워크 지연은 반영되지 않았고, giscus가 로드된 뒤의 성능은 측정하지 않았다.
+    - 수동(Playwright MCP, 실제 giscus, 댓글 작성 없음): 스크롤 전 스크립트·iframe 없음, 스크롤 후 `giscus.app/ko/widget` iframe 로드(높이 372px, `theme=light`), 요청에 `term=<글 id>`·`category=Comments` 포함, 라이트·다크 전환 시 iframe까지 테마 반영(스크린샷으로 확인). 콘솔의 404 2건과 giscus 경고 2건은 이 글에 Discussion이 아직 없어서 나는 정상 동작이다.
+  - 제한 사항·미확인: (1) 슬러그를 바꾼 뒤 같은 Discussion에 연결되는지는 확인하지 못했다. 확인하려면 첫 댓글을 써서 GitHub에 Discussion을 만들어야 한다. 요청에 글 id(`term`)가 실리는 것까지만 확인했다. (2) 실제 giscus의 `setConfig` 수신은 iframe 외관이 바뀐 것으로만 확인했고 메시지 내용은 e2e에서 호출 인자로만 검증했다. (3) 운영 배포 뒤 `/blog/[slug]`에서의 동작과 Lighthouse는 확인하지 않았다. (4) 모바일 화면 배치는 확인하지 않았다.
 
 - **Task 032: 정적 섹션 DB 스키마 및 공개 조회 전환**
   - 관련 기능: F025(제안: 정적 섹션 DB 저장·관리자 편집), F002, F003, F004
@@ -1173,6 +1181,7 @@ PRD의 열린 질문은 아래 기본값으로 진행하고, 사용자 결정이
 - RLS 검증 후속(2026-10-28, 계획: `shrimp_data/branch-review-followup-3.md`): 아래 두 건은 아직 하지 않았다.
   - [x] `test/admin-post-actions`: 이미 `app/admin/posts/actions.test.ts`(커밋 `bd3d647`)가 `savePost`·`deletePost` 모두 `requireAdmin` 거부 시 예외가 전파되고 `createClient`가 호출되지 않음을 단언한다(`vi.mock`으로 `requireAdmin`·`createClient`를 분리). 후속 항목을 만들 때 이 테스트 파일을 확인하지 못하고 "없음"으로 적은 오류였고, 추가 코드 변경 없이 닫는다(2026-10-28 확인, `npx vitest run app/admin/posts/actions.test.ts` 통과).
   - [x] `fix/posts-grants`(2026-10-28): 원격 `posts`의 과잉 GRANT를 `20261028133002_revoke_excess_posts_grants.sql`로 회수했다. 적용 전 사용자 확인을 받았고 원격 프로젝트(`gfrewivdclcitgysgsbi`)를 확인했다. 회수 전에는 anon이 `INSERT·UPDATE·DELETE·TRUNCATE·REFERENCES·TRIGGER`, authenticated가 `TRUNCATE·REFERENCES·TRIGGER`를 추가로 갖고 있었는데(`public` 스키마 default privileges가 원인), 회수 후 anon은 `SELECT`, authenticated는 `SELECT·INSERT·UPDATE·DELETE`만 남았다(`service_role`·`postgres`는 기본값 유지). `get_advisors`(security)는 기존 예외 `auth_leaked_password_protection` 1건뿐이고, 점검 A(anon 조회 pub 1 / drafts 0)와 C(정책 7개, `user_metadata` 참조 0, storage SELECT 0)를 다시 돌려 같은 결과를 확인했다. default privileges는 바꾸지 않아 새 테이블은 같은 과잉 권한을 받으므로 가이드에 기록했다. `npm run check`·`npm run knip`·`npm run build`(placeholder env) 통과. `npm run test:e2e`는 66개 중 61개 통과, `e2e/admin-image-upload.spec.ts`의 '여러 파일 선택' 1개 실패(전체 실행 2회 모두 실패, 같은 파일 단독 실행은 7회 중 6회 통과), 그 뒤 같은 파일의 4개는 미실행이다. 실패 시점에 본문이 빈 문자열이고 오류 알림도 없어 업로드 입력 핸들러가 붙기 전에 `setInputFiles`가 실행된(하이드레이션 경합) 것으로 보이며, 이 페이지는 `posts`를 조회하지 않아 GRANT와 무관해 보이지만 원인은 확정하지 못했다(GRANT를 되돌려 비교하지 않음). 이후 `test/stabilize-image-upload-e2e`에서 `beforeEach`에 하이드레이션 대기(`image-upload-input`에 `__reactProps$` 부착 확인)를 추가했고, 실행 사이를 6분 이상 둔 전체 e2e 4회가 모두 66개 통과했다(수정 전 전체 실행은 2회 모두 실패). 연속 실행에서는 `login()`이 `/auth/login`에 머물러 실패했고 간격을 두자 사라져 Supabase Auth 로그인 횟수 제한으로 추정하나 오류 문구는 확인하지 못했다. e2e는 한 번에 로그인이 약 45번이라 5분 이상 간격을 두고 돌린다. 관리자 글 CRUD e2e(`admin-posts`·`admin-flow` 등)는 통과했다.
+- giscus 댓글과 CSP(Task 031, 2026-11-11): 지금 CSP에는 `script-src`·`frame-src`가 없어 `https://giscus.app/client.js`와 giscus iframe이 그대로 허용된다. 나중에 CSP를 강화하면 `script-src`(스크립트)와 `frame-src`(iframe)에 `https://giscus.app`을 추가해야 하고, 빠뜨리면 댓글이 로드되지 않아 안내 문구만 보인다. 댓글 작성에는 GitHub 계정이 필요하며 스팸 방지·모더레이션은 GitHub Discussions에 맡긴다.
 
 ## MVP 이후 범위
 
