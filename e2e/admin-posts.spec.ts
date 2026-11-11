@@ -294,11 +294,17 @@ test.describe("관리자 글 관리", () => {
   test("빈 폼을 Enter로 제출하면 첫 오류 입력인 제목에 포커스가 간다", async ({
     page,
   }) => {
-    await page.goto("/admin/posts/new");
-    await page.getByLabel("제목").press("Enter");
+    // hydration 전에 Enter가 눌리면 네이티브 제출로 페이지가 새로 로드돼 포커스가 가지 않는다.
+    // 병렬 실행에서 dev 서버가 느릴 때 생기므로, 페이지를 다시 열어 hydration 뒤까지 재시도한다.
+    await expect(async () => {
+      await page.goto("/admin/posts/new");
+      await page.getByLabel("제목").press("Enter");
 
-    await expect(page.locator("#post-title-error")).toBeVisible();
-    await expect(page.locator("#post-slug-error")).toBeVisible();
-    await expect(page.getByLabel("제목")).toBeFocused();
+      await expect(page.locator("#post-title-error")).toBeVisible({
+        timeout: 3_000,
+      });
+      await expect(page.locator("#post-slug-error")).toBeVisible();
+      await expect(page.getByLabel("제목")).toBeFocused();
+    }).toPass({ timeout: 20_000 });
   });
 });
