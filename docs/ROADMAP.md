@@ -987,23 +987,34 @@ PRD는 블로그 상세 주소(`/blog/{slug}`)만 정한다. 나머지 경로는
     - 엣지(수행): `npm run check`(typecheck·lint·format:check·단위 테스트 70파일 703건) 종료 코드 0
     - 미수행·미확인: (1) `e2e/admin-image-upload.spec.ts`는 locator만 바꿨고 실행하지 않았다(테스트 이미지가 스토리지에 남는다). (2) lg 폭 레이아웃(2열·70vh)을 눈으로 확인하지 않았다. (3) 스크린 리더로 읽은 결과는 확인하지 않았다. (4) `build`·`knip`은 라우트·의존성 변경이 없어 돌리지 않았다. (5) 운영(`https://hkoikoi.dev`) 반영은 확인하지 않았다
 
-- **Task 034: Post-MVP 통합 회귀 테스트 및 배포 검증**
+- **Task 034: Post-MVP 통합 회귀 테스트 및 배포 검증** ⚠️ 부분 완료 2026-11-11 (전체 e2e 병렬 실행 2건 실패, 운영 `/blog` 성능 90 미만, 쓰기 거부 점검·본문 `###`·`####` 색 운영 확인 미수행 — `테스트 결과` 참고)
   - 관련 기능: F015~F026(제안), F001~F014 회귀
   - 목표: Post-MVP 묶음을 운영에 내기 전에 회귀와 운영 반영을 확인한다(권장: 탐색 묶음 022~026 완료 때 1회, 전체 완료 때 1회)
   - 의존성: 검증 대상 Task 완료
   - 관련 파일: `e2e/**`, `.github/workflows/ci.yml`, `README.md`, `docs/guides/project-structure.md`, `CLAUDE.md`
   - 수락 기준: `npm run check`·실제 env `npm run build`·`npm run knip`·전체 e2e 통과, 운영에서 새 기능의 정상·오류 시나리오 확인, 문서가 실제 구조와 일치, PRD 반영 대상 기능 ID 목록이 정리됨
-  - [ ] 전체 e2e(세션 재사용 또는 분할 실행), 시크릿 없는 비로그인 시나리오(필터·검색·페이지·RSS)의 CI `e2e-smoke` 편입 검토
-  - [ ] 운영 확인: 필터·검색·페이지·이전/다음 글·RSS·조회수·댓글 각각 정상 1건 이상, 글 발행·삭제 직후 반영
-  - [ ] 운영 Lighthouse 모바일(`/`, `/blog`, 상세) 성능·접근성 90 이상
-  - [ ] `project-structure.md`·CLAUDE.md·README 갱신, PRD에 F015~F025를 반영할지 사용자에게 확인하고 `prd-validator` 점검 안내
-  - [ ] Supabase advisor 최종 확인, 새 테이블·정책 RLS 읽기 전용 점검
+  - [ ] 전체 e2e(세션 재사용 또는 분할 실행), 시크릿 없는 비로그인 시나리오(필터·검색·페이지·RSS)의 CI `e2e-smoke` 편입 검토 — 전체 e2e는 1회 실행했으나 병렬 2건 실패(단독 재실행은 통과). `e2e-smoke` 편입은 관련 spec이 모두 관리자 로그인·시드에 의존해 하지 않기로 판단(코드로만 확인)
+  - [x] 운영 확인: 필터·검색·페이지·이전/다음 글·RSS·조회수·댓글 각각 정상 1건 이상, 글 발행·삭제 직후 반영
+  - [ ] 운영 Lighthouse 모바일(`/`, `/blog`, 상세) 성능·접근성 90 이상 — 접근성은 3곳 모두 100이나 성능은 `/blog`가 72~79로 미달(원인 미확인)
+  - [x] `project-structure.md`·CLAUDE.md·README 갱신, PRD에 F015~F026을 반영할지 사용자에게 확인하고 `prd-validator` 점검 안내 — 사용자가 '지금은 반영 안 함'을 선택해 PRD는 F001~F014로 유지. 반영하기로 하면 `prd-generator`로 초안을 만든 뒤 `prd-validator`로 점검한다
+  - [x] Supabase advisor 최종 확인, 새 테이블·정책 RLS 읽기 전용 점검 — 쓰기 거부 점검은 미수행
   - 테스트 체크리스트:
     - 정상: 터미널 → `npm run check && npm run knip` → 종료 코드 0
     - 정상: Playwright MCP → 운영 방문자 여정(메인 → 블로그 필터 → 검색 → 2페이지 → 상세 → 다음 글 → RSS 링크) → 콘솔 오류 0건(`browser_console_messages`)
     - 오류: Playwright MCP → 운영 비로그인 `/admin/storage`·`/admin/resume/career` → `/auth/login`
     - 엣지: Playwright MCP → 운영에서 글 발행·삭제 직후 `/blog` 필터 목록·검색 결과·RSS·sitemap·홈 반영
-  - 테스트 결과: (미수행)
+  - 테스트 결과(2026-11-11, 브랜치 `test/post-mvp-regression-verification`(= `develop` `ffc3387` 기준), 운영 `https://hkoikoi.dev`):
+    - 정상(수행): `npm run check`(70파일 703건)·`npm run knip`·실제 env `npm run build` 종료 코드 0. knip이 `@testing-library/user-event`를 `ignoreDependencies`에서 지우라는 설정 힌트를 낸다(기존 항목, 미처리)
+    - 부분(수행): 전체 e2e 1회 → 152건 통과·2건 실패·1건 skip·4건 미실행. 실패는 `admin-posts`의 빈 폼 Enter 제출 포커스와 `post-navigation`의 시드 글 겹침이고, 두 파일을 `--workers=1`로 단독 재실행하면 23건 모두 통과해 병렬 실행 경쟁으로 판단한다(원인 코드는 확인하지 않음). 미실행 4건은 `post-navigation` 후속, skip 1건은 `admin-storage`의 후보 선택 시나리오다. e2e 뒤 운영 DB에 e2e 접두 글은 0건(전체 37건)이고 `blog-images` 객체는 53개에서 61개로 8개 늘었다(7일 뒤 `/admin/storage`에서 정리)
+    - 판단(코드 확인만): `e2e-smoke` 편입 후보 `blog-filter`·`blog-pagination`·`blog-search`·`seo`·`post-navigation`은 모두 관리자 로그인이나 시드 글에 의존해 placeholder Supabase env에서는 통과할 수 없다고 봤다. placeholder로 빌드해 돌려 보지는 않았고 `ci.yml`은 바꾸지 않았다
+    - 정상(수행): PR #78(`develop`→`main`) 머지 `57d0c8a`, CI `check`·`e2e-smoke`·`deploy` 성공. 운영 방문자 여정 — 홈, `/blog`, 태그 필터(10건), 검색 `?q=수열`(3건, `noindex`·canonical에서 `q` 제외), `?page=2`(제목 2페이지, canonical `?page=2`), 상세, 이전·다음 링크 이동, `/feed.xml`(RSS 2.0, 20건), 조회수 0→1, giscus 댓글 iframe, `/career`(DB 기반 14항목, 390px 가로 스크롤 없음)
+    - 오류(수행): 비로그인 `/admin/storage`·`/admin/resume/career` → 307 `/auth/login`, `www` → 308 apex
+    - 엣지(수행): 운영 관리자 화면에서 `e2e-prod-` 접두 글 1건을 발행·삭제 → 발행 직후 `/blog`·태그 필터·검색·`feed.xml`·`sitemap.xml`·홈에 나타나고 삭제 직후 모두 사라짐, DB에 e2e 접두 글 0건. 삭제된 글 상세는 HTTP 200 + not-found + `noindex`(Task 018에서 수용한 soft 404)
+    - 정상(수행): Task 046 운영 확인(390px, 사용자가 로그인) — 탭마다 `aria-controls` 대상이 존재하고 `role="tabpanel"` 2개, 본문 입력 뒤 미리보기·작성 탭을 오가도 값 유지, 미리보기(shadow DOM)에 입력 반영. 확인 뒤 입력과 `post-draft:new` 백업을 지우고 로그아웃
+    - 정상(수행): Task 045 `##` 제목 색이 운영에서 본문 색과 다르게 적용됨(모바일 폭)
+    - 오류(수행, 기준 미달): Lighthouse 13.6.0 모바일 simulate(`npx` 임시 실행, 로컬 Chrome) — `/` 성능 86→95·접근성 100, `/blog` 성능 79→72·접근성 100(LCP 5.2s 두 번 동일), 상세 성능 93·접근성 100(1회). 루트 문서 응답이 560~910ms이고 `curl`로는 정적 파일(`/robots.txt`·`/icon.svg`)도 응답이 1~2.6초라 홈 서버·터널 경로 지연이 크고 측정마다 변동이 있었다. `/blog` 문서는 압축 약 40KB. LCP 요소는 식별하지 못했고 원인은 확정하지 못했다. Task 019의 로컬 측정은 `/blog` 100이었다
+    - 정상(수행): Supabase 읽기 전용 점검(`supabase-expert`, 보안 advisor는 직접 재확인) — 5개 테이블 RLS 활성, `user_metadata` 참조 정책 0개, `user_metadata`만 admin인 위조 JWT는 초안·숨김 행·스토리지 객체 0건, `post_views` 직접 쓰기 불가, 검색 RPC는 `SECURITY INVOKER`·`published = true` 명시. 새 경고 없음(`increment_post_view` 공개 실행 WARN 2건은 CLAUDE.md '알려진 예외'에 기록, `auth_leaked_password_protection`은 기존 예외, 미사용 인덱스 INFO 3건은 글 37건이라 조치 불필요)
+    - 미수행·미확인: (1) 운영 `/blog` 성능 90 이상은 미달이고 원인을 가르지 못했다(서버 원점 응답 측정 시도는 권한 분류기에 거부되어 하지 않았다). (2) 병렬 e2e 2건 실패의 원인 코드. (3) 이력 3개 테이블·`reorder_*` RPC·`blog-images` INSERT·`post_views` 직접 쓰기의 쓰기 거부 점검, `increment_post_view` 실제 호출, 실제 비관리자 로그인 세션 검증, 프로젝트 이름 `main PRODUCTION`(ref 일치로 간접 확인). (4) 글 본문 `###`·`####` 색(확인한 글에 `##`만 있음), 다크 모드, 제목 수정·초안 전환·슬러그 변경의 운영 반영, `lg` 이상 폭 편집기 레이아웃, 스크린 리더, Safari·실기기. (5) 운영 확인 중 운영 글 1건의 조회수가 1 올랐다(되돌리지 않음)
 
 ### Phase 7: 홈 서버 이전·자동 배포 ✅
 
