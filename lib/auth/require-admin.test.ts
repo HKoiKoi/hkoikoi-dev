@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const createClientMock = vi.hoisted(() => vi.fn());
 const redirectMock = vi.hoisted(() => vi.fn());
 const notFoundMock = vi.hoisted(() => vi.fn());
+const connectionMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: createClientMock }));
+vi.mock("next/server", () => ({ connection: connectionMock }));
 vi.mock("next/navigation", () => ({
   redirect: redirectMock,
   notFound: notFoundMock,
@@ -29,6 +31,27 @@ beforeEach(() => {
 });
 
 describe("requireAdmin", () => {
+  it("세션 검사 전에 connection()으로 요청 시점까지 미룬다", async () => {
+    const order: string[] = [];
+    connectionMock.mockImplementation(async () => {
+      order.push("connection");
+    });
+    createClientMock.mockImplementation(async () => {
+      order.push("createClient");
+      return {
+        auth: {
+          getClaims: async () => ({
+            data: { claims: { app_metadata: { role: "admin" } } },
+          }),
+        },
+      };
+    });
+
+    await requireAdmin();
+
+    expect(order).toEqual(["connection", "createClient"]);
+  });
+
   it("claims가 없으면 /auth/login으로 redirect", async () => {
     mockClaims(null);
 
