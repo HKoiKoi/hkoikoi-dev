@@ -3,14 +3,16 @@ import type { Metadata } from "next";
 import { EmptyState } from "@/components/content/empty-state";
 import { PageHeader } from "@/components/content/page-header";
 import { ProjectCard } from "@/components/content/project-card";
-import { projects } from "@/data/projects";
+import { getProjects } from "@/lib/queries/resume";
 
 export const metadata: Metadata = {
   title: "프로젝트",
   description: "진행했던 프로젝트를 정리한 페이지입니다.",
 };
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const projects = await getProjects();
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-12">
       <PageHeader

@@ -3,16 +3,16 @@ import type { Metadata } from "next";
 import { EmptyState } from "@/components/content/empty-state";
 import { PageHeader } from "@/components/content/page-header";
 import { PublicationItem } from "@/components/content/publication-item";
-import { publications } from "@/data/publications";
-import { sortPublications } from "@/lib/publications/sort";
+import { getPublications } from "@/lib/queries/resume";
 
 export const metadata: Metadata = {
   title: "논문",
   description: "발표한 논문을 연도순으로 정리한 페이지입니다.",
 };
 
-export default function PublicationsPage() {
-  const items = sortPublications(publications);
+export default async function PublicationsPage() {
+  // 연도 내림차순 정렬은 getPublications가 한다.
+  const items = await getPublications();
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-12">

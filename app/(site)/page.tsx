@@ -8,8 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { profile } from "@/data/profile";
-import { projects } from "@/data/projects";
 import { selectFeatured } from "@/lib/projects/select-featured";
+import { getProjects } from "@/lib/queries/resume";
 import { isNavGroup, navItems } from "@/lib/site-config";
 
 import { LatestPosts } from "./_components/latest-posts";
@@ -19,8 +19,8 @@ const shortcuts = navItems.flatMap((item) =>
   isNavGroup(item) ? item.children : [item],
 );
 
-export default function Home() {
-  const featuredProjects = selectFeatured(projects);
+export default async function Home() {
+  const featuredProjects = selectFeatured(await getProjects());
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-14 px-4 py-12">
