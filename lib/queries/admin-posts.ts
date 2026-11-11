@@ -30,6 +30,36 @@ export async function getAdminPosts(): Promise<PostSummary[]> {
   }
 }
 
+/**
+ * 글 id별 누적 조회수 맵. 조회 기록이 없는 글은 맵에 없다(호출 측이 0으로 본다).
+ * 오류는 null로 돌려준다(목록은 그대로 보이고 조회수 열만 '-'로 표시한다).
+ * 캐시하지 않으며 반드시 requireAdmin() 이후에 호출한다.
+ */
+export async function getAdminPostViewCounts(): Promise<Record<
+  string,
+  number
+> | null> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("post_views")
+      .select("post_id, view_count");
+
+    if (error) {
+      console.error("[getAdminPostViewCounts]", error.message);
+      return null;
+    }
+    return Object.fromEntries(
+      (data ?? []).map((row) => [row.post_id, row.view_count]),
+    );
+  } catch (error) {
+    // 프리렌더 중단 같은 Next.js 내부 신호는 삼키지 않고 다시 던진다.
+    unstable_rethrow(error);
+    console.error("[getAdminPostViewCounts]", error);
+    return null;
+  }
+}
+
 export type PostReference = { content: string; thumbnail_url: string | null };
 
 /**
